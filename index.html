@@ -24,7 +24,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
+  getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -51,15 +51,13 @@ async function sha256(text) {
 }
 
 document.getElementById('google-signin-btn').addEventListener('click', () => {
-  signInWithRedirect(auth, provider);
+  signInWithPopup(auth, provider).catch((error) => {
+    document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
+  });
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => {
   signOut(auth);
-});
-
-getRedirectResult(auth).catch((error) => {
-  document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
 });
 
 onAuthStateChanged(auth, async (user) => {

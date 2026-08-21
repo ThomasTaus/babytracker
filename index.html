@@ -24,7 +24,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithRedirect, onAuthStateChanged, signOut
+  getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -58,6 +58,10 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   signOut(auth);
 });
 
+getRedirectResult(auth).catch((error) => {
+  document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
+});
+
 onAuthStateChanged(auth, async (user) => {
   const loginScreen = document.getElementById('login-screen');
   const welcomeScreen = document.getElementById('welcome-screen');
@@ -72,7 +76,7 @@ onAuthStateChanged(auth, async (user) => {
 
   const hash = await sha256(user.email.toLowerCase());
   if (!ALLOWED_EMAIL_HASHES.includes(hash)) {
-    loginError.textContent = 'Zugriff verweigert: dieser Account ist nicht berechtigt.';
+    loginError.textContent = 'Zugriff verweigert: ' + user.email + ' ist nicht berechtigt.';
     await signOut(auth);
     return;
   }

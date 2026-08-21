@@ -50,11 +50,22 @@ async function sha256(text) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
 document.getElementById('google-signin-btn').addEventListener('click', () => {
+  if (isStandalone) {
+    window.open(location.href, '_blank');
+    return;
+  }
   signInWithPopup(auth, provider).catch((error) => {
     document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
   });
 });
+
+if (isStandalone) {
+  document.getElementById('login-error').textContent = 'Hinweis: Der Login öffnet sich im Browser. Danach diese App-Ansicht neu öffnen.';
+  document.getElementById('login-error').style.color = '#555';
+}
 
 document.getElementById('logout-btn').addEventListener('click', () => {
   signOut(auth);

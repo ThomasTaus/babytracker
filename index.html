@@ -9,7 +9,82 @@
 <meta name="theme-color" content="#ffffff">
 </head>
 <body>
-<h1>Hello World</h1>
+<div id="login-screen">
+  <h1>Hello World</h1>
+  <button id="google-signin-btn">Über Google anmelden</button>
+  <p id="login-error" style="color:red;"></p>
+</div>
+
+<div id="welcome-screen" style="display:none;">
+  <h1>Welcome</h1>
+  <p id="welcome-name"></p>
+  <button id="logout-btn">Abmelden</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithRedirect, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC7Dlv3j42IteTQyjeVrteVITSwdUKext4",
+  authDomain: "meintracker-deee1.firebaseapp.com",
+  projectId: "meintracker-deee1",
+  storageBucket: "meintracker-deee1.firebasestorage.app",
+  messagingSenderId: "545255675782",
+  appId: "1:545255675782:web:4282df432767c88a33fe07"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+const ALLOWED_EMAIL_HASHES = [
+  'be75ec1ed07f97bf7d38e52e3c9799f0325003ec3f23fdd67103642c56594e73',
+  '2c4c6c9b65ac160548f63faf4e9faa59b5ac1659620585ab704cf4d0585edebf'
+];
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+document.getElementById('google-signin-btn').addEventListener('click', () => {
+  signInWithRedirect(auth, provider);
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  signOut(auth);
+});
+
+onAuthStateChanged(auth, async (user) => {
+  const loginScreen = document.getElementById('login-screen');
+  const welcomeScreen = document.getElementById('welcome-screen');
+  const loginError = document.getElementById('login-error');
+
+  if (!user) {
+    loginScreen.style.display = 'block';
+    welcomeScreen.style.display = 'none';
+    document.body.style.background = '';
+    return;
+  }
+
+  const hash = await sha256(user.email.toLowerCase());
+  if (!ALLOWED_EMAIL_HASHES.includes(hash)) {
+    loginError.textContent = 'Zugriff verweigert: dieser Account ist nicht berechtigt.';
+    await signOut(auth);
+    return;
+  }
+
+  loginError.textContent = '';
+  loginScreen.style.display = 'none';
+  welcomeScreen.style.display = 'block';
+  document.getElementById('welcome-name').textContent = user.displayName;
+  document.body.style.background = '#e6ffe6';
+});
+</script>
+
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');

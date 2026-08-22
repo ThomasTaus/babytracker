@@ -7,11 +7,16 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
 <meta name="theme-color" content="#ffffff">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div id="login-screen">
   <h1>Hello World</h1>
-  <button id="google-signin-btn">Über Google anmelden</button>
+  <div id="g_id_onload"
+    data-client_id="545255675782-injhdvvsi80h0fdmk312j82tq68ke1ji.apps.googleusercontent.com"
+    data-callback="handleCredentialResponse">
+  </div>
+  <div class="g_id_signin" data-type="standard"></div>
   <p id="login-error" style="color:red;"></p>
 </div>
 
@@ -24,7 +29,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
+  getAuth, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -38,7 +43,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 
 const ALLOWED_EMAIL_HASHES = [
   'be75ec1ed07f97bf7d38e52e3c9799f0325003ec3f23fdd67103642c56594e73',
@@ -50,34 +54,17 @@ async function sha256(text) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-if (isStandalone && !isIOS) {
-  // Android: in-app OAuth (popup/redirect/window.open) doesn't complete reliably inside
-  // the installed app's own view. But since storage is shared with the system browser,
-  // logging in there updates this already-open instance automatically (Firebase's
-  // cross-tab auth sync) — no code needed, just point the user at the browser.
-  document.getElementById('google-signin-btn').style.display = 'none';
-  document.getElementById('login-error').textContent =
-    'Bitte öffne ' + location.href + ' einmal in deinem normalen Browser (z.B. Chrome) und melde dich dort an. Diese App-Ansicht aktualisiert sich danach automatisch.';
-  document.getElementById('login-error').style.color = '#555';
-} else {
-  document.getElementById('google-signin-btn').addEventListener('click', () => {
-    if (isStandalone && isIOS) {
-      // iOS keeps the redirect within the same standalone app instance (no separate storage silo issue like Android's Custom Tabs).
-      signInWithRedirect(auth, provider);
-      return;
-    }
-    signInWithPopup(auth, provider).catch((error) => {
-      document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
-    });
-  });
-}
-
-getRedirectResult(auth).catch((error) => {
-  document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
-});
+// Called directly by Google Identity Services after sign-in — stays entirely on our
+// own origin (no redirect through firebaseapp.com), then hands the resulting Google
+// ID token to Firebase to create a normal Firebase Auth session.
+window.handleCredentialResponse = async (response) => {
+  const credential = GoogleAuthProvider.credential(response.credential);
+  try {
+    await signInWithCredential(auth, credential);
+  } catch (error) {
+    document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
+  }
+};
 
 document.getElementById('logout-btn').addEventListener('click', () => {
   signOut(auth);

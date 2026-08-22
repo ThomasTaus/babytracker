@@ -459,11 +459,11 @@ const screens = {
   windeln: document.getElementById('screen-windeln'),
   schlafen: document.getElementById('screen-schlafen')
 };
+function showScreen(target) {
+  Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
+}
 document.querySelectorAll('.tab-btn').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.target;
-    Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
-  });
+  btn.addEventListener('click', () => showScreen(btn.dataset.target));
 });
 
 // --- Stillen screen logic ---
@@ -824,6 +824,8 @@ async function resumeOpenNapIfAny() {
     openNapStartedAt = new Date(open.startTime).getTime();
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(renderTimerDisplay, 1000);
+    setNapMode('timer');
+    showScreen('schlafen');
   }
   renderTimerDisplay();
 }

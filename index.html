@@ -330,7 +330,12 @@
 
         <div id="nap-timer-panel" style="display: none; flex-direction: column; align-items: center; gap: 12px; padding: 8px 0 4px;">
           <div id="timer-display" style="font-family: 'Fredoka', sans-serif; font-size: 34px; font-weight: 600; letter-spacing: 0.02em;">00:00:00</div>
-          <div id="timer-sublabel" style="font-size: 12px; color: var(--text-muted);">Bereit zum Start</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div id="timer-sublabel" style="font-size: 12px; color: var(--text-muted);">Bereit zum Start</div>
+            <button id="timer-refresh-btn" title="Status aktualisieren" style="border:none; background:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex; align-items:center;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5"/></svg>
+            </button>
+          </div>
           <button id="timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:14px 32px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Start</button>
         </div>
       </div>
@@ -736,6 +741,7 @@ const napSaveBtn = document.getElementById('nap-save');
 const timerDisplay = document.getElementById('timer-display');
 const timerSublabel = document.getElementById('timer-sublabel');
 const timerToggleBtn = document.getElementById('timer-toggle-btn');
+const timerRefreshBtn = document.getElementById('timer-refresh-btn');
 
 function napSegStyle(active) {
   return active
@@ -817,18 +823,41 @@ function renderTimerDisplay() {
   timerToggleBtn.style.background = 'var(--stop)';
 }
 
-async function resumeOpenNapIfAny() {
+// Gleicht den lokalen Timer-Zustand mit Firestore ab — in beide Richtungen:
+// erkennt sowohl einen woanders gestarteten als auch einen woanders bereits
+// gestoppten Timer, damit die Anzeige nie "hängen" bleibt.
+async function syncNapState() {
   const open = await findOpenNap();
   if (open) {
     openNapDocId = open.id;
     openNapStartedAt = new Date(open.startTime).getTime();
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(renderTimerDisplay, 1000);
+    if (!timerInterval) timerInterval = setInterval(renderTimerDisplay, 1000);
+  } else {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    openNapDocId = null;
+    openNapStartedAt = null;
+  }
+  renderTimerDisplay();
+  return open;
+}
+
+async function resumeOpenNapIfAny() {
+  const open = await syncNapState();
+  if (open) {
     setNapMode('timer');
     showScreen('schlafen');
   }
-  renderTimerDisplay();
 }
+
+timerRefreshBtn.addEventListener('click', async () => {
+  timerRefreshBtn.disabled = true;
+  try {
+    await syncNapState();
+  } catch (error) {
+    timerSublabel.textContent = 'Aktualisieren fehlgeschlagen';
+  }
+  timerRefreshBtn.disabled = false;
+});
 
 timerToggleBtn.addEventListener('click', async () => {
   if (!currentUser) return;

@@ -126,6 +126,12 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Windeln</span>
       </button>
+      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
+      </button>
     </div>
   </div>
 
@@ -230,6 +236,126 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Windeln</span>
       </button>
+      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Schlafen -->
+  <div id="screen-schlafen" style="
+    --accent: #6A5ACD;
+    --accent-strong: #4B3F9E;
+    --accent-soft: #E8E5F9;
+    --stop: #C0392B;
+    --surface: oklch(99% 0.002 250);
+    --surface-alt: oklch(93% 0.004 250);
+    --text: oklch(27% 0.006 250);
+    --text-muted: oklch(52% 0.006 250);
+    --border: oklch(87% 0.004 250);
+    min-height: 100vh; max-width: 480px; margin: 0 auto;
+    color: var(--text); display: none; flex-direction: column;
+  ">
+    <div style="flex: 1; overflow-y: auto; padding: 32px 24px 16px; display: flex; flex-direction: column; gap: 22px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--accent-strong); flex-shrink: 0;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Schlafen</div>
+            <div style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
+          </div>
+        </div>
+        <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
+      </div>
+
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Nächtliches Aufwachen</label>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-alt); border-radius: 14px; padding: 10px 12px;">
+          <button id="night-prev" style="border:none; background:none; color:var(--text-muted); cursor:pointer; padding:4px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div style="text-align: center;">
+            <div id="night-label" style="font-size: 14px; font-weight: 600;"></div>
+            <div id="night-sublabel" style="font-size: 11px; color: var(--text-muted);"></div>
+          </div>
+          <button id="night-next" style="border:none; background:none; color:var(--border); cursor:default; padding:4px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: center; gap: 24px; padding: 6px 0;">
+          <button id="wake-dec" style="width:40px; height:40px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div style="text-align: center; min-width: 70px;">
+            <div id="wake-count" style="font-family: 'Fredoka', sans-serif; font-size: 40px; font-weight: 600;">1</div>
+            <div style="font-size: 12px; color: var(--text-muted);">mal aufgewacht</div>
+          </div>
+          <button id="wake-inc" style="width:40px; height:40px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <button id="night-save" style="width:100%; padding:14px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+      </div>
+
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Nachmittagsschlaf</label>
+
+        <div style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
+          <button id="nap-manual-btn" style="flex:1; padding:10px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Manuell</button>
+          <button id="nap-timer-btn" style="flex:1; padding:10px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Timer</button>
+        </div>
+
+        <div id="nap-manual-panel" style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-alt); border-radius: 14px; padding: 12px 16px;">
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Start</span>
+            <input id="nap-start" type="time" style="border: none; background: transparent; font-size: 17px; font-weight: 600; color: var(--text); outline: none;">
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-alt); border-radius: 14px; padding: 12px 16px;">
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Ende</span>
+            <input id="nap-end" type="time" style="border: none; background: transparent; font-size: 17px; font-weight: 600; color: var(--text); outline: none;">
+          </div>
+          <div id="nap-duration-label" style="text-align: center; font-size: 13px; color: var(--accent-strong); font-weight: 600; padding-top: 2px;"></div>
+          <button id="nap-save" style="width:100%; padding:14px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+        </div>
+
+        <div id="nap-timer-panel" style="display: none; flex-direction: column; align-items: center; gap: 12px; padding: 8px 0 4px;">
+          <div id="timer-display" style="font-family: 'Fredoka', sans-serif; font-size: 34px; font-weight: 600; letter-spacing: 0.02em;">00:00:00</div>
+          <div id="timer-sublabel" style="font-size: 12px; color: var(--text-muted);">Bereit zum Start</div>
+          <button id="timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:14px 32px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Start</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
+      <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Stillen</span>
+      </button>
+      <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Windeln</span>
+      </button>
+      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--accent-strong); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
+      </button>
     </div>
   </div>
 
@@ -241,7 +367,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, serverTimestamp
+  getFirestore, collection, addDoc, updateDoc, doc, query, where, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -324,15 +450,19 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   loginScreen.style.display = 'none';
   appEl.style.display = 'block';
+  resumeOpenNapIfAny();
 });
 
 // --- Tab navigation ---
-const screens = { stillen: document.getElementById('screen-stillen'), windeln: document.getElementById('screen-windeln') };
+const screens = {
+  stillen: document.getElementById('screen-stillen'),
+  windeln: document.getElementById('screen-windeln'),
+  schlafen: document.getElementById('screen-schlafen')
+};
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const target = btn.dataset.target;
-    screens.stillen.style.display = target === 'stillen' ? 'flex' : 'none';
-    screens.windeln.style.display = target === 'windeln' ? 'flex' : 'none';
+    Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
   });
 });
 
@@ -527,6 +657,217 @@ windelnSaveBtn.addEventListener('click', async () => {
     windelnSaveBtn.textContent = 'Fehler beim Speichern';
     windelnSaveBtn.disabled = false;
   }
+});
+
+// --- Schlafen screen logic ---
+function fmtDayDate(d) {
+  const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  return WEEKDAYS[d.getDay()] + ' ' + String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.';
+}
+function isoDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function parseMinutes(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+const nightPrevBtn = document.getElementById('night-prev');
+const nightNextBtn = document.getElementById('night-next');
+const nightLabelEl = document.getElementById('night-label');
+const nightSublabelEl = document.getElementById('night-sublabel');
+const wakeCountEl = document.getElementById('wake-count');
+const wakeDecBtn = document.getElementById('wake-dec');
+const wakeIncBtn = document.getElementById('wake-inc');
+const nightSaveBtn = document.getElementById('night-save');
+
+let nightOffset = 0;
+let wakeCount = 1;
+
+function renderNight() {
+  const today = new Date();
+  const nightStart = new Date(today); nightStart.setDate(nightStart.getDate() - 1 - nightOffset);
+  const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
+  const isLastNight = nightOffset === 0;
+  nightLabelEl.textContent = fmtDayDate(nightStart) + ' → ' + fmtDayDate(nightEnd);
+  nightSublabelEl.textContent = isLastNight ? 'Letzte Nacht' : '';
+  nightNextBtn.style.color = isLastNight ? 'var(--border)' : 'var(--text-muted)';
+  nightNextBtn.style.cursor = isLastNight ? 'default' : 'pointer';
+  wakeCountEl.textContent = wakeCount;
+}
+nightPrevBtn.addEventListener('click', () => { nightOffset += 1; renderNight(); });
+nightNextBtn.addEventListener('click', () => { if (nightOffset > 0) { nightOffset -= 1; renderNight(); } });
+wakeDecBtn.addEventListener('click', () => { wakeCount = Math.max(0, wakeCount - 1); renderNight(); });
+wakeIncBtn.addEventListener('click', () => { wakeCount += 1; renderNight(); });
+renderNight();
+
+nightSaveBtn.addEventListener('click', async () => {
+  if (!currentUser) return;
+  const today = new Date();
+  const nightStart = new Date(today); nightStart.setDate(nightStart.getDate() - 1 - nightOffset);
+  const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
+  const entry = {
+    nightStart: isoDate(nightStart),
+    nightEnd: isoDate(nightEnd),
+    wakeCount,
+    createdBy: currentUser.email,
+    createdAt: serverTimestamp()
+  };
+  nightSaveBtn.disabled = true;
+  try {
+    await addDoc(collection(db, 'nightWakeups'), entry);
+    nightSaveBtn.textContent = 'Gespeichert ✓';
+    setTimeout(() => { nightSaveBtn.textContent = 'Eintrag speichern'; nightSaveBtn.disabled = false; }, 1400);
+  } catch (error) {
+    nightSaveBtn.textContent = 'Fehler beim Speichern';
+    nightSaveBtn.disabled = false;
+  }
+});
+
+// Nachmittagsschlaf: Manuell / Timer
+const napManualBtn = document.getElementById('nap-manual-btn');
+const napTimerBtn = document.getElementById('nap-timer-btn');
+const napManualPanel = document.getElementById('nap-manual-panel');
+const napTimerPanel = document.getElementById('nap-timer-panel');
+const napStartInput = document.getElementById('nap-start');
+const napEndInput = document.getElementById('nap-end');
+const napDurationLabel = document.getElementById('nap-duration-label');
+const napSaveBtn = document.getElementById('nap-save');
+const timerDisplay = document.getElementById('timer-display');
+const timerSublabel = document.getElementById('timer-sublabel');
+const timerToggleBtn = document.getElementById('timer-toggle-btn');
+
+function napSegStyle(active) {
+  return active
+    ? 'flex:1; padding:10px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: var(--accent); color: white;'
+    : 'flex:1; padding:10px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: transparent; color: var(--text-muted);';
+}
+function setNapMode(mode) {
+  napManualBtn.setAttribute('style', napSegStyle(mode === 'manual'));
+  napTimerBtn.setAttribute('style', napSegStyle(mode === 'timer'));
+  napManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
+  napTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
+}
+napManualBtn.addEventListener('click', () => setNapMode('manual'));
+napTimerBtn.addEventListener('click', () => setNapMode('timer'));
+setNapMode('manual');
+
+function renderNapDuration() {
+  const minutes = Math.max(0, parseMinutes(napEndInput.value) - parseMinutes(napStartInput.value));
+  napDurationLabel.textContent = minutes > 0 ? 'Dauer: ' + Math.floor(minutes / 60) + ' Std ' + (minutes % 60) + ' Min' : 'Dauer: –';
+  napSaveBtn.style.background = minutes > 0 ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+  return minutes;
+}
+napStartInput.value = formatTime(new Date(Date.now() - 60 * 60000));
+napEndInput.value = formatTime(new Date());
+napStartInput.addEventListener('input', renderNapDuration);
+napEndInput.addEventListener('input', renderNapDuration);
+renderNapDuration();
+
+napSaveBtn.addEventListener('click', async () => {
+  if (!currentUser) return;
+  const minutes = renderNapDuration();
+  if (minutes <= 0) return;
+  napSaveBtn.disabled = true;
+  try {
+    await addDoc(collection(db, 'naps'), {
+      startTime: napStartInput.value,
+      endTime: napEndInput.value,
+      durationMinutes: minutes,
+      source: 'manual',
+      createdBy: currentUser.email,
+      createdAt: serverTimestamp()
+    });
+    napSaveBtn.textContent = 'Gespeichert ✓';
+    setTimeout(() => { napSaveBtn.textContent = 'Eintrag speichern'; napSaveBtn.disabled = false; }, 1400);
+  } catch (error) {
+    napSaveBtn.textContent = 'Fehler beim Speichern';
+    napSaveBtn.disabled = false;
+  }
+});
+
+// --- Timer: robust gegen Schließen der App, Zustand lebt in Firestore ---
+let openNapDocId = null;
+let openNapStartedAt = null;
+let timerInterval = null;
+
+async function findOpenNap() {
+  const q = query(collection(db, 'naps'), where('endTime', '==', null));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
+}
+
+function renderTimerDisplay() {
+  if (!openNapStartedAt) {
+    timerDisplay.textContent = '00:00:00';
+    timerSublabel.textContent = 'Bereit zum Start';
+    timerToggleBtn.textContent = 'Start';
+    timerToggleBtn.style.background = 'var(--accent-strong)';
+    return;
+  }
+  const elapsed = Math.floor((Date.now() - openNapStartedAt) / 1000);
+  const hh = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+  timerDisplay.textContent = hh + ':' + mm + ':' + ss;
+  timerSublabel.textContent = 'Baby schläft seit ' + formatTime(new Date(openNapStartedAt));
+  timerToggleBtn.textContent = 'Stop';
+  timerToggleBtn.style.background = 'var(--stop)';
+}
+
+async function resumeOpenNapIfAny() {
+  const open = await findOpenNap();
+  if (open) {
+    openNapDocId = open.id;
+    openNapStartedAt = new Date(open.startTime).getTime();
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(renderTimerDisplay, 1000);
+  }
+  renderTimerDisplay();
+}
+
+timerToggleBtn.addEventListener('click', async () => {
+  if (!currentUser) return;
+  timerToggleBtn.disabled = true;
+  try {
+    if (!openNapDocId) {
+      const startedAt = new Date();
+      const ref = await addDoc(collection(db, 'naps'), {
+        startTime: startedAt.toISOString(),
+        endTime: null,
+        durationMinutes: null,
+        source: 'timer',
+        createdBy: currentUser.email,
+        createdAt: serverTimestamp()
+      });
+      openNapDocId = ref.id;
+      openNapStartedAt = startedAt.getTime();
+      timerInterval = setInterval(renderTimerDisplay, 1000);
+      renderTimerDisplay();
+    } else {
+      // Vor dem Stop nochmal frisch nachsehen, welches Dokument offen ist —
+      // die lokale ID könnte veraltet sein, falls die App zwischenzeitlich neu geladen wurde.
+      const open = await findOpenNap();
+      const targetId = open ? open.id : openNapDocId;
+      const startedAt = open ? new Date(open.startTime) : new Date(openNapStartedAt);
+      const endedAt = new Date();
+      const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
+      await updateDoc(doc(db, 'naps', targetId), {
+        endTime: endedAt.toISOString(),
+        durationMinutes
+      });
+      clearInterval(timerInterval);
+      timerInterval = null;
+      openNapDocId = null;
+      openNapStartedAt = null;
+      renderTimerDisplay();
+    }
+  } catch (error) {
+    timerSublabel.textContent = 'Fehler: ' + error.message;
+  }
+  timerToggleBtn.disabled = false;
 });
 </script>
 

@@ -53,30 +53,31 @@ async function sha256(text) {
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-document.getElementById('google-signin-btn').addEventListener('click', () => {
-  if (isStandalone && isIOS) {
-    // iOS keeps the redirect within the same standalone app instance (no separate storage silo issue like Android's Custom Tabs).
-    signInWithRedirect(auth, provider);
-    return;
-  }
-  if (isStandalone) {
-    // Android's installed PWA shares storage with the system browser, but popup/redirect inside the app itself is unreliable.
-    window.open(location.href, '_blank');
-    return;
-  }
-  signInWithPopup(auth, provider).catch((error) => {
-    document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
+if (isStandalone && !isIOS) {
+  // Android: in-app OAuth (popup/redirect/window.open) doesn't complete reliably inside
+  // the installed app's own view. But since storage is shared with the system browser,
+  // logging in there updates this already-open instance automatically (Firebase's
+  // cross-tab auth sync) — no code needed, just point the user at the browser.
+  document.getElementById('google-signin-btn').style.display = 'none';
+  document.getElementById('login-error').textContent =
+    'Bitte öffne ' + location.href + ' einmal in deinem normalen Browser (z.B. Chrome) und melde dich dort an. Diese App-Ansicht aktualisiert sich danach automatisch.';
+  document.getElementById('login-error').style.color = '#555';
+} else {
+  document.getElementById('google-signin-btn').addEventListener('click', () => {
+    if (isStandalone && isIOS) {
+      // iOS keeps the redirect within the same standalone app instance (no separate storage silo issue like Android's Custom Tabs).
+      signInWithRedirect(auth, provider);
+      return;
+    }
+    signInWithPopup(auth, provider).catch((error) => {
+      document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
+    });
   });
-});
+}
 
 getRedirectResult(auth).catch((error) => {
   document.getElementById('login-error').textContent = 'Fehler beim Login: ' + error.code + ' – ' + error.message;
 });
-
-if (isStandalone && !isIOS) {
-  document.getElementById('login-error').textContent = 'Hinweis: Der Login öffnet sich im Browser. Danach diese App-Ansicht neu öffnen.';
-  document.getElementById('login-error').style.color = '#555';
-}
 
 document.getElementById('logout-btn').addEventListener('click', () => {
   signOut(auth);

@@ -28,6 +28,127 @@
 
 <div id="app" style="display: none;">
 
+  <!-- Heute -->
+  <div id="screen-heute" style="
+    --neutral-soft: oklch(93% 0.004 250);
+    --neutral-strong: oklch(35% 0.006 250);
+    --stillen: oklch(72% 0.11 250); --stillen-strong: oklch(48% 0.13 250);
+    --windeln: #39ABAB;
+    --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9;
+    --ok: oklch(58% 0.11 150);
+    --surface: oklch(99% 0.002 250);
+    --surface-alt: oklch(93% 0.004 250);
+    --text: oklch(27% 0.006 250);
+    --text-muted: oklch(52% 0.006 250);
+    --border: oklch(87% 0.004 250);
+    min-height: 100vh; max-width: 480px; margin: 0 auto;
+    color: var(--text); display: none; flex-direction: column;
+  ">
+    <div style="flex: 1; overflow-y: auto; padding: 28px 24px 12px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3.5" y="5" width="17" height="15" rx="3"/>
+              <line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
+              <line x1="8" y1="3" x2="8" y2="6.5"/>
+              <line x1="16" y1="3" x2="16" y2="6.5"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Heute</div>
+            <div id="heute-date" style="font-size: 13px; color: var(--text-muted);"></div>
+          </div>
+        </div>
+        <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--stillen); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--stillen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
+                <line x1="9" y1="12" x2="15" y2="12"/>
+              </svg>
+              <span style="font-weight: 700; font-size: 14px;">Stillen</span>
+            </div>
+            <span id="stillen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
+          </div>
+          <div id="stillen-detail" style="font-size: 13.5px;"></div>
+          <div id="stillen-stats" style="font-size: 11px; color: var(--text-muted);"></div>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--windeln); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
+              </svg>
+              <span style="font-weight: 700; font-size: 14px;">Windeln</span>
+            </div>
+            <span id="windeln-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
+          </div>
+          <div id="windeln-detail" style="font-size: 13.5px;"></div>
+          <div id="windeln-stats" style="font-size: 11px; color: var(--text-muted);"></div>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--schlafen); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+              </svg>
+              <span style="font-weight: 700; font-size: 14px;">Schlafen</span>
+            </div>
+            <div id="schlafen-running-badge" style="display: none; align-items: center; gap: 5px; background: var(--schlafen-soft); color: var(--schlafen-strong); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
+              <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--schlafen-strong); display: inline-block;"></span>
+              läuft
+            </div>
+          </div>
+          <div id="schlafen-detail" style="font-size: 13.5px;"></div>
+          <div id="schlafen-stats" style="font-size: 11px; color: var(--text-muted);"></div>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Zeitverlauf</label>
+      </div>
+
+      <div id="timeline-container" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px 14px; display: flex; flex-direction: column;">
+        <div style="font-size: 13px; color: var(--text-muted);">Lade…</div>
+      </div>
+    </div>
+
+    <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
+      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--neutral-strong); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Heute</span>
+      </button>
+      <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Stillen</span>
+      </button>
+      <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Windeln</span>
+      </button>
+      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Stillen -->
   <div id="screen-stillen" style="
     --accent: oklch(72% 0.11 250);
@@ -113,6 +234,12 @@
     </div>
 
     <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
+      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Heute</span>
+      </button>
       <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--accent-strong); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
@@ -223,6 +350,12 @@
     </div>
 
     <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
+      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Heute</span>
+      </button>
       <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
@@ -355,6 +488,12 @@
     </div>
 
     <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
+      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Heute</span>
+      </button>
       <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
@@ -385,7 +524,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, doc, query, where, getDocs, serverTimestamp
+  getFirestore, collection, addDoc, updateDoc, doc, query, where, orderBy, limit, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -473,12 +612,14 @@ onAuthStateChanged(auth, async (user) => {
 
 // --- Tab navigation ---
 const screens = {
+  heute: document.getElementById('screen-heute'),
   stillen: document.getElementById('screen-stillen'),
   windeln: document.getElementById('screen-windeln'),
   schlafen: document.getElementById('screen-schlafen')
 };
 function showScreen(target) {
   Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
+  if (target === 'heute') loadOverview();
 }
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target));
@@ -919,6 +1060,177 @@ timerToggleBtn.addEventListener('click', async () => {
   }
   timerToggleBtn.disabled = false;
 });
+
+// --- Heute (Übersicht) ---
+const WARN_COLOR_IDS = WARN_COLORS.map((c) => c.id);
+const COLOR_BY_ID = {};
+OK_COLORS.concat(WARN_COLORS).forEach((c) => { COLOR_BY_ID[c.id] = c; });
+
+function todayStartDate() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function timeAgo(date) {
+  const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (mins < 1) return 'gerade eben';
+  if (mins < 60) return 'vor ' + mins + ' Min';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return 'vor ' + hrs + ' Std';
+  const days = Math.floor(hrs / 24);
+  return 'vor ' + days + (days === 1 ? ' Tag' : ' Tagen');
+}
+
+function formatDuration(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h > 0 ? (h + ' Std ' + m + ' Min') : (m + ' Min');
+}
+
+async function getMostRecent(name) {
+  const snap = await getDocs(query(collection(db, name), orderBy('createdAt', 'desc'), limit(1)));
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
+}
+
+async function getTodayDocs(name) {
+  const snap = await getDocs(query(collection(db, name), where('createdAt', '>=', todayStartDate())));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+function timeOnDate(baseDate, hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date(baseDate);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+async function loadOverview() {
+  const now = new Date();
+  document.getElementById('heute-date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const timelineEvents = [];
+
+  // Stillen
+  try {
+    const [lastFeeding, todayFeedings] = await Promise.all([getMostRecent('feedings'), getTodayDocs('feedings')]);
+    if (lastFeeding && lastFeeding.createdAt) {
+      document.getElementById('stillen-ago').textContent = timeAgo(lastFeeding.createdAt.toDate());
+      document.getElementById('stillen-detail').textContent = lastFeeding.type === 'bottle'
+        ? 'Fläschchen · ' + lastFeeding.amount + ' ml'
+        : 'Brust · ' + lastFeeding.minutes + ' Min';
+    } else {
+      document.getElementById('stillen-ago').textContent = '';
+      document.getElementById('stillen-detail').textContent = 'Noch kein Eintrag';
+    }
+    const totalMl = todayFeedings.filter((f) => f.type === 'bottle').reduce((sum, f) => sum + (f.amount || 0), 0);
+    document.getElementById('stillen-stats').textContent = 'Heute: ' + todayFeedings.length + '×' + (totalMl > 0 ? ' · ' + totalMl + ' ml gesamt' : '');
+    todayFeedings.forEach((f) => {
+      if (!f.createdAt) return;
+      timelineEvents.push({
+        ts: f.createdAt.toDate(),
+        color: 'var(--stillen)',
+        label: f.type === 'bottle' ? 'Fläschchen · ' + f.amount + ' ml' : 'Brust · ' + f.minutes + ' Min'
+      });
+    });
+  } catch (error) {
+    document.getElementById('stillen-detail').textContent = 'Fehler beim Laden';
+  }
+
+  // Windeln
+  try {
+    const [lastDiaper, todayDiapers] = await Promise.all([getMostRecent('diaperChanges'), getTodayDocs('diaperChanges')]);
+    function diaperLabel(d) {
+      const sizes = [];
+      if (d.small) sizes.push('Klein');
+      if (d.big) sizes.push('Groß');
+      let label = sizes.join(' & ');
+      if (d.big && WARN_COLOR_IDS.includes(d.color) && COLOR_BY_ID[d.color]) {
+        label += ' · ' + COLOR_BY_ID[d.color].label;
+      }
+      return label;
+    }
+    if (lastDiaper && lastDiaper.createdAt) {
+      document.getElementById('windeln-ago').textContent = timeAgo(lastDiaper.createdAt.toDate());
+      document.getElementById('windeln-detail').textContent = diaperLabel(lastDiaper);
+    } else {
+      document.getElementById('windeln-ago').textContent = '';
+      document.getElementById('windeln-detail').textContent = 'Noch kein Eintrag';
+    }
+    const bigCount = todayDiapers.filter((d) => d.big).length;
+    document.getElementById('windeln-stats').textContent = 'Heute: ' + todayDiapers.length + '×' + (bigCount > 0 ? ' · davon ' + bigCount + '× groß' : '');
+    todayDiapers.forEach((d) => {
+      if (!d.createdAt) return;
+      timelineEvents.push({ ts: d.createdAt.toDate(), color: 'var(--windeln)', label: 'Windel ' + diaperLabel(d) });
+    });
+  } catch (error) {
+    document.getElementById('windeln-detail').textContent = 'Fehler beim Laden';
+  }
+
+  // Schlafen
+  try {
+    const [openNap, lastNight, todayNaps] = await Promise.all([
+      findOpenNap(),
+      getMostRecent('nightWakeups'),
+      getTodayDocs('naps')
+    ]);
+
+    const badge = document.getElementById('schlafen-running-badge');
+    if (openNap) {
+      badge.style.display = 'flex';
+      const elapsedMin = Math.max(0, Math.round((Date.now() - new Date(openNap.startTime).getTime()) / 60000));
+      document.getElementById('schlafen-detail').textContent = 'Schläft seit ' + formatTime(new Date(openNap.startTime)) + ' · ' + elapsedMin + ' Min';
+    } else {
+      badge.style.display = 'none';
+      const completed = todayNaps.filter((n) => n.endTime).sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
+      document.getElementById('schlafen-detail').textContent = completed.length
+        ? 'Letztes Schläfchen: ' + formatDuration(completed[0].durationMinutes)
+        : 'Noch kein Schläfchen heute';
+    }
+
+    if (lastNight && lastNight.bedtime && lastNight.wakeTime) {
+      document.getElementById('schlafen-stats').textContent =
+        'Letzte Nacht: ' + lastNight.bedtime + ' → ' + lastNight.wakeTime + ' · ' + lastNight.wakeCount + '× aufgewacht';
+      if (lastNight.nightEnd === isoDate(now) && lastNight.createdAt) {
+        timelineEvents.push({ ts: timeOnDate(now, lastNight.wakeTime), color: 'var(--schlafen)', label: 'Aufgewacht' });
+      }
+    } else {
+      document.getElementById('schlafen-stats').textContent = '';
+    }
+
+    todayNaps.forEach((n) => {
+      const ts = n.source === 'timer' ? new Date(n.startTime) : timeOnDate(now, n.startTime);
+      timelineEvents.push({
+        ts,
+        color: 'var(--schlafen)',
+        label: n.endTime ? 'Schläfchen · ' + formatDuration(n.durationMinutes) : 'Schläfchen gestartet'
+      });
+    });
+  } catch (error) {
+    document.getElementById('schlafen-detail').textContent = 'Fehler beim Laden';
+  }
+
+  // Zeitverlauf
+  const container = document.getElementById('timeline-container');
+  timelineEvents.sort((a, b) => b.ts - a.ts);
+  if (timelineEvents.length === 0) {
+    container.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Noch keine Einträge heute</div>';
+  } else {
+    container.innerHTML = timelineEvents.map((e, i) => {
+      const isLast = i === timelineEvents.length - 1;
+      return '<div style="display: flex; gap: 12px;">' +
+        '<div style="display: flex; flex-direction: column; align-items: center;">' +
+        '<div style="width: 10px; height: 10px; border-radius: 50%; background: ' + e.color + ';"></div>' +
+        (isLast ? '' : '<div style="width: 2px; flex: 1; background: var(--border); margin: 4px 0;"></div>') +
+        '</div>' +
+        '<div style="padding-bottom: ' + (isLast ? '0' : '14') + 'px;">' +
+        '<div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">' + formatTime(e.ts) + '</div>' +
+        '<div style="font-size: 13.5px; font-weight: 600;">' + e.label + '</div>' +
+        '</div></div>';
+    }).join('');
+  }
+}
 </script>
 
 <script>

@@ -291,6 +291,17 @@
           </button>
         </div>
 
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-alt); border-radius: 14px; padding: 12px 16px;">
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Schlafenszeit</span>
+            <input id="night-bedtime" type="time" style="border: none; background: transparent; font-size: 17px; font-weight: 600; color: var(--text); outline: none;">
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-alt); border-radius: 14px; padding: 12px 16px;">
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Aufwachzeit</span>
+            <input id="night-waketime" type="time" style="border: none; background: transparent; font-size: 17px; font-weight: 600; color: var(--text); outline: none;">
+          </div>
+        </div>
+
         <div style="display: flex; align-items: center; justify-content: center; gap: 24px; padding: 6px 0;">
           <button id="wake-dec" style="width:40px; height:40px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -685,9 +696,13 @@ const wakeCountEl = document.getElementById('wake-count');
 const wakeDecBtn = document.getElementById('wake-dec');
 const wakeIncBtn = document.getElementById('wake-inc');
 const nightSaveBtn = document.getElementById('night-save');
+const nightBedtimeInput = document.getElementById('night-bedtime');
+const nightWaketimeInput = document.getElementById('night-waketime');
 
 let nightOffset = 0;
 let wakeCount = 1;
+nightBedtimeInput.value = '19:30';
+nightWaketimeInput.value = formatTime(new Date());
 
 function renderNight() {
   const today = new Date();
@@ -714,6 +729,8 @@ nightSaveBtn.addEventListener('click', async () => {
   const entry = {
     nightStart: isoDate(nightStart),
     nightEnd: isoDate(nightEnd),
+    bedtime: nightBedtimeInput.value,
+    wakeTime: nightWaketimeInput.value,
     wakeCount,
     createdBy: currentUser.email,
     createdAt: serverTimestamp()

@@ -36,6 +36,7 @@
     --windeln: #39ABAB;
     --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9;
     --ok: oklch(58% 0.11 150);
+    --warn: oklch(58% 0.17 25);
     --surface: oklch(99% 0.002 250);
     --surface-alt: oklch(93% 0.004 250);
     --text: oklch(27% 0.006 250);
@@ -105,6 +106,7 @@
               <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--schlafen-strong); display: inline-block;"></span>
               läuft
             </div>
+            <span id="schlafen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
           </div>
           <div id="schlafen-detail" style="font-size: 13.5px;"></div>
           <div id="schlafen-stats" style="font-size: 11px; color: var(--text-muted);"></div>
@@ -1148,13 +1150,16 @@ async function loadOverview() {
       if (d.big) sizes.push('Groß');
       let label = sizes.join(' & ');
       if (d.big && WARN_COLOR_IDS.includes(d.color) && COLOR_BY_ID[d.color]) {
-        label += ' · ' + COLOR_BY_ID[d.color].label;
+        label += ' · ' + COLOR_BY_ID[d.color].label +
+          ' <span style="display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:var(--warn); vertical-align:middle;">' +
+          '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 14.5H3.5z"/><line x1="12" y1="10.5" x2="12" y2="14"/></svg>' +
+          '</span>';
       }
       return label;
     }
     if (lastDiaper && lastDiaper.createdAt) {
       document.getElementById('windeln-ago').textContent = timeAgo(lastDiaper.createdAt.toDate());
-      document.getElementById('windeln-detail').textContent = diaperLabel(lastDiaper);
+      document.getElementById('windeln-detail').innerHTML = diaperLabel(lastDiaper);
     } else {
       document.getElementById('windeln-ago').textContent = '';
       document.getElementById('windeln-detail').textContent = 'Noch kein Eintrag';
@@ -1178,22 +1183,32 @@ async function loadOverview() {
     ]);
 
     const badge = document.getElementById('schlafen-running-badge');
+    const schlafenAgoEl = document.getElementById('schlafen-ago');
+    const completed = todayNaps.filter((n) => n.endTime).sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
+    const wakeIsToday = lastNight && lastNight.bedtime && lastNight.wakeTime && lastNight.nightEnd === isoDate(now);
+
     if (openNap) {
       badge.style.display = 'flex';
+      schlafenAgoEl.textContent = '';
       const elapsedMin = Math.max(0, Math.round((Date.now() - new Date(openNap.startTime).getTime()) / 60000));
       document.getElementById('schlafen-detail').textContent = 'Schläft seit ' + formatTime(new Date(openNap.startTime)) + ' · ' + elapsedMin + ' Min';
     } else {
       badge.style.display = 'none';
-      const completed = todayNaps.filter((n) => n.endTime).sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
       document.getElementById('schlafen-detail').textContent = completed.length
         ? 'Letztes Schläfchen: ' + formatDuration(completed[0].durationMinutes)
         : 'Noch kein Schläfchen heute';
+
+      const candidates = [];
+      if (completed.length) candidates.push(new Date(completed[0].endTime));
+      if (wakeIsToday) candidates.push(timeOnDate(now, lastNight.wakeTime));
+      const lastSchlafenTs = candidates.length ? new Date(Math.max(...candidates.map((d) => d.getTime()))) : null;
+      schlafenAgoEl.textContent = lastSchlafenTs ? timeAgo(lastSchlafenTs) : '';
     }
 
     if (lastNight && lastNight.bedtime && lastNight.wakeTime) {
       document.getElementById('schlafen-stats').textContent =
         'Letzte Nacht: ' + lastNight.bedtime + ' → ' + lastNight.wakeTime + ' · ' + lastNight.wakeCount + '× aufgewacht';
-      if (lastNight.nightEnd === isoDate(now) && lastNight.createdAt) {
+      if (wakeIsToday && lastNight.createdAt) {
         timelineEvents.push({ ts: timeOnDate(now, lastNight.wakeTime), color: 'var(--schlafen)', label: 'Aufgewacht' });
       }
     } else {

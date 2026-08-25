@@ -1808,8 +1808,8 @@ function renderAnalyseSchlafen(schlafen) {
     '<div class="a-stat-grid">' +
       '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgTotalH + ' h</div><div class="a-stat-cap">Ø GESAMTSCHLAF</div></div>' +
       '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + '</div><div class="a-stat-cap">Ø AUFWACHEN</div></div>' +
-      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgBedtime + '</div><div class="a-stat-cap">Ø EINSCHLAFZEIT</div></div>' +
       '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgWaketime + '</div><div class="a-stat-cap">Ø AUFWACHZEIT</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgBedtime + '</div><div class="a-stat-cap">Ø EINSCHLAFZEIT</div></div>' +
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-value-row"><div><div class="a-card-label">Gesamtschlaf pro Tag</div><div class="a-card-value">Ø ' + schlafen.avgTotalH + ' Std.</div></div>' +

@@ -1,6 +1,6 @@
 {
-  "name": "Hello World",
-  "short_name": "Hello",
+  "name": "BabyTracker",
+  "short_name": "BabyTracker",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",

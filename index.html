@@ -166,11 +166,13 @@
               </svg>
               <span style="font-weight: 700; font-size: 14px;">Schlafen</span>
             </div>
-            <div id="schlafen-running-badge" style="display: none; align-items: center; gap: 5px; background: var(--schlafen-soft); color: var(--schlafen-strong); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
-              <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--schlafen-strong); display: inline-block;"></span>
-              läuft
+            <div style="display: flex; align-items: center;">
+              <div id="schlafen-running-badge" style="display: none; align-items: center; gap: 5px; background: var(--schlafen-soft); color: var(--schlafen-strong); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
+                <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--schlafen-strong); display: inline-block;"></span>
+                läuft
+              </div>
+              <span id="schlafen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
             </div>
-            <span id="schlafen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
           </div>
           <div id="schlafen-detail" style="font-size: 13.5px;"></div>
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">

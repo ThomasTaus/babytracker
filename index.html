@@ -1645,6 +1645,27 @@ function computeWindelnAnalysis(days, diaperMap) {
   };
 }
 
+function napStartHour(n) {
+  if (n.source === 'timer') {
+    const d = new Date(n.startTime);
+    return d.getHours() + d.getMinutes() / 60;
+  }
+  return parseMinutes(n.startTime) / 60;
+}
+
+const NAP_HIST_START = 6, NAP_HIST_END = 20, NAP_HIST_BINS = 7;
+
+function computeNapHistogram(allNaps) {
+  const binWidth = (NAP_HIST_END - NAP_HIST_START) / NAP_HIST_BINS;
+  const bins = new Array(NAP_HIST_BINS).fill(0);
+  allNaps.forEach((n) => {
+    const h = napStartHour(n);
+    const idx = Math.max(0, Math.min(NAP_HIST_BINS - 1, Math.floor((h - NAP_HIST_START) / binWidth)));
+    bins[idx]++;
+  });
+  return bins;
+}
+
 function computeSchlafenAnalysis(days, nightMap, napMap) {
   const perDay = days.map((d) => {
     const nights = nightMap[d.key].filter((n) => n.bedtime && n.wakeTime);
@@ -1654,7 +1675,7 @@ function computeSchlafenAnalysis(days, nightMap, napMap) {
     const wakeCount = nights.length ? analyseAvg(nights.map((n) => n.wakeCount || 0)) : 0;
     return {
       label: d.label, fullLabel: d.fullLabel, isToday: d.isToday,
-      nightMinutes, napMinutes, hasNight: nights.length > 0, wakeCount
+      nightMinutes, napMinutes, napCount: napsToday.length, hasNight: nights.length > 0, wakeCount
     };
   });
 
@@ -1663,15 +1684,19 @@ function computeSchlafenAnalysis(days, nightMap, napMap) {
   const avgNapH = analyseRound(analyseAvg(perDay.map((d) => d.napMinutes)) / 60);
   const avgTotalH = avgNightH + avgNapH;
   const avgWake = daysWithNight.length ? analyseRound(analyseAvg(daysWithNight.map((d) => d.wakeCount))) : null;
+  const avgNapCount = analyseRound(analyseAvg(perDay.map((d) => d.napCount)));
 
   const allNights = days.flatMap((d) => nightMap[d.key]).filter((n) => n.bedtime && n.wakeTime);
   const avgBedtime = allNights.length ? minutesToHHMM(analyseAvg(allNights.map((n) => parseMinutes(n.bedtime)))) : '–';
   const avgWaketime = allNights.length ? minutesToHHMM(analyseAvg(allNights.map((n) => parseMinutes(n.wakeTime)))) : '–';
 
+  const allNaps = days.flatMap((d) => napMap[d.key]).filter((n) => n.endTime);
+  const napHistogram = computeNapHistogram(allNaps);
+
   const outlier = findAnalyseOutlierDay(daysWithNight, (d) => d.wakeCount);
 
   return {
-    perDay, avgNightH, avgNapH, avgTotalH, avgWake, avgBedtime, avgWaketime,
+    perDay, avgNightH, avgNapH, avgTotalH, avgWake, avgNapCount, avgBedtime, avgWaketime, napHistogram,
     insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + analyseRound(outlier.value) + '× Aufwachen — die meisten Unterbrechungen diese Woche.') : null
   };
 }
@@ -1732,6 +1757,28 @@ function svgAreaLineChart(perDay, valueFn, color, gradientId) {
     '<polyline points="' + polylinePts + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<g>' + circles + '</g>' +
     '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
+}
+
+function svgHistogram(bins, binStartHour, binEndHour, color) {
+  const startX = 7, endX = 301, baseline = 95, maxPx = 90;
+  const binPx = (endX - startX) / bins.length;
+  const binWidthHours = (binEndHour - binStartHour) / bins.length;
+  const maxVal = Math.max(1, ...bins);
+  let bars = '';
+  bins.forEach((count, i) => {
+    const x = startX + i * binPx + 1;
+    const w = binPx - 2;
+    const h = (count / maxVal) * maxPx;
+    bars += '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + w + '" height="' + h + '" rx="4" fill="' + color + '"/>';
+  });
+  let labels = '';
+  for (let i = 0; i <= bins.length; i++) {
+    const hour = binStartHour + i * binWidthHours;
+    const x = startX + i * binPx;
+    labels += '<text x="' + x + '" y="110">' + hour + '</text>';
+  }
+  return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
+    '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>';
 }
 
 function svgSparkline(perDay, valueFn, colorLight, colorToday) {
@@ -1868,6 +1915,14 @@ function renderAnalyseSchlafen(schlafen) {
     '<div class="a-card">' +
       '<div class="a-card-label">Aufwachen pro Nacht</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + ' / Nacht</div>' +
       '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.wakeCount, '#4B3F9E') + '</svg>' +
+    '</div>' +
+    '<div class="a-card">' +
+      '<div class="a-card-label">Schläfchen pro Tag</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + schlafen.avgNapCount + ' / Tag</div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.napCount, '#4B3F9E') + '</svg>' +
+    '</div>' +
+    '<div class="a-card">' +
+      '<div class="a-card-label">Uhrzeit der Schläfchen</div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgHistogram(schlafen.napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E') + '</svg>' +
     '</div>' +
     renderAnalyseInsight(schlafen.insight, 'var(--schlafen-soft)', '#3A306E');
 }

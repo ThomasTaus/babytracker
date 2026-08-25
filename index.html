@@ -1703,7 +1703,7 @@ function computeSchlafenAnalysis(days, nightMap, napMap) {
 
 // --- Analyse: SVG chart builders ---
 function analyseChartAxisLabels(perDay, color) {
-  const barW = 30, gap = 14, startX = 7;
+  const barW = 26, gap = 14, startX = 7;
   return perDay.map((d, i) => {
     const x = startX + i * (barW + gap) + barW / 2;
     return d.isToday
@@ -1716,11 +1716,11 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
   if (meanValue == null) return '';
   const y = baseline - (meanValue / maxVal) * maxPx;
   return '<line x1="7" y1="' + y + '" x2="301" y2="' + y + '" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>' +
-    '<text x="301" y="' + (y - 3) + '" font-family="Work Sans, sans-serif" font-size="10" font-weight="600" fill="' + color + '" fill-opacity="0.85" text-anchor="end">Ø ' + analyseRound(meanValue) + '</text>';
+    '<text x="301" y="' + (y - 3) + '" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="600" fill="' + color + '" fill-opacity="0.85" text-anchor="end">Ø ' + analyseRound(meanValue) + '</text>';
 }
 
 function svgStackedBarChart(perDay, bottomFn, topFn, colorBottom, colorTop, meanValue) {
-  const barW = 30, gap = 14, startX = 7, baseline = 95, maxPx = 78;
+  const barW = 26, gap = 14, startX = 7, baseline = 95, maxPx = 78;
   const maxTotal = Math.max(1, ...perDay.map((d) => bottomFn(d) + topFn(d)), meanValue || 0);
   let bars = '';
   perDay.forEach((d, i) => {
@@ -1737,7 +1737,7 @@ function svgStackedBarChart(perDay, bottomFn, topFn, colorBottom, colorTop, mean
 }
 
 function svgBarChart(perDay, valueFn, color, meanValue) {
-  const barW = 30, gap = 14, startX = 7, baseline = 95, maxPx = 78;
+  const barW = 26, gap = 14, startX = 7, baseline = 95, maxPx = 78;
   const maxVal = Math.max(1, ...perDay.map(valueFn), meanValue || 0);
   let bars = '';
   perDay.forEach((d, i) => {
@@ -1753,7 +1753,7 @@ function svgBarChart(perDay, valueFn, color, meanValue) {
 }
 
 function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
-  const startX = 22, stepX = 44, baseline = 95, topY = 5;
+  const startX = 20, stepX = 40, baseline = 95, topY = 5;
   const maxVal = Math.max(1, ...perDay.map(valueFn), meanValue || 0);
   const points = perDay.map((d, i) => ({ x: startX + i * stepX, y: baseline - (valueFn(d) / maxVal) * (baseline - topY), isToday: d.isToday }));
   const polylinePts = points.map((p) => p.x + ',' + p.y).join(' ');

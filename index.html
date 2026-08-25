@@ -1116,6 +1116,12 @@ function timeOnDate(baseDate, hhmm) {
   return d;
 }
 
+// Manual naps store endTime as a bare "HH:MM" string, timer naps as a full
+// ISO datetime — new Date() can't parse "HH:MM" directly, so branch by source.
+function napEndDate(n, baseDate) {
+  return n.source === 'timer' ? new Date(n.endTime) : timeOnDate(baseDate, n.endTime);
+}
+
 async function loadOverview() {
   const now = new Date();
   document.getElementById('heute-date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -1191,7 +1197,7 @@ async function loadOverview() {
 
     const badge = document.getElementById('schlafen-running-badge');
     const schlafenAgoEl = document.getElementById('schlafen-ago');
-    const completed = todayNaps.filter((n) => n.endTime).sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
+    const completed = todayNaps.filter((n) => n.endTime).sort((a, b) => napEndDate(b, now) - napEndDate(a, now));
     const wakeIsToday = lastNight && lastNight.bedtime && lastNight.wakeTime && lastNight.nightEnd === isoDate(now);
 
     if (openNap) {
@@ -1206,7 +1212,7 @@ async function loadOverview() {
         : 'Noch kein Schläfchen heute';
 
       const candidates = [];
-      if (completed.length) candidates.push(new Date(completed[0].endTime));
+      if (completed.length) candidates.push(napEndDate(completed[0], now));
       if (wakeIsToday) candidates.push(timeOnDate(now, lastNight.wakeTime));
       const lastSchlafenTs = candidates.length ? new Date(Math.max(...candidates.map((d) => d.getTime()))) : null;
       schlafenAgoEl.textContent = lastSchlafenTs ? timeAgo(lastSchlafenTs) : '';

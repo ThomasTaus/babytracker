@@ -1703,57 +1703,56 @@ function computeSchlafenAnalysis(days, nightMap, napMap) {
 
 // --- Analyse: SVG chart builders ---
 function analyseChartAxisLabels(perDay, color) {
-  const barW = 26, gap = 14, startX = 7;
+  const barW = 30, gap = 15, startX = 4;
   return perDay.map((d, i) => {
     const x = startX + i * (barW + gap) + barW / 2;
     return d.isToday
-      ? '<text x="' + x + '" y="110" font-weight="700" fill="' + color + '">Heute</text>'
-      : '<text x="' + x + '" y="110">' + d.label + '</text>';
+      ? '<text x="' + x + '" y="111" font-weight="700" fill="' + color + '">Heute</text>'
+      : '<text x="' + x + '" y="111">' + d.label + '</text>';
   }).join('');
 }
 
 function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
   if (meanValue == null) return '';
   const y = baseline - (meanValue / maxVal) * maxPx;
-  return '<line x1="7" y1="' + y + '" x2="301" y2="' + y + '" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>' +
-    '<text x="301" y="' + (y - 3) + '" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="600" fill="' + color + '" fill-opacity="0.85" text-anchor="end">Ø ' + analyseRound(meanValue) + '</text>';
+  return '<line x1="4" y1="' + y + '" x2="304" y2="' + y + '" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>';
 }
 
 function svgStackedBarChart(perDay, bottomFn, topFn, colorBottom, colorTop, meanValue) {
-  const barW = 26, gap = 14, startX = 7, baseline = 95, maxPx = 78;
+  const barW = 30, gap = 15, startX = 4, baseline = 95, maxPx = 78;
   const maxTotal = Math.max(1, ...perDay.map((d) => bottomFn(d) + topFn(d)), meanValue || 0);
   let bars = '';
   perDay.forEach((d, i) => {
     const x = startX + i * (barW + gap);
     const bottomH = (bottomFn(d) / maxTotal) * maxPx;
     const topH = (topFn(d) / maxTotal) * maxPx;
-    const labelY = Math.max(11, baseline - bottomH - topH - 4);
+    const labelY = Math.max(12, baseline - bottomH - topH - 4);
     bars += '<rect x="' + x + '" y="' + (baseline - bottomH) + '" width="' + barW + '" height="' + bottomH + '" rx="4" fill="' + colorBottom + '"/>';
     bars += '<rect x="' + x + '" y="' + (baseline - bottomH - topH) + '" width="' + barW + '" height="' + topH + '" rx="4" fill="' + colorTop + '"/>';
-    bars += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="700" fill="' + colorBottom + '" text-anchor="middle">' + analyseRound(bottomFn(d) + topFn(d)) + '</text>';
+    bars += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + colorBottom + '" text-anchor="middle">' + analyseRound(bottomFn(d) + topFn(d)) + '</text>';
   });
-  return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + svgMeanLine(meanValue, maxTotal, baseline, maxPx, colorBottom) + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="10.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, colorBottom) + '</g>';
+  return '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + svgMeanLine(meanValue, maxTotal, baseline, maxPx, colorBottom) + bars +
+    '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, colorBottom) + '</g>';
 }
 
 function svgBarChart(perDay, valueFn, color, meanValue) {
-  const barW = 26, gap = 14, startX = 7, baseline = 95, maxPx = 78;
+  const barW = 30, gap = 15, startX = 4, baseline = 95, maxPx = 78;
   const maxVal = Math.max(1, ...perDay.map(valueFn), meanValue || 0);
   let bars = '';
   perDay.forEach((d, i) => {
     const x = startX + i * (barW + gap);
     const v = valueFn(d);
     const h = (v / maxVal) * maxPx;
-    const labelY = Math.max(11, baseline - h - 4);
+    const labelY = Math.max(12, baseline - h - 4);
     bars += '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + barW + '" height="' + h + '" rx="4" fill="' + color + '"/>';
-    bars += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + analyseRound(v) + '</text>';
+    bars += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + color + '" text-anchor="middle">' + analyseRound(v) + '</text>';
   });
-  return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + svgMeanLine(meanValue, maxVal, baseline, maxPx, color) + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="10.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
+  return '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + svgMeanLine(meanValue, maxVal, baseline, maxPx, color) + bars +
+    '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
 }
 
 function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
-  const startX = 20, stepX = 40, baseline = 95, topY = 5;
+  const startX = 19, stepX = 45, baseline = 95, topY = 5;
   const maxVal = Math.max(1, ...perDay.map(valueFn), meanValue || 0);
   const points = perDay.map((d, i) => ({ x: startX + i * stepX, y: baseline - (valueFn(d) / maxVal) * (baseline - topY), isToday: d.isToday }));
   const polylinePts = points.map((p) => p.x + ',' + p.y).join(' ');
@@ -1764,16 +1763,16 @@ function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
   ).join('');
   return '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">' +
     '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.35"/><stop offset="100%" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
-    '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
+    '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
     svgMeanLine(meanValue, maxVal, baseline, baseline - topY, color) +
     '<polygon points="' + polygonPts + '" fill="url(#' + gradientId + ')"/>' +
     '<polyline points="' + polylinePts + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<g>' + circles + '</g>' +
-    '<g font-family="Work Sans, sans-serif" font-size="10.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
+    '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
 }
 
 function svgHistogram(bins, binStartHour, binEndHour, color) {
-  const startX = 7, endX = 301, baseline = 95, maxPx = 78;
+  const startX = 4, endX = 304, baseline = 95, maxPx = 78;
   const binPx = (endX - startX) / bins.length;
   const binWidthHours = (binEndHour - binStartHour) / bins.length;
   const maxVal = Math.max(1, ...bins);
@@ -1784,17 +1783,17 @@ function svgHistogram(bins, binStartHour, binEndHour, color) {
     const h = (count / maxVal) * maxPx;
     bars += '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + w + '" height="' + h + '" rx="4" fill="' + color + '"/>';
     if (count > 0) {
-      bars += '<text x="' + (x + w / 2) + '" y="' + Math.max(11, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + count + '</text>';
+      bars += '<text x="' + (x + w / 2) + '" y="' + Math.max(12, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + color + '" text-anchor="middle">' + count + '</text>';
     }
   });
   let labels = '';
   for (let i = 0; i <= bins.length; i++) {
     const hour = binStartHour + i * binWidthHours;
     const x = startX + i * binPx;
-    labels += '<text x="' + x + '" y="110">' + hour + '</text>';
+    labels += '<text x="' + x + '" y="111">' + hour + '</text>';
   }
-  return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="10.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>';
+  return '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
+    '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>';
 }
 
 function svgSparkline(perDay, valueFn, colorLight, colorToday) {

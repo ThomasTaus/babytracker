@@ -20,6 +20,42 @@
   .timeline-scroll::-webkit-scrollbar { width: 5px; }
   .timeline-scroll::-webkit-scrollbar-track { background: transparent; }
   .timeline-scroll::-webkit-scrollbar-thumb { background: oklch(75% 0.01 250); border-radius: 999px; }
+
+  #screen-analyse .a-seg { display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 3px; margin-top: 14px; }
+  #screen-analyse .a-seg-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 2px; border-radius: 12px; font-weight: 600; font-size: 10.5px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
+  #screen-analyse .a-seg-btn.active { background: white; color: var(--stillen-strong); box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08); }
+  #screen-analyse .a-range-chip { padding: 7px 13px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid transparent; background: var(--surface-alt); color: var(--text-muted); cursor: default; }
+  #screen-analyse .a-range-chip.active { background: var(--stillen-soft); color: var(--stillen-strong); border-color: var(--stillen); cursor: pointer; }
+  #screen-analyse .a-range-chip.disabled { opacity: 0.5; }
+  #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
+  #screen-analyse .a-card:last-child { margin-bottom: 0; }
+  #screen-analyse .a-card-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px; }
+  #screen-analyse .a-card-value { font-family: 'Fredoka', sans-serif; font-size: 15px; font-weight: 600; }
+  #screen-analyse .a-card-value-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  #screen-analyse .a-legend { display: flex; gap: 10px; font-size: 10.5px; color: var(--text-muted); font-weight: 600; }
+  #screen-analyse .a-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
+  #screen-analyse .a-stat-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  #screen-analyse .a-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  #screen-analyse .a-stat-tile { flex: 1; background: var(--surface-alt); border-radius: 14px; padding: 10px 8px; text-align: center; }
+  #screen-analyse .a-stat-num { font-family: 'Fredoka', sans-serif; font-size: 19px; font-weight: 600; line-height: 1.1; }
+  #screen-analyse .a-stat-cap { font-size: 10px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+  #screen-analyse .a-insight { border-radius: 14px; padding: 11px 13px; font-size: 12px; line-height: 1.45; display: flex; gap: 9px; align-items: flex-start; }
+  #screen-analyse .a-insight svg { flex-shrink: 0; margin-top: 1px; }
+  #screen-analyse .a-color-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; }
+  #screen-analyse .a-color-legend span { display: flex; align-items: center; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  #screen-analyse .a-color-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+  #screen-analyse .a-ov-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; cursor: pointer; transition: box-shadow .15s ease, transform .15s ease; }
+  #screen-analyse .a-ov-card:last-child { margin-bottom: 0; }
+  #screen-analyse .a-ov-card:hover { box-shadow: 0 4px 16px oklch(0% 0 0 / 0.08); transform: translateY(-1px); }
+  #screen-analyse .a-ov-card:active { transform: translateY(0); box-shadow: none; }
+  #screen-analyse .a-ov-top { display: flex; align-items: center; justify-content: space-between; }
+  #screen-analyse .a-ov-id { display: flex; align-items: center; gap: 10px; }
+  #screen-analyse .a-ov-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #screen-analyse .a-ov-name { font-weight: 700; font-size: 14px; }
+  #screen-analyse .a-ov-primary { font-family: 'Fredoka', sans-serif; font-size: 19px; font-weight: 600; }
+  #screen-analyse .a-ov-primary .unit { font-family: 'Work Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: var(--text-muted); margin-left: 5px; }
+  #screen-analyse .a-ov-secondary { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  #screen-analyse .a-ov-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 11.5px; font-weight: 600; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -155,6 +191,15 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
       </button>
+      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="20" x2="20" y2="20"/>
+          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
+          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
+          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
+      </button>
     </div>
   </div>
 
@@ -267,6 +312,15 @@
           <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
+      </button>
+      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="20" x2="20" y2="20"/>
+          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
+          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
+          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
       </button>
     </div>
   </div>
@@ -383,6 +437,15 @@
           <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
+      </button>
+      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="20" x2="20" y2="20"/>
+          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
+          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
+          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
       </button>
     </div>
   </div>
@@ -522,6 +585,119 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
       </button>
+      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="20" x2="20" y2="20"/>
+          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
+          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
+          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Analyse -->
+  <div id="screen-analyse" style="
+    --stillen: oklch(72% 0.11 250); --stillen-strong: oklch(48% 0.13 250); --stillen-soft: oklch(93% 0.025 250); --stillen-breast: oklch(80% 0.05 250);
+    --windeln: #39ABAB; --windeln-light: #8FD4D4; --windeln-soft: #DFF2F2;
+    --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9; --schlafen-light: #B7ADEB;
+    --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
+    --ok: oklch(58% 0.11 150); --warn: oklch(58% 0.17 25); --warn-soft: oklch(93% 0.035 25);
+    --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
+    --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
+    height: 100vh; max-width: 480px; margin: 0 auto;
+    color: var(--text); display: none; flex-direction: column;
+  ">
+    <div style="flex-shrink: 0; padding: 26px 24px 0;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="20" x2="19" y2="20"/>
+              <rect x="6" y="12" width="3.4" height="8" rx="1"/>
+              <rect x="10.3" y="7" width="3.4" height="13" rx="1"/>
+              <rect x="14.6" y="10" width="3.4" height="10" rx="1"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Analyse</div>
+            <div style="font-size: 13px; color: var(--text-muted);">Verlauf &amp; Trends</div>
+          </div>
+        </div>
+        <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
+      </div>
+
+      <div class="a-seg">
+        <button class="a-seg-btn active" data-view="overview">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>
+          Übersicht
+        </button>
+        <button class="a-seg-btn" data-view="stillen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+          Stillen
+        </button>
+        <button class="a-seg-btn" data-view="windeln">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>
+          Windeln
+        </button>
+        <button class="a-seg-btn" data-view="schlafen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+          Schlafen
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <div class="a-range-chip active">7 Tage</div>
+        <div class="a-range-chip disabled" title="Bald verfügbar">30 Tage</div>
+        <div class="a-range-chip disabled" title="Bald verfügbar">12 Monate</div>
+      </div>
+    </div>
+
+    <div id="analyse-body" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 16px 24px 16px; display: flex; flex-direction: column; gap: 14px;">
+      <div id="analyse-view-overview" style="display: flex; flex-direction: column;">
+        <div style="font-size: 13px; color: var(--text-muted);">Lade…</div>
+      </div>
+      <div id="analyse-view-stillen" style="display: none; flex-direction: column;"></div>
+      <div id="analyse-view-windeln" style="display: none; flex-direction: column;"></div>
+      <div id="analyse-view-schlafen" style="display: none; flex-direction: column;"></div>
+    </div>
+
+    <div style="flex-shrink: 0; display: flex; border-top: 1px solid var(--border); background: var(--surface);">
+      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Heute</span>
+      </button>
+      <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Stillen</span>
+      </button>
+      <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Windeln</span>
+      </button>
+      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
+      </button>
+      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--neutral-strong); cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="20" x2="20" y2="20"/>
+          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
+          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
+          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
+        </svg>
+        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
+      </button>
     </div>
   </div>
 
@@ -625,11 +801,13 @@ const screens = {
   heute: document.getElementById('screen-heute'),
   stillen: document.getElementById('screen-stillen'),
   windeln: document.getElementById('screen-windeln'),
-  schlafen: document.getElementById('screen-schlafen')
+  schlafen: document.getElementById('screen-schlafen'),
+  analyse: document.getElementById('screen-analyse')
 };
 function showScreen(target) {
   Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
   if (target === 'heute') loadOverview();
+  if (target === 'analyse') loadAnalyse();
 }
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target));
@@ -1258,6 +1436,433 @@ async function loadOverview() {
         '<div style="font-size: 13.5px; font-weight: 600;">' + e.label + '</div>' +
         '</div></div>';
     }).join('');
+  }
+}
+
+// --- Analyse ---
+const ANALYSE_RANGE_DAYS = 7;
+const ANALYSE_WEEKDAY_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const ANALYSE_WEEKDAY_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+
+function analyseAvg(arr) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0; }
+function analyseRound(n) { return Math.round(n); }
+
+function minutesToHHMM(totalMin) {
+  const m = ((Math.round(totalMin) % 1440) + 1440) % 1440;
+  return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+}
+
+function nightDurationMinutes(n) {
+  const bed = parseMinutes(n.bedtime);
+  let wake = parseMinutes(n.wakeTime);
+  if (wake <= bed) wake += 1440;
+  return wake - bed;
+}
+
+function buildAnalyseDayBuckets() {
+  const start = todayStartDate();
+  start.setDate(start.getDate() - (ANALYSE_RANGE_DAYS - 1));
+  const days = [];
+  for (let i = 0; i < ANALYSE_RANGE_DAYS; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    days.push({
+      key: isoDate(d),
+      label: ANALYSE_WEEKDAY_SHORT[d.getDay()],
+      fullLabel: ANALYSE_WEEKDAY_FULL[d.getDay()],
+      isToday: i === ANALYSE_RANGE_DAYS - 1
+    });
+  }
+  return { days, start };
+}
+
+async function getAnalyseRangeDocs(name, start) {
+  const snap = await getDocs(query(collection(db, name), where('createdAt', '>=', start)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+function analyseBucketByDay(docs, days) {
+  const map = {};
+  days.forEach((d) => { map[d.key] = []; });
+  docs.forEach((doc) => {
+    if (!doc.createdAt) return;
+    const key = isoDate(doc.createdAt.toDate());
+    if (map[key]) map[key].push(doc);
+  });
+  return map;
+}
+
+// Finds the single day whose value clearly stands out above the rest (used for the
+// "insight" callouts) — returns null when there's no meaningful outlier, so the
+// insight box can be hidden instead of showing a misleading/trivial callout.
+function findAnalyseOutlierDay(perDay, valueFn) {
+  const values = perDay.map(valueFn);
+  const max = Math.max(...values);
+  if (max <= 0) return null;
+  const mean = analyseAvg(values);
+  if (mean <= 0 || max < mean * 1.15) return null;
+  const idx = values.indexOf(max);
+  if (values.filter((v) => v === max).length > 1) return null; // tie, no single outlier
+  return { day: perDay[idx], value: max };
+}
+
+function outlierDayLabel(day) { return day.isToday ? 'Heute' : day.fullLabel; }
+
+function computeStillenAnalysis(days, feedMap) {
+  const perDay = days.map((d) => {
+    const docs = feedMap[d.key];
+    const bottle = docs.filter((f) => f.type === 'bottle');
+    const breast = docs.filter((f) => f.type === 'breast');
+    return {
+      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday,
+      bottleCount: bottle.length, breastCount: breast.length,
+      bottleMl: bottle.reduce((s, f) => s + (f.amount || 0), 0),
+      breastMin: breast.reduce((s, f) => s + (f.minutes || 0), 0)
+    };
+  });
+  const totalCount = perDay.reduce((s, d) => s + d.bottleCount + d.breastCount, 0);
+  const totalBottle = perDay.reduce((s, d) => s + d.bottleCount, 0);
+  const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
+  const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
+
+  const allTimestamps = days.flatMap((d) => feedMap[d.key]).filter((f) => f.createdAt).map((f) => f.createdAt.toDate()).sort((a, b) => a - b);
+  let avgIntervalH = null;
+  if (allTimestamps.length > 1) {
+    const gaps = [];
+    for (let i = 1; i < allTimestamps.length; i++) gaps.push((allTimestamps[i] - allTimestamps[i - 1]) / 3600000);
+    avgIntervalH = analyseRound(analyseAvg(gaps));
+  }
+
+  const bottlePct = totalCount > 0 ? analyseRound(totalBottle / totalCount * 100) : 0;
+  const breastPct = totalCount > 0 ? 100 - bottlePct : 0;
+
+  const outlier = findAnalyseOutlierDay(perDay, (d) => d.bottleMl);
+
+  return {
+    perDay,
+    avgPerDay: analyseRound(totalCount / ANALYSE_RANGE_DAYS),
+    avgIntervalH,
+    bottlePct, breastPct,
+    avgBottleMl: analyseRound(totalMl / ANALYSE_RANGE_DAYS),
+    avgBreastMin: analyseRound(totalBreastMin / ANALYSE_RANGE_DAYS),
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' deutlich mehr Fläschchen als sonst — größter Tageswert der letzten Woche.') : null
+  };
+}
+
+function computeWindelnAnalysis(days, diaperMap) {
+  const perDay = days.map((d) => {
+    const docs = diaperMap[d.key];
+    return {
+      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday,
+      small: docs.filter((x) => x.small).length,
+      big: docs.filter((x) => x.big).length,
+      total: docs.length
+    };
+  });
+  const totalCount = perDay.reduce((s, d) => s + d.total, 0);
+  const allDocs = days.flatMap((d) => diaperMap[d.key]);
+
+  const allTimestamps = allDocs.filter((x) => x.createdAt).map((x) => x.createdAt.toDate()).sort((a, b) => a - b);
+  let avgIntervalH = null;
+  if (allTimestamps.length > 1) {
+    const gaps = [];
+    for (let i = 1; i < allTimestamps.length; i++) gaps.push((allTimestamps[i] - allTimestamps[i - 1]) / 3600000);
+    avgIntervalH = analyseRound(analyseAvg(gaps));
+  }
+
+  const warnCount = allDocs.filter((x) => x.big && WARN_COLOR_IDS.includes(x.color)).length;
+  const warnPct = totalCount > 0 ? analyseRound(warnCount / totalCount * 100) : 0;
+
+  const coloredDocs = allDocs.filter((x) => x.big && x.color);
+  const colorCounts = {};
+  coloredDocs.forEach((x) => { colorCounts[x.color] = (colorCounts[x.color] || 0) + 1; });
+  const totalColored = coloredDocs.length;
+  const okBuckets = OK_COLORS.map((c) => ({
+    id: c.id, label: c.label, hex: c.hex,
+    pct: totalColored > 0 ? analyseRound((colorCounts[c.id] || 0) / totalColored * 100) : 0
+  }));
+  const warnBucketCount = WARN_COLORS.reduce((s, c) => s + (colorCounts[c.id] || 0), 0);
+  const warnBucketPct = totalColored > 0 ? analyseRound(warnBucketCount / totalColored * 100) : 0;
+
+  const outlier = findAnalyseOutlierDay(perDay, (d) => d.big);
+
+  return {
+    perDay,
+    avgPerDay: analyseRound(totalCount / ANALYSE_RANGE_DAYS),
+    avgIntervalH,
+    warnCount, warnPct,
+    totalColored, okBuckets, warnBucketPct,
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + outlier.value + ' großen Wechseln — der meiste an einem Tag diese Woche.') : null
+  };
+}
+
+function computeSchlafenAnalysis(days, nightMap, napMap) {
+  const perDay = days.map((d) => {
+    const nights = nightMap[d.key].filter((n) => n.bedtime && n.wakeTime);
+    const napsToday = napMap[d.key].filter((n) => n.endTime);
+    const napMinutes = napsToday.reduce((s, n) => s + (n.durationMinutes || 0), 0);
+    const nightMinutes = nights.length ? analyseAvg(nights.map(nightDurationMinutes)) : 0;
+    const wakeCount = nights.length ? analyseAvg(nights.map((n) => n.wakeCount || 0)) : 0;
+    return {
+      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday,
+      nightMinutes, napMinutes, hasNight: nights.length > 0, wakeCount
+    };
+  });
+
+  const daysWithNight = perDay.filter((d) => d.hasNight);
+  const avgNightH = analyseRound(daysWithNight.length ? analyseAvg(daysWithNight.map((d) => d.nightMinutes)) / 60 : 0);
+  const avgNapH = analyseRound(analyseAvg(perDay.map((d) => d.napMinutes)) / 60);
+  const avgTotalH = avgNightH + avgNapH;
+  const avgWake = daysWithNight.length ? analyseRound(analyseAvg(daysWithNight.map((d) => d.wakeCount))) : null;
+
+  const allNights = days.flatMap((d) => nightMap[d.key]).filter((n) => n.bedtime && n.wakeTime);
+  const avgBedtime = allNights.length ? minutesToHHMM(analyseAvg(allNights.map((n) => parseMinutes(n.bedtime)))) : '–';
+  const avgWaketime = allNights.length ? minutesToHHMM(analyseAvg(allNights.map((n) => parseMinutes(n.wakeTime)))) : '–';
+
+  const outlier = findAnalyseOutlierDay(daysWithNight, (d) => d.wakeCount);
+
+  return {
+    perDay, avgNightH, avgNapH, avgTotalH, avgWake, avgBedtime, avgWaketime,
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + analyseRound(outlier.value) + '× Aufwachen — die meisten Unterbrechungen diese Woche.') : null
+  };
+}
+
+// --- Analyse: SVG chart builders ---
+function analyseChartAxisLabels(perDay, color) {
+  const barW = 30, gap = 14, startX = 7;
+  return perDay.map((d, i) => {
+    const x = startX + i * (barW + gap) + barW / 2;
+    return d.isToday
+      ? '<text x="' + x + '" y="110" font-weight="700" fill="' + color + '">Heute</text>'
+      : '<text x="' + x + '" y="110">' + d.label + '</text>';
+  }).join('');
+}
+
+function svgStackedBarChart(perDay, bottomFn, topFn, colorBottom, colorTop) {
+  const barW = 30, gap = 14, startX = 7, baseline = 95, maxPx = 90;
+  const maxTotal = Math.max(1, ...perDay.map((d) => bottomFn(d) + topFn(d)));
+  let bars = '';
+  perDay.forEach((d, i) => {
+    const x = startX + i * (barW + gap);
+    const bottomH = (bottomFn(d) / maxTotal) * maxPx;
+    const topH = (topFn(d) / maxTotal) * maxPx;
+    bars += '<rect x="' + x + '" y="' + (baseline - bottomH) + '" width="' + barW + '" height="' + bottomH + '" rx="4" fill="' + colorBottom + '"/>';
+    bars += '<rect x="' + x + '" y="' + (baseline - bottomH - topH) + '" width="' + barW + '" height="' + topH + '" rx="4" fill="' + colorTop + '"/>';
+  });
+  return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
+    '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, colorBottom) + '</g>';
+}
+
+function svgBarChart(perDay, valueFn, color) {
+  const barW = 30, gap = 14, startX = 7, baseline = 95, maxPx = 90;
+  const maxVal = Math.max(1, ...perDay.map(valueFn));
+  let bars = '';
+  perDay.forEach((d, i) => {
+    const x = startX + i * (barW + gap);
+    const h = (valueFn(d) / maxVal) * maxPx;
+    bars += '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + barW + '" height="' + h + '" rx="4" fill="' + color + '"/>';
+  });
+  return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
+    '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
+}
+
+function svgAreaLineChart(perDay, valueFn, color, gradientId) {
+  const startX = 22, stepX = 44, baseline = 95, topY = 5;
+  const maxVal = Math.max(1, ...perDay.map(valueFn));
+  const points = perDay.map((d, i) => ({ x: startX + i * stepX, y: baseline - (valueFn(d) / maxVal) * (baseline - topY), isToday: d.isToday }));
+  const polylinePts = points.map((p) => p.x + ',' + p.y).join(' ');
+  const polygonPts = polylinePts + ' ' + points[points.length - 1].x + ',95 ' + points[0].x + ',95';
+  const circles = points.map((p) => p.isToday
+    ? '<circle cx="' + p.x + '" cy="' + p.y + '" r="3.4" fill="' + color + '" stroke="white" stroke-width="1.5"/>'
+    : '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + color + '"/>'
+  ).join('');
+  return '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.35"/><stop offset="100%" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
+    '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
+    '<polygon points="' + polygonPts + '" fill="url(#' + gradientId + ')"/>' +
+    '<polyline points="' + polylinePts + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<g>' + circles + '</g>' +
+    '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
+}
+
+function svgSparkline(perDay, valueFn, colorLight, colorToday) {
+  const barW = 5.5, gap = 1.9, startX = 5, baseline = 22, maxPx = 18;
+  const maxVal = Math.max(1, ...perDay.map(valueFn));
+  return perDay.map((d, i) => {
+    const x = startX + i * (barW + gap);
+    const v = valueFn(d);
+    const h = v > 0 ? Math.max(2, (v / maxVal) * maxPx) : 0;
+    const color = d.isToday ? colorToday : colorLight;
+    return '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + barW + '" height="' + h + '" rx="1.5" fill="' + color + '"/>';
+  }).join('');
+}
+
+function svgColorDistribution(buckets) {
+  let x = 0;
+  return buckets.map((b, i) => {
+    const w = b.pct / 100 * 300;
+    const roundAttr = (i === 0 || i === buckets.length - 1) ? ' rx="4"' : '';
+    const rect = '<rect x="' + x + '" y="0" width="' + w + '" height="16"' + roundAttr + ' fill="' + b.hex + '"/>';
+    x += w;
+    return rect;
+  }).join('');
+}
+
+const ANALYSE_ICON_STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/></svg>';
+const ANALYSE_ICON_CHEVRON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+
+function renderAnalyseInsight(text, bg, color) {
+  if (!text) return '';
+  return '<div class="a-insight" style="background:' + bg + '; color:' + color + ';">' + ANALYSE_ICON_STAR + '<span>' + text + '</span></div>';
+}
+
+function renderAnalyseOverview(stillen, windeln, schlafen) {
+  const stillenSpark = svgSparkline(stillen.perDay, (d) => d.bottleCount + d.breastCount, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)');
+  const windelnSpark = svgSparkline(windeln.perDay, (d) => d.total, '#39ABAB', '#39ABAB');
+  const schlafenSpark = svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + d.napMinutes) / 60, '#6A5ACD', '#4B3F9E');
+  const totalWechsel = windeln.perDay.reduce((s, d) => s + d.total, 0);
+  const warnWechsel = windeln.warnCount;
+
+  return '' +
+    '<div class="a-ov-card" data-target="stillen" style="border-left:4px solid var(--stillen);">' +
+      '<div class="a-ov-top"><div class="a-ov-id">' +
+        '<div class="a-ov-icon" style="background:var(--stillen-soft); color:var(--stillen-strong);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg></div>' +
+        '<span class="a-ov-name">Stillen</span></div>' +
+        '<svg viewBox="0 0 60 22" width="60" height="22">' + stillenSpark + '</svg>' +
+      '</div>' +
+      '<div class="a-ov-primary">Ø ' + stillen.avgPerDay + ' <span class="unit">Fütterungen / Tag</span></div>' +
+      '<div class="a-ov-secondary">' + stillen.avgBottleMl + ' ml Ø Trinkmenge · ' + stillen.avgBreastMin + ' Min. Ø Stillzeit (Brust)</div>' +
+      '<div class="a-ov-bottom" style="color:var(--stillen-strong);">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
+    '</div>' +
+    '<div class="a-ov-card" data-target="windeln" style="border-left:4px solid var(--windeln);">' +
+      '<div class="a-ov-top"><div class="a-ov-id">' +
+        '<div class="a-ov-icon" style="background:var(--windeln-soft); color:var(--windeln);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg></div>' +
+        '<span class="a-ov-name">Windeln</span></div>' +
+        '<svg viewBox="0 0 60 22" width="60" height="22">' + windelnSpark + '</svg>' +
+      '</div>' +
+      '<div class="a-ov-primary">Ø ' + windeln.avgPerDay + ' <span class="unit">Wechsel / Tag</span></div>' +
+      '<div class="a-ov-secondary"><span>' + totalWechsel + ' Wechsel gesamt</span>' +
+        (warnWechsel > 0 ? '<span style="display:inline-flex; align-items:center; gap:3px; color:var(--warn); font-weight:700;"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>' + warnWechsel + '× auffällig</span>' : '') +
+      '</div>' +
+      '<div class="a-ov-bottom" style="color:var(--windeln);">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
+    '</div>' +
+    '<div class="a-ov-card" data-target="schlafen" style="border-left:4px solid var(--schlafen);">' +
+      '<div class="a-ov-top"><div class="a-ov-id">' +
+        '<div class="a-ov-icon" style="background:var(--schlafen-soft); color:var(--schlafen-strong);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg></div>' +
+        '<span class="a-ov-name">Schlafen</span></div>' +
+        '<svg viewBox="0 0 60 22" width="60" height="22">' + schlafenSpark + '</svg>' +
+      '</div>' +
+      '<div class="a-ov-primary">Ø ' + schlafen.avgTotalH + ' <span class="unit">Std. Schlaf gesamt / Tag</span></div>' +
+      '<div class="a-ov-secondary">' + schlafen.avgNightH + ' h nachts · ' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + ' aufgewacht · ' + schlafen.avgNapH + ' h tagsüber</div>' +
+      '<div class="a-ov-bottom" style="color:var(--schlafen-strong);">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
+    '</div>';
+}
+
+function renderAnalyseStillen(stillen) {
+  return '' +
+    '<div class="a-stat-row">' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--stillen-strong);">' + stillen.avgPerDay + '</div><div class="a-stat-cap">Ø / TAG</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--stillen-strong);">' + (stillen.avgIntervalH === null ? '–' : stillen.avgIntervalH + ' h') + '</div><div class="a-stat-cap">Ø ABSTAND</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--stillen-strong);">' + stillen.bottlePct + ' / ' + stillen.breastPct + '</div><div class="a-stat-cap">FLASCHE / BRUST</div></div>' +
+    '</div>' +
+    '<div class="a-card">' +
+      '<div class="a-card-value-row"><div><div class="a-card-label">Fütterungen pro Tag</div><div class="a-card-value">Ø ' + stillen.avgPerDay + ' / Tag</div></div>' +
+      '<div class="a-legend"><span><i style="background:var(--stillen-strong);"></i>Fläschchen</span><span><i style="background:var(--stillen-breast);"></i>Brust</span></div></div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(stillen.perDay, (d) => d.bottleCount, (d) => d.breastCount, 'oklch(48% 0.13 250)', 'oklch(80% 0.05 250)') + '</svg>' +
+    '</div>' +
+    '<div class="a-card">' +
+      '<div class="a-card-label">Trinkmenge (Fläschchen)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + stillen.avgBottleMl + ' ml / Tag</div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.bottleMl, 'oklch(48% 0.13 250)', 'a-area') + '</svg>' +
+    '</div>' +
+    '<div class="a-card">' +
+      '<div class="a-card-label">Stilldauer (Brust)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + stillen.avgBreastMin + ' Min. / Tag</div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.breastMin, 'oklch(62% 0.10 250)', 'breast-area') + '</svg>' +
+    '</div>' +
+    renderAnalyseInsight(stillen.insight, 'var(--stillen-soft)', 'oklch(38% 0.09 250)');
+}
+
+function renderAnalyseWindeln(windeln) {
+  const colorRows = windeln.totalColored > 0
+    ? '<svg viewBox="0 0 300 16" width="100%" height="16" style="margin-top:6px;">' + svgColorDistribution(windeln.okBuckets.concat([{ hex: '#C0392B', pct: windeln.warnBucketPct }])) + '</svg>' +
+      '<div class="a-color-legend">' + windeln.okBuckets.map((b) => '<span><i style="background:' + b.hex + ';"></i>' + b.label + ' ' + b.pct + '%</span>').join('') +
+      '<span><i style="background:#C0392B;"></i>Auffällig ' + windeln.warnBucketPct + '%</span></div>'
+    : '<div style="font-size:12.5px; color:var(--text-muted);">Keine Farbdaten im Zeitraum</div>';
+
+  return '' +
+    '<div class="a-stat-row">' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--windeln);">' + windeln.avgPerDay + '</div><div class="a-stat-cap">Ø / TAG</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--windeln);">' + (windeln.avgIntervalH === null ? '–' : windeln.avgIntervalH + ' h') + '</div><div class="a-stat-cap">Ø ABSTAND</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:' + (windeln.warnPct > 0 ? 'var(--warn)' : 'var(--windeln)') + ';">' + windeln.warnPct + ' %</div><div class="a-stat-cap">AUFFÄLLIG</div></div>' +
+    '</div>' +
+    '<div class="a-card">' +
+      '<div class="a-card-value-row"><div><div class="a-card-label">Wechsel pro Tag</div><div class="a-card-value">Ø ' + windeln.avgPerDay + ' / Tag</div></div>' +
+      '<div class="a-legend"><span><i style="background:var(--windeln);"></i>Klein</span><span><i style="background:var(--windeln-light);"></i>Groß</span></div></div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(windeln.perDay, (d) => d.small, (d) => d.big, '#39ABAB', '#8FD4D4') + '</svg>' +
+    '</div>' +
+    '<div class="a-card"><div class="a-card-label">Farbverteilung im Zeitraum</div>' + colorRows + '</div>' +
+    renderAnalyseInsight(windeln.insight, 'var(--windeln-soft)', '#1F6B6B');
+}
+
+function renderAnalyseSchlafen(schlafen) {
+  return '' +
+    '<div class="a-stat-grid">' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgTotalH + ' h</div><div class="a-stat-cap">Ø GESAMTSCHLAF</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + '</div><div class="a-stat-cap">Ø AUFWACHEN</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgBedtime + '</div><div class="a-stat-cap">Ø EINSCHLAFZEIT</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgWaketime + '</div><div class="a-stat-cap">Ø AUFWACHZEIT</div></div>' +
+    '</div>' +
+    '<div class="a-card">' +
+      '<div class="a-card-value-row"><div><div class="a-card-label">Gesamtschlaf pro Tag</div><div class="a-card-value">Ø ' + schlafen.avgTotalH + ' Std.</div></div>' +
+      '<div class="a-legend"><span><i style="background:var(--schlafen-strong);"></i>Nachts</span><span><i style="background:var(--schlafen-light);"></i>Tagsüber</span></div></div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(schlafen.perDay, (d) => d.nightMinutes / 60, (d) => d.napMinutes / 60, '#4B3F9E', '#B7ADEB') + '</svg>' +
+    '</div>' +
+    '<div class="a-card">' +
+      '<div class="a-card-label">Aufwachen pro Nacht</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + ' / Nacht</div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.wakeCount, '#4B3F9E') + '</svg>' +
+    '</div>' +
+    renderAnalyseInsight(schlafen.insight, 'var(--schlafen-soft)', '#3A306E');
+}
+
+const ANALYSE_VIEWS = ['overview', 'stillen', 'windeln', 'schlafen'];
+function showAnalyseView(view) {
+  ANALYSE_VIEWS.forEach((v) => {
+    document.getElementById('analyse-view-' + v).style.display = v === view ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.a-seg-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.view === view);
+  });
+  document.getElementById('analyse-body').scrollTop = 0;
+}
+document.querySelectorAll('.a-seg-btn').forEach((btn) => {
+  btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));
+});
+
+async function loadAnalyse() {
+  const overviewEl = document.getElementById('analyse-view-overview');
+  overviewEl.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Lade…</div>';
+  try {
+    const { days, start } = buildAnalyseDayBuckets();
+    const [feedings, diapers, nights, naps] = await Promise.all([
+      getAnalyseRangeDocs('feedings', start),
+      getAnalyseRangeDocs('diaperChanges', start),
+      getAnalyseRangeDocs('nightWakeups', start),
+      getAnalyseRangeDocs('naps', start)
+    ]);
+
+    const stillen = computeStillenAnalysis(days, analyseBucketByDay(feedings, days));
+    const windeln = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days));
+    const schlafen = computeSchlafenAnalysis(days, analyseBucketByDay(nights, days), analyseBucketByDay(naps, days));
+
+    document.getElementById('analyse-view-overview').innerHTML = renderAnalyseOverview(stillen, windeln, schlafen);
+    document.getElementById('analyse-view-stillen').innerHTML = renderAnalyseStillen(stillen);
+    document.getElementById('analyse-view-windeln').innerHTML = renderAnalyseWindeln(windeln);
+    document.getElementById('analyse-view-schlafen').innerHTML = renderAnalyseSchlafen(schlafen);
+
+    document.querySelectorAll('#analyse-view-overview .a-ov-card').forEach((card) => {
+      card.addEventListener('click', () => showAnalyseView(card.dataset.target));
+    });
+  } catch (error) {
+    overviewEl.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Fehler beim Laden</div>';
   }
 }
 </script>

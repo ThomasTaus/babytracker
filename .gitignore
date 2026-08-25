@@ -1,0 +1,13 @@
+# Secrets — never commit these
+*serviceAccountKey*.json
+*firebase-adminsdk*.json
+.env
+.env.*
+firebase.pw.txt
+*.pw.txt
+
+# Node
+node_modules/
+
+# Local admin/testing scripts (run against the live bot account) — not for the public repo
+admin-scripts/

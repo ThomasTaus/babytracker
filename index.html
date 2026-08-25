@@ -1716,7 +1716,7 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
   if (meanValue == null) return '';
   const y = baseline - (meanValue / maxVal) * maxPx;
   return '<line x1="7" y1="' + y + '" x2="301" y2="' + y + '" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>' +
-    '<text x="301" y="' + (y - 3) + '" font-family="Work Sans, sans-serif" font-size="7.5" fill="' + color + '" fill-opacity="0.75" text-anchor="end">Ø ' + analyseRound(meanValue) + '</text>';
+    '<text x="301" y="' + (y - 3) + '" font-family="Work Sans, sans-serif" font-size="10" font-weight="600" fill="' + color + '" fill-opacity="0.85" text-anchor="end">Ø ' + analyseRound(meanValue) + '</text>';
 }
 
 function svgStackedBarChart(perDay, bottomFn, topFn, colorBottom, colorTop, meanValue) {
@@ -1730,10 +1730,10 @@ function svgStackedBarChart(perDay, bottomFn, topFn, colorBottom, colorTop, mean
     const labelY = Math.max(11, baseline - bottomH - topH - 4);
     bars += '<rect x="' + x + '" y="' + (baseline - bottomH) + '" width="' + barW + '" height="' + bottomH + '" rx="4" fill="' + colorBottom + '"/>';
     bars += '<rect x="' + x + '" y="' + (baseline - bottomH - topH) + '" width="' + barW + '" height="' + topH + '" rx="4" fill="' + colorTop + '"/>';
-    bars += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" font-family="Work Sans, sans-serif" font-size="9.5" font-weight="700" fill="' + colorBottom + '" text-anchor="middle">' + analyseRound(bottomFn(d) + topFn(d)) + '</text>';
+    bars += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="700" fill="' + colorBottom + '" text-anchor="middle">' + analyseRound(bottomFn(d) + topFn(d)) + '</text>';
   });
   return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + svgMeanLine(meanValue, maxTotal, baseline, maxPx, colorBottom) + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, colorBottom) + '</g>';
+    '<g font-family="Work Sans, sans-serif" font-size="10.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, colorBottom) + '</g>';
 }
 
 function svgBarChart(perDay, valueFn, color, meanValue) {
@@ -1746,10 +1746,10 @@ function svgBarChart(perDay, valueFn, color, meanValue) {
     const h = (v / maxVal) * maxPx;
     const labelY = Math.max(11, baseline - h - 4);
     bars += '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + barW + '" height="' + h + '" rx="4" fill="' + color + '"/>';
-    bars += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" font-family="Work Sans, sans-serif" font-size="9.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + analyseRound(v) + '</text>';
+    bars += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + analyseRound(v) + '</text>';
   });
   return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + svgMeanLine(meanValue, maxVal, baseline, maxPx, color) + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
+    '<g font-family="Work Sans, sans-serif" font-size="10.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
 }
 
 function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
@@ -1769,7 +1769,7 @@ function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
     '<polygon points="' + polygonPts + '" fill="url(#' + gradientId + ')"/>' +
     '<polyline points="' + polylinePts + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<g>' + circles + '</g>' +
-    '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
+    '<g font-family="Work Sans, sans-serif" font-size="10.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
 }
 
 function svgHistogram(bins, binStartHour, binEndHour, color) {
@@ -1784,7 +1784,7 @@ function svgHistogram(bins, binStartHour, binEndHour, color) {
     const h = (count / maxVal) * maxPx;
     bars += '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + w + '" height="' + h + '" rx="4" fill="' + color + '"/>';
     if (count > 0) {
-      bars += '<text x="' + (x + w / 2) + '" y="' + Math.max(11, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="9.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + count + '</text>';
+      bars += '<text x="' + (x + w / 2) + '" y="' + Math.max(11, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + count + '</text>';
     }
   });
   let labels = '';
@@ -1794,7 +1794,7 @@ function svgHistogram(bins, binStartHour, binEndHour, color) {
     labels += '<text x="' + x + '" y="110">' + hour + '</text>';
   }
   return '<line x1="7" y1="95" x2="301" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="8.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>';
+    '<g font-family="Work Sans, sans-serif" font-size="10.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>';
 }
 
 function svgSparkline(perDay, valueFn, colorLight, colorToday) {

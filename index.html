@@ -21,6 +21,9 @@
   .timeline-scroll::-webkit-scrollbar-track { background: transparent; }
   .timeline-scroll::-webkit-scrollbar-thumb { background: oklch(75% 0.01 250); border-radius: 999px; }
 
+  .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  .quick-row { margin-top: -17px; }
+
   #screen-analyse .a-seg { display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 3px; margin-top: 14px; }
   #screen-analyse .a-seg-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 2px; border-radius: 12px; font-weight: 600; font-size: 10.5px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
   #screen-analyse .a-seg-btn.active { background: white; color: var(--stillen-strong); box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08); }
@@ -117,7 +120,17 @@
             <span id="stillen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
           </div>
           <div id="stillen-detail" style="font-size: 13.5px;"></div>
-          <div id="stillen-stats" style="font-size: 11px; color: var(--text-muted);"></div>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+            <span id="stillen-stats" style="font-size: 11px; color: var(--text-muted);"></span>
+            <div class="quick-row" style="display: flex; gap: 6px; flex-shrink: 0;">
+              <button class="quick-btn" data-action="entry" data-target="stillen" title="Eintrag hinzufügen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--stillen-strong)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <button class="quick-btn" data-action="analyse" data-target="stillen" title="Zur Analyse">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--stillen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.2" y="7" width="3.4" height="13" rx="1"/><rect x="14.4" y="10" width="3.4" height="10" rx="1"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--windeln); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
@@ -131,7 +144,17 @@
             <span id="windeln-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
           </div>
           <div id="windeln-detail" style="font-size: 13.5px;"></div>
-          <div id="windeln-stats" style="font-size: 11px; color: var(--text-muted);"></div>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+            <span id="windeln-stats" style="font-size: 11px; color: var(--text-muted);"></span>
+            <div class="quick-row" style="display: flex; gap: 6px; flex-shrink: 0;">
+              <button class="quick-btn" data-action="entry" data-target="windeln" title="Eintrag hinzufügen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <button class="quick-btn" data-action="analyse" data-target="windeln" title="Zur Analyse">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.2" y="7" width="3.4" height="13" rx="1"/><rect x="14.4" y="10" width="3.4" height="10" rx="1"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--schlafen); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
@@ -149,7 +172,17 @@
             <span id="schlafen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
           </div>
           <div id="schlafen-detail" style="font-size: 13.5px;"></div>
-          <div id="schlafen-stats" style="font-size: 11px; color: var(--text-muted);"></div>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+            <span id="schlafen-stats" style="font-size: 11px; color: var(--text-muted);"></span>
+            <div class="quick-row" style="display: flex; gap: 6px; flex-shrink: 0;">
+              <button class="quick-btn" data-action="entry" data-target="schlafen" title="Eintrag hinzufügen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <button class="quick-btn" data-action="analyse" data-target="schlafen" title="Zur Analyse">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.2" y="7" width="3.4" height="13" rx="1"/><rect x="14.4" y="10" width="3.4" height="10" rx="1"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -813,6 +846,17 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target));
 });
 
+document.querySelectorAll('.quick-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.action === 'entry') {
+      showScreen(btn.dataset.target);
+    } else {
+      showScreen('analyse');
+      showAnalyseView(btn.dataset.target);
+    }
+  });
+});
+
 // --- Stillen screen logic ---
 const feedBottleBtn = document.getElementById('feed-bottle-btn');
 const feedBreastBtn = document.getElementById('feed-breast-btn');
@@ -1386,7 +1430,7 @@ async function loadOverview() {
     } else {
       badge.style.display = 'none';
       document.getElementById('schlafen-detail').textContent = completed.length
-        ? 'Letztes Schläfchen: ' + formatDuration(completed[0].durationMinutes)
+        ? 'Schläfchen: ' + formatDuration(completed[0].durationMinutes)
         : 'Noch kein Schläfchen heute';
 
       const candidates = [];
@@ -1397,8 +1441,9 @@ async function loadOverview() {
     }
 
     if (lastNight && lastNight.bedtime && lastNight.wakeTime) {
+      const nightHours = Math.round(nightDurationMinutes(lastNight) / 60);
       document.getElementById('schlafen-stats').textContent =
-        'Letzte Nacht: ' + lastNight.bedtime + ' → ' + lastNight.wakeTime + ' · ' + lastNight.wakeCount + '× aufgewacht';
+        'Nachts: ' + nightHours + ' Std. · ' + lastNight.wakeCount + '× aufgewacht';
       if (wakeIsToday && lastNight.createdAt) {
         timelineEvents.push({ ts: timeOnDate(now, lastNight.wakeTime), color: 'var(--schlafen)', label: 'Aufgewacht' });
       }
@@ -1838,8 +1883,9 @@ document.querySelectorAll('.a-seg-btn').forEach((btn) => {
 });
 
 async function loadAnalyse() {
-  const overviewEl = document.getElementById('analyse-view-overview');
-  overviewEl.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Lade…</div>';
+  ANALYSE_VIEWS.forEach((v) => {
+    document.getElementById('analyse-view-' + v).innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Lade…</div>';
+  });
   try {
     const { days, start } = buildAnalyseDayBuckets();
     const [feedings, diapers, nights, naps] = await Promise.all([
@@ -1862,7 +1908,9 @@ async function loadAnalyse() {
       card.addEventListener('click', () => showAnalyseView(card.dataset.target));
     });
   } catch (error) {
-    overviewEl.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Fehler beim Laden</div>';
+    ANALYSE_VIEWS.forEach((v) => {
+      document.getElementById('analyse-view-' + v).innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Fehler beim Laden</div>';
+    });
   }
 }
 </script>

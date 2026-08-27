@@ -1984,7 +1984,7 @@ function renderAnalyseStillen(stillen) {
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-label">Stilldauer (Brust)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + stillen.avgBreastMin + ' Min. / Tag</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.breastMin / d.daysElapsed, 'oklch(62% 0.10 250)', 'breast-area', stillen.avgBreastMin) + '</svg>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.breastMin / d.daysElapsed, 'oklch(48% 0.13 250)', 'breast-area', stillen.avgBreastMin) + '</svg>' +
       analyseAxisCaptionHtml() +
     '</div>' +
     renderAnalyseInsight(stillen.insight, 'var(--stillen-soft)', 'oklch(38% 0.09 250)');

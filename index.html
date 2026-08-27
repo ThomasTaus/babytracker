@@ -28,9 +28,10 @@
   #screen-analyse .a-seg { display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 3px; margin-top: 14px; }
   #screen-analyse .a-seg-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 2px; border-radius: 12px; font-weight: 600; font-size: 10.5px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
   #screen-analyse .a-seg-btn.active { background: white; color: var(--stillen-strong); box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08); }
-  #screen-analyse .a-range-chip { padding: 7px 13px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid transparent; background: var(--surface-alt); color: var(--text-muted); cursor: default; }
+  #screen-analyse .a-range-chip { padding: 7px 13px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid transparent; background: var(--surface-alt); color: var(--text-muted); cursor: pointer; }
   #screen-analyse .a-range-chip.active { background: var(--stillen-soft); color: var(--stillen-strong); border-color: var(--stillen); cursor: pointer; }
-  #screen-analyse .a-range-chip.disabled { opacity: 0.5; }
+  #screen-analyse .a-range-chip.disabled { opacity: 0.5; cursor: default; }
+  #screen-analyse .a-axis-unit { text-align: right; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-top: 2px; }
   #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
   #screen-analyse .a-card:last-child { margin-bottom: 0; }
   #screen-analyse .a-card-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px; }
@@ -685,9 +686,9 @@
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 16px;">
-        <div class="a-range-chip active">7 Tage</div>
-        <div class="a-range-chip disabled" title="Bald verfügbar">30 Tage</div>
-        <div class="a-range-chip disabled" title="Bald verfügbar">12 Monate</div>
+        <div class="a-range-chip active" data-range="7d">7 Tage</div>
+        <div class="a-range-chip" data-range="8w">8 Wochen</div>
+        <div class="a-range-chip disabled" title="Verfügbar sobald genug Daten da sind">12 Monate</div>
       </div>
     </div>
 
@@ -1490,11 +1491,24 @@ async function loadOverview() {
 
 // --- Analyse ---
 const ANALYSE_RANGE_DAYS = 7;
+const ANALYSE_WEEK_COUNT = 8;
 const ANALYSE_WEEKDAY_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const ANALYSE_WEEKDAY_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
+// Range-dependent labels/phrasing, set at the top of loadAnalyse() for whichever
+// range is currently selected, and read by the chart/insight builders below —
+// avoids threading a "range" parameter through every function signature.
+let analyseRange = '7d';
+let analyseAxisTodayLabel = 'Heute';
+let analyseProseTodayLabel = 'Heute';
+let analyseRangeLabel = 'Woche';
+let analyseBucketUnitPhrase = 'an einem Tag';
+let analyseShowAxisCaption = false;
+
 function analyseAvg(arr) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0; }
 function analyseRound(n) { return Math.round(n); }
+function analyseTotalDays(days) { return days.reduce((s, d) => s + d.daysElapsed, 0); }
+function analyseAxisCaptionHtml() { return analyseShowAxisCaption ? '<div class="a-axis-unit">Kalenderwoche</div>' : ''; }
 
 function minutesToHHMM(totalMin) {
   const m = ((Math.round(totalMin) % 1440) + 1440) % 1440;
@@ -1516,10 +1530,60 @@ function buildAnalyseDayBuckets() {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
     days.push({
-      key: isoDate(d),
+      dayKeys: [isoDate(d)],
       label: ANALYSE_WEEKDAY_SHORT[d.getDay()],
       fullLabel: ANALYSE_WEEKDAY_FULL[d.getDay()],
-      isToday: i === ANALYSE_RANGE_DAYS - 1
+      isToday: i === ANALYSE_RANGE_DAYS - 1,
+      daysElapsed: 1
+    });
+  }
+  return { days, start };
+}
+
+// ISO week number (Monday-start, per DIN/ISO 8601 — the German calendar-week convention).
+function isoWeekNumber(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const diff = (date - firstThursday) / 86400000;
+  return 1 + Math.round(diff / 7);
+}
+
+function mondayOf(d) {
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dayNum = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - dayNum);
+  return date;
+}
+
+// 8 real calendar weeks (Mon-Sun), most recent one truncated to today if it's
+// still in progress — daysElapsed tracks how many days actually belong to that
+// truncated week, so per-day averages stay comparable to the full weeks.
+function buildAnalyseWeekBuckets() {
+  const today = todayStartDate();
+  const thisMonday = mondayOf(today);
+  const start = new Date(thisMonday);
+  start.setDate(start.getDate() - (ANALYSE_WEEK_COUNT - 1) * 7);
+  const days = [];
+  for (let w = 0; w < ANALYSE_WEEK_COUNT; w++) {
+    const wStart = new Date(start);
+    wStart.setDate(wStart.getDate() + w * 7);
+    const isCurrent = w === ANALYSE_WEEK_COUNT - 1;
+    const dayKeys = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(wStart);
+      d.setDate(d.getDate() + i);
+      if (d > today) break;
+      dayKeys.push(isoDate(d));
+    }
+    const weekNum = isoWeekNumber(wStart);
+    days.push({
+      dayKeys,
+      label: String(weekNum),
+      fullLabel: 'Kalenderwoche ' + weekNum,
+      isToday: isCurrent,
+      daysElapsed: dayKeys.length
     });
   }
   return { days, start };
@@ -1531,12 +1595,14 @@ async function getAnalyseRangeDocs(name, start) {
 }
 
 function analyseBucketByDay(docs, days) {
-  const map = {};
-  days.forEach((d) => { map[d.key] = []; });
+  const indexByDate = {};
+  days.forEach((d, i) => { d.dayKeys.forEach((k) => { indexByDate[k] = i; }); });
+  const map = days.map(() => []);
   docs.forEach((doc) => {
     if (!doc.createdAt) return;
     const key = isoDate(doc.createdAt.toDate());
-    if (map[key]) map[key].push(doc);
+    const idx = indexByDate[key];
+    if (idx !== undefined) map[idx].push(doc);
   });
   return map;
 }
@@ -1555,26 +1621,27 @@ function findAnalyseOutlierDay(perDay, valueFn) {
   return { day: perDay[idx], value: max };
 }
 
-function outlierDayLabel(day) { return day.isToday ? 'Heute' : day.fullLabel; }
+function outlierDayLabel(day) { return day.isToday ? analyseProseTodayLabel : day.fullLabel; }
 
 function computeStillenAnalysis(days, feedMap) {
-  const perDay = days.map((d) => {
-    const docs = feedMap[d.key];
+  const perDay = days.map((d, i) => {
+    const docs = feedMap[i];
     const bottle = docs.filter((f) => f.type === 'bottle');
     const breast = docs.filter((f) => f.type === 'breast');
     return {
-      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday,
+      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday, daysElapsed: d.daysElapsed,
       bottleCount: bottle.length, breastCount: breast.length,
       bottleMl: bottle.reduce((s, f) => s + (f.amount || 0), 0),
       breastMin: breast.reduce((s, f) => s + (f.minutes || 0), 0)
     };
   });
+  const totalDays = analyseTotalDays(days);
   const totalCount = perDay.reduce((s, d) => s + d.bottleCount + d.breastCount, 0);
   const totalBottle = perDay.reduce((s, d) => s + d.bottleCount, 0);
   const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
   const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
 
-  const allTimestamps = days.flatMap((d) => feedMap[d.key]).filter((f) => f.createdAt).map((f) => f.createdAt.toDate()).sort((a, b) => a - b);
+  const allTimestamps = feedMap.flat().filter((f) => f.createdAt).map((f) => f.createdAt.toDate()).sort((a, b) => a - b);
   let avgIntervalH = null;
   if (allTimestamps.length > 1) {
     const gaps = [];
@@ -1585,31 +1652,32 @@ function computeStillenAnalysis(days, feedMap) {
   const bottlePct = totalCount > 0 ? analyseRound(totalBottle / totalCount * 100) : 0;
   const breastPct = totalCount > 0 ? 100 - bottlePct : 0;
 
-  const outlier = findAnalyseOutlierDay(perDay, (d) => d.bottleMl);
+  const outlier = findAnalyseOutlierDay(perDay, (d) => d.bottleMl / d.daysElapsed);
 
   return {
     perDay,
-    avgPerDay: analyseRound(totalCount / ANALYSE_RANGE_DAYS),
+    avgPerDay: analyseRound(totalCount / totalDays),
     avgIntervalH,
     bottlePct, breastPct,
-    avgBottleMl: analyseRound(totalMl / ANALYSE_RANGE_DAYS),
-    avgBreastMin: analyseRound(totalBreastMin / ANALYSE_RANGE_DAYS),
-    insight: outlier ? (outlierDayLabel(outlier.day) + ' deutlich mehr Fläschchen als sonst — größter Tageswert der letzten Woche.') : null
+    avgBottleMl: analyseRound(totalMl / totalDays),
+    avgBreastMin: analyseRound(totalBreastMin / totalDays),
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' deutlich mehr Fläschchen als sonst — größter Tageswert der letzten ' + analyseRangeLabel + '.') : null
   };
 }
 
 function computeWindelnAnalysis(days, diaperMap) {
-  const perDay = days.map((d) => {
-    const docs = diaperMap[d.key];
+  const perDay = days.map((d, i) => {
+    const docs = diaperMap[i];
     return {
-      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday,
+      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday, daysElapsed: d.daysElapsed,
       small: docs.filter((x) => x.small).length,
       big: docs.filter((x) => x.big).length,
       total: docs.length
     };
   });
+  const totalDays = analyseTotalDays(days);
   const totalCount = perDay.reduce((s, d) => s + d.total, 0);
-  const allDocs = days.flatMap((d) => diaperMap[d.key]);
+  const allDocs = diaperMap.flat();
 
   const allTimestamps = allDocs.filter((x) => x.createdAt).map((x) => x.createdAt.toDate()).sort((a, b) => a - b);
   let avgIntervalH = null;
@@ -1633,15 +1701,15 @@ function computeWindelnAnalysis(days, diaperMap) {
   const warnBucketCount = WARN_COLORS.reduce((s, c) => s + (colorCounts[c.id] || 0), 0);
   const warnBucketPct = totalColored > 0 ? analyseRound(warnBucketCount / totalColored * 100) : 0;
 
-  const outlier = findAnalyseOutlierDay(perDay, (d) => d.big);
+  const outlier = findAnalyseOutlierDay(perDay, (d) => d.big / d.daysElapsed);
 
   return {
     perDay,
-    avgPerDay: analyseRound(totalCount / ANALYSE_RANGE_DAYS),
+    avgPerDay: analyseRound(totalCount / totalDays),
     avgIntervalH,
     warnCount, warnPct,
     totalColored, okBuckets, warnBucketPct,
-    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + outlier.value + ' großen Wechseln — der meiste an einem Tag diese Woche.') : null
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + outlier.day.big + ' großen Wechseln — der meiste ' + analyseBucketUnitPhrase + ' der letzten ' + analyseRangeLabel + '.') : null
   };
 }
 
@@ -1667,47 +1735,57 @@ function computeNapHistogram(allNaps) {
 }
 
 function computeSchlafenAnalysis(days, nightMap, napMap) {
-  const perDay = days.map((d) => {
-    const nights = nightMap[d.key].filter((n) => n.bedtime && n.wakeTime);
-    const napsToday = napMap[d.key].filter((n) => n.endTime);
+  const perDay = days.map((d, i) => {
+    const nights = nightMap[i].filter((n) => n.bedtime && n.wakeTime);
+    const napsToday = napMap[i].filter((n) => n.endTime);
     const napMinutes = napsToday.reduce((s, n) => s + (n.durationMinutes || 0), 0);
     const nightMinutes = nights.length ? analyseAvg(nights.map(nightDurationMinutes)) : 0;
     const wakeCount = nights.length ? analyseAvg(nights.map((n) => n.wakeCount || 0)) : 0;
     return {
-      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday,
+      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday, daysElapsed: d.daysElapsed,
       nightMinutes, napMinutes, napCount: napsToday.length, hasNight: nights.length > 0, wakeCount
     };
   });
 
+  const totalDays = analyseTotalDays(days);
   const daysWithNight = perDay.filter((d) => d.hasNight);
   const avgNightH = analyseRound(daysWithNight.length ? analyseAvg(daysWithNight.map((d) => d.nightMinutes)) / 60 : 0);
-  const avgNapH = analyseRound(analyseAvg(perDay.map((d) => d.napMinutes)) / 60);
+  const avgNapH = analyseRound(perDay.reduce((s, d) => s + d.napMinutes, 0) / totalDays / 60);
   const avgTotalH = avgNightH + avgNapH;
   const avgWake = daysWithNight.length ? analyseRound(analyseAvg(daysWithNight.map((d) => d.wakeCount))) : null;
-  const avgNapCount = analyseRound(analyseAvg(perDay.map((d) => d.napCount)));
+  const avgNapCount = analyseRound(perDay.reduce((s, d) => s + d.napCount, 0) / totalDays);
 
-  const allNights = days.flatMap((d) => nightMap[d.key]).filter((n) => n.bedtime && n.wakeTime);
+  const allNights = nightMap.flat().filter((n) => n.bedtime && n.wakeTime);
   const avgBedtime = allNights.length ? minutesToHHMM(analyseAvg(allNights.map((n) => parseMinutes(n.bedtime)))) : '–';
   const avgWaketime = allNights.length ? minutesToHHMM(analyseAvg(allNights.map((n) => parseMinutes(n.wakeTime)))) : '–';
 
-  const allNaps = days.flatMap((d) => napMap[d.key]).filter((n) => n.endTime);
+  const allNaps = napMap.flat().filter((n) => n.endTime);
   const napHistogram = computeNapHistogram(allNaps);
 
   const outlier = findAnalyseOutlierDay(daysWithNight, (d) => d.wakeCount);
 
   return {
     perDay, avgNightH, avgNapH, avgTotalH, avgWake, avgNapCount, avgBedtime, avgWaketime, napHistogram,
-    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + analyseRound(outlier.value) + '× Aufwachen — die meisten Unterbrechungen diese Woche.') : null
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + analyseRound(outlier.value) + '× Aufwachen — die meisten Unterbrechungen der letzten ' + analyseRangeLabel + '.') : null
   };
 }
 
 // --- Analyse: SVG chart builders ---
+// Bar width/gap that fits exactly n items into the chart's ~300-unit plot
+// width, at the same 2:1 bar:gap ratio the original fixed 7-item layout used
+// (barW=30, gap=15) — reduces to that exact value when n=7.
+function analyseBarGeom(n) {
+  const barW = 600 / (3 * n - 1);
+  return { barW, gap: barW / 2 };
+}
+
 function analyseChartAxisLabels(perDay, color) {
-  const barW = 30, gap = 15, startX = 4;
+  const { barW, gap } = analyseBarGeom(perDay.length);
+  const startX = 4;
   return perDay.map((d, i) => {
     const x = startX + i * (barW + gap) + barW / 2;
     return d.isToday
-      ? '<text x="' + x + '" y="111" font-weight="700" fill="' + color + '">Heute</text>'
+      ? '<text x="' + x + '" y="111" font-weight="700" fill="' + color + '">' + analyseAxisTodayLabel + '</text>'
       : '<text x="' + x + '" y="111">' + d.label + '</text>';
   }).join('');
 }
@@ -1719,7 +1797,8 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
 }
 
 function svgStackedBarChart(perDay, bottomFn, topFn, colorBottom, colorTop, meanValue) {
-  const barW = 30, gap = 15, startX = 4, baseline = 95, maxPx = 78;
+  const { barW, gap } = analyseBarGeom(perDay.length);
+  const startX = 4, baseline = 95, maxPx = 78;
   const maxTotal = Math.max(1, ...perDay.map((d) => bottomFn(d) + topFn(d)), meanValue || 0);
   let bars = '';
   perDay.forEach((d, i) => {
@@ -1736,7 +1815,8 @@ function svgStackedBarChart(perDay, bottomFn, topFn, colorBottom, colorTop, mean
 }
 
 function svgBarChart(perDay, valueFn, color, meanValue) {
-  const barW = 30, gap = 15, startX = 4, baseline = 95, maxPx = 78;
+  const { barW, gap } = analyseBarGeom(perDay.length);
+  const startX = 4, baseline = 95, maxPx = 78;
   const maxVal = Math.max(1, ...perDay.map(valueFn), meanValue || 0);
   let bars = '';
   perDay.forEach((d, i) => {
@@ -1752,7 +1832,7 @@ function svgBarChart(perDay, valueFn, color, meanValue) {
 }
 
 function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
-  const startX = 19, stepX = 45, baseline = 95, topY = 5;
+  const startX = 19, stepX = 270 / (perDay.length - 1), baseline = 95, topY = 5;
   const maxVal = Math.max(1, ...perDay.map(valueFn), meanValue || 0);
   const points = perDay.map((d, i) => ({ x: startX + i * stepX, y: baseline - (valueFn(d) / maxVal) * (baseline - topY), isToday: d.isToday }));
   const polylinePts = points.map((p) => p.x + ',' + p.y).join(' ');
@@ -1797,7 +1877,8 @@ function svgHistogram(bins, binStartHour, binEndHour, color) {
 }
 
 function svgSparkline(perDay, valueFn, colorLight, colorToday) {
-  const barW = 5.5, gap = 1.9, startX = 5, baseline = 22, maxPx = 18;
+  const n = perDay.length, startX = 5, baseline = 22, maxPx = 18;
+  const barW = 50 / (n + (n - 1) * 0.3455), gap = barW * 0.3455;
   const maxVal = Math.max(1, ...perDay.map(valueFn));
   return perDay.map((d, i) => {
     const x = startX + i * (barW + gap);
@@ -1828,9 +1909,9 @@ function renderAnalyseInsight(text, bg, color) {
 }
 
 function renderAnalyseOverview(stillen, windeln, schlafen) {
-  const stillenSpark = svgSparkline(stillen.perDay, (d) => d.bottleCount + d.breastCount, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)');
-  const windelnSpark = svgSparkline(windeln.perDay, (d) => d.total, '#39ABAB', '#39ABAB');
-  const schlafenSpark = svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + d.napMinutes) / 60, '#6A5ACD', '#4B3F9E');
+  const stillenSpark = svgSparkline(stillen.perDay, (d) => (d.bottleCount + d.breastCount) / d.daysElapsed, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)');
+  const windelnSpark = svgSparkline(windeln.perDay, (d) => d.total / d.daysElapsed, '#39ABAB', '#39ABAB');
+  const schlafenSpark = svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + d.napMinutes / d.daysElapsed) / 60, '#6A5ACD', '#4B3F9E');
   const totalWechsel = windeln.perDay.reduce((s, d) => s + d.total, 0);
   const warnWechsel = windeln.warnCount;
 
@@ -1879,15 +1960,18 @@ function renderAnalyseStillen(stillen) {
     '<div class="a-card">' +
       '<div class="a-card-value-row"><div><div class="a-card-label">Fütterungen pro Tag</div><div class="a-card-value">Ø ' + stillen.avgPerDay + ' / Tag</div></div>' +
       '<div class="a-legend"><span><i style="background:var(--stillen-strong);"></i>Fläschchen</span><span><i style="background:var(--stillen-breast);"></i>Brust</span></div></div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(stillen.perDay, (d) => d.bottleCount, (d) => d.breastCount, 'oklch(48% 0.13 250)', 'oklch(80% 0.05 250)', stillen.avgPerDay) + '</svg>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(stillen.perDay, (d) => d.bottleCount / d.daysElapsed, (d) => d.breastCount / d.daysElapsed, 'oklch(48% 0.13 250)', 'oklch(80% 0.05 250)', stillen.avgPerDay) + '</svg>' +
+      analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-label">Trinkmenge (Fläschchen)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + stillen.avgBottleMl + ' ml / Tag</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.bottleMl, 'oklch(48% 0.13 250)', 'a-area', stillen.avgBottleMl) + '</svg>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.bottleMl / d.daysElapsed, 'oklch(48% 0.13 250)', 'a-area', stillen.avgBottleMl) + '</svg>' +
+      analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-label">Stilldauer (Brust)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + stillen.avgBreastMin + ' Min. / Tag</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.breastMin, 'oklch(62% 0.10 250)', 'breast-area', stillen.avgBreastMin) + '</svg>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.breastMin / d.daysElapsed, 'oklch(62% 0.10 250)', 'breast-area', stillen.avgBreastMin) + '</svg>' +
+      analyseAxisCaptionHtml() +
     '</div>' +
     renderAnalyseInsight(stillen.insight, 'var(--stillen-soft)', 'oklch(38% 0.09 250)');
 }
@@ -1908,7 +1992,8 @@ function renderAnalyseWindeln(windeln) {
     '<div class="a-card">' +
       '<div class="a-card-value-row"><div><div class="a-card-label">Wechsel pro Tag</div><div class="a-card-value">Ø ' + windeln.avgPerDay + ' / Tag</div></div>' +
       '<div class="a-legend"><span><i style="background:var(--windeln);"></i>Klein</span><span><i style="background:var(--windeln-light);"></i>Groß</span></div></div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(windeln.perDay, (d) => d.small, (d) => d.big, '#39ABAB', '#8FD4D4', windeln.avgPerDay) + '</svg>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(windeln.perDay, (d) => d.small / d.daysElapsed, (d) => d.big / d.daysElapsed, '#39ABAB', '#8FD4D4', windeln.avgPerDay) + '</svg>' +
+      analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card"><div class="a-card-label">Farbverteilung im Zeitraum</div>' + colorRows + '</div>' +
     renderAnalyseInsight(windeln.insight, 'var(--windeln-soft)', '#1F6B6B');
@@ -1925,15 +2010,18 @@ function renderAnalyseSchlafen(schlafen) {
     '<div class="a-card">' +
       '<div class="a-card-value-row"><div><div class="a-card-label">Gesamtschlaf pro Tag</div><div class="a-card-value">Ø ' + schlafen.avgTotalH + ' Std.</div></div>' +
       '<div class="a-legend"><span><i style="background:var(--schlafen-strong);"></i>Nachts</span><span><i style="background:var(--schlafen-light);"></i>Tagsüber</span></div></div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(schlafen.perDay, (d) => d.nightMinutes / 60, (d) => d.napMinutes / 60, '#4B3F9E', '#B7ADEB', schlafen.avgTotalH) + '</svg>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(schlafen.perDay, (d) => d.nightMinutes / 60, (d) => d.napMinutes / d.daysElapsed / 60, '#4B3F9E', '#B7ADEB', schlafen.avgTotalH) + '</svg>' +
+      analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-label">Aufwachen pro Nacht</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + ' / Nacht</div>' +
       '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.wakeCount, '#4B3F9E', schlafen.avgWake) + '</svg>' +
+      analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-label">Schläfchen pro Tag</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + schlafen.avgNapCount + ' / Tag</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.napCount, '#4B3F9E', schlafen.avgNapCount) + '</svg>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.napCount / d.daysElapsed, '#4B3F9E', schlafen.avgNapCount) + '</svg>' +
+      analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-label">Uhrzeit der Schläfchen</div>' +
@@ -1956,12 +2044,30 @@ document.querySelectorAll('.a-seg-btn').forEach((btn) => {
   btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));
 });
 
+document.querySelectorAll('.a-range-chip[data-range]').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    if (chip.dataset.range === analyseRange) return;
+    analyseRange = chip.dataset.range;
+    document.querySelectorAll('.a-range-chip[data-range]').forEach((c) => {
+      c.classList.toggle('active', c.dataset.range === analyseRange);
+    });
+    loadAnalyse();
+  });
+});
+
 async function loadAnalyse() {
   ANALYSE_VIEWS.forEach((v) => {
     document.getElementById('analyse-view-' + v).innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Lade…</div>';
   });
   try {
-    const { days, start } = buildAnalyseDayBuckets();
+    const isWeekRange = analyseRange === '8w';
+    analyseAxisTodayLabel = isWeekRange ? 'Jetzt' : 'Heute';
+    analyseProseTodayLabel = isWeekRange ? 'Diese Woche' : 'Heute';
+    analyseRangeLabel = isWeekRange ? '8 Wochen' : 'Woche';
+    analyseBucketUnitPhrase = isWeekRange ? 'in einer Woche' : 'an einem Tag';
+    analyseShowAxisCaption = isWeekRange;
+
+    const { days, start } = isWeekRange ? buildAnalyseWeekBuckets() : buildAnalyseDayBuckets();
     const [feedings, diapers, nights, naps] = await Promise.all([
       getAnalyseRangeDocs('feedings', start),
       getAnalyseRangeDocs('diaperChanges', start),

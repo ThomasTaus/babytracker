@@ -535,6 +535,7 @@
     --accent-strong: #4B3F9E;
     --accent-soft: #E8E5F9;
     --stop: #C0392B;
+    --warn: oklch(58% 0.17 25);
     --surface: oklch(99% 0.002 250);
     --surface-alt: oklch(93% 0.004 250);
     --text: oklch(27% 0.006 250);
@@ -562,29 +563,41 @@
       <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
         <label style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Nachts</label>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-alt); border-radius: 14px; padding: 10px 12px;">
-          <button id="night-prev" style="border:none; background:none; color:var(--text-muted); cursor:pointer; padding:4px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 0;">
+          <button id="night-prev" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <div style="text-align: center;">
             <div id="night-label" style="font-size: 14px; font-weight: 600;"></div>
             <div id="night-sublabel" style="font-size: 11px; color: var(--text-muted);"></div>
           </div>
-          <button id="night-next" style="border:none; background:none; color:var(--border); cursor:default; padding:4px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          <button id="night-next" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:default; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-          <div style="flex:1; display: flex; flex-direction: column; align-items: center; background: var(--surface-alt); border-radius: 14px; padding: 10px 12px;">
-            <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Eingeschlafen</span>
-            <input id="night-bedtime" type="time" style="width:100%; text-align:center; border: none; background: transparent; font-size: 17px; font-weight: 600; color: var(--text); outline: none;">
-          </div>
-          <div style="flex:1; display: flex; flex-direction: column; align-items: center; background: var(--surface-alt); border-radius: 14px; padding: 10px 12px;">
-            <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Aufgewacht</span>
-            <input id="night-waketime" type="time" style="width:100%; text-align:center; border: none; background: transparent; font-size: 17px; font-weight: 600; color: var(--text); outline: none;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+            <circle cx="12" cy="12" r="8.5"/>
+            <path d="M12 7.5v5l3.2 2"/>
+          </svg>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Eingeschlafen</div>
+            <input id="night-bedtime" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
           </div>
         </div>
+        <div style="height: 1px; background: var(--border);"></div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+            <circle cx="12" cy="12" r="8.5"/>
+            <path d="M12 7.5v5l3.2 2"/>
+          </svg>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Aufgewacht</div>
+            <input id="night-waketime" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+          </div>
+        </div>
+        <div id="night-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
 
         <div style="display: flex; align-items: center; justify-content: center; gap: 22px; padding: 4px 0;">
           <button id="wake-dec" style="width:38px; height:38px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
@@ -610,17 +623,38 @@
           <button id="nap-timer-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Timer</button>
         </div>
 
-        <div id="nap-manual-panel" style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="display: flex; gap: 10px;">
-            <div style="flex:1; display: flex; flex-direction: column; align-items: center; background: var(--surface-alt); border-radius: 14px; padding: 10px 12px;">
-              <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Start</span>
-              <input id="nap-start" type="time" style="width:100%; text-align:center; border: none; background: transparent; font-size: 17px; font-weight: 600; color: var(--text); outline: none;">
-            </div>
-            <div style="flex:1; display: flex; flex-direction: column; align-items: center; background: var(--surface-alt); border-radius: 14px; padding: 10px 12px;">
-              <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Ende</span>
-              <input id="nap-end" type="time" style="width:100%; text-align:center; border: none; background: transparent; font-size: 17px; font-weight: 600; color: var(--text); outline: none;">
+        <div id="nap-manual-panel" style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+              <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
+            </svg>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Datum</div>
+              <input id="nap-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
             </div>
           </div>
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="display: flex; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+                <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
+              </svg>
+              <div style="min-width: 0;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Start</div>
+                <input id="nap-start" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+                <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
+              </svg>
+              <div style="min-width: 0;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende</div>
+                <input id="nap-end" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+              </div>
+            </div>
+          </div>
+          <div id="nap-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
           <div id="nap-duration-label" style="text-align: center; font-size: 13px; color: var(--accent-strong); font-weight: 600;"></div>
           <button id="nap-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
         </div>
@@ -1164,11 +1198,36 @@ const wakeIncBtn = document.getElementById('wake-inc');
 const nightSaveBtn = document.getElementById('night-save');
 const nightBedtimeInput = document.getElementById('night-bedtime');
 const nightWaketimeInput = document.getElementById('night-waketime');
+const nightTimeError = document.getElementById('night-time-error');
 
 let nightOffset = 0;
 let wakeCount = 1;
 nightBedtimeInput.value = '19:30';
 nightWaketimeInput.value = formatTime(new Date());
+
+// Bedtime always falls on nightStart (at least one day before nightEnd), so
+// it's never in the future. Waketime falls on nightEnd, which only equals
+// today when viewing "Letzte Nacht" (nightOffset 0) — that's the only case
+// where it needs a not-in-the-future clamp; any older night is already
+// entirely in the past regardless of the clock time chosen.
+function clampNightWaketime() {
+  if (nightOffset === 0) {
+    nightWaketimeInput.max = formatTime(new Date());
+    if (nightWaketimeInput.value && nightWaketimeInput.value > nightWaketimeInput.max) {
+      nightWaketimeInput.value = nightWaketimeInput.max;
+    }
+  } else {
+    nightWaketimeInput.removeAttribute('max');
+  }
+  nightTimeError.style.display = 'none';
+}
+function nightTimeIsValid() {
+  if (nightOffset !== 0 || !nightWaketimeInput.value) return true;
+  const future = timeOnDate(new Date(), nightWaketimeInput.value).getTime() > Date.now();
+  nightTimeError.style.display = future ? 'block' : 'none';
+  return !future;
+}
+nightWaketimeInput.addEventListener('change', clampNightWaketime);
 
 function renderNight() {
   const today = new Date();
@@ -1177,9 +1236,10 @@ function renderNight() {
   const isLastNight = nightOffset === 0;
   nightLabelEl.textContent = fmtDayDate(nightStart) + ' → ' + fmtDayDate(nightEnd);
   nightSublabelEl.textContent = isLastNight ? 'Letzte Nacht' : '';
-  nightNextBtn.style.color = isLastNight ? 'var(--border)' : 'var(--text-muted)';
+  nightNextBtn.style.opacity = isLastNight ? '0.4' : '1';
   nightNextBtn.style.cursor = isLastNight ? 'default' : 'pointer';
   wakeCountEl.textContent = wakeCount;
+  clampNightWaketime();
 }
 nightPrevBtn.addEventListener('click', () => { nightOffset += 1; renderNight(); });
 nightNextBtn.addEventListener('click', () => { if (nightOffset > 0) { nightOffset -= 1; renderNight(); } });
@@ -1188,7 +1248,7 @@ wakeIncBtn.addEventListener('click', () => { wakeCount += 1; renderNight(); });
 renderNight();
 
 nightSaveBtn.addEventListener('click', async () => {
-  if (!currentUser) return;
+  if (!currentUser || !nightTimeIsValid()) return;
   const today = new Date();
   const nightStart = new Date(today); nightStart.setDate(nightStart.getDate() - 1 - nightOffset);
   const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
@@ -1212,13 +1272,48 @@ nightSaveBtn.addEventListener('click', async () => {
   }
 });
 
+// Same past-only guarantee as setupPastOnlyDateTime (Stillen/Windeln), but
+// for one date shared by two time fields (Start/Ende) instead of a single
+// time — the Timer nap flow doesn't need this at all, it's inherently
+// real-time and has no date/time inputs of its own.
+function setupPastOnlyDateTimeRange(dateInput, startInput, endInput, errorEl) {
+  function today() { return isoDate(new Date()); }
+  function clamp() {
+    dateInput.max = today();
+    if (dateInput.value === today()) {
+      const nowStr = formatTime(new Date());
+      startInput.max = nowStr;
+      endInput.max = nowStr;
+      if (startInput.value && startInput.value > nowStr) startInput.value = nowStr;
+      if (endInput.value && endInput.value > nowStr) endInput.value = nowStr;
+    } else {
+      startInput.removeAttribute('max');
+      endInput.removeAttribute('max');
+    }
+    errorEl.style.display = 'none';
+  }
+  dateInput.addEventListener('change', clamp);
+  startInput.addEventListener('change', clamp);
+  endInput.addEventListener('change', clamp);
+  clamp();
+  return function isValid() {
+    if (!dateInput.value || !startInput.value || !endInput.value) return false;
+    const base = new Date(dateInput.value + 'T00:00:00');
+    const future = timeOnDate(base, startInput.value).getTime() > Date.now() || timeOnDate(base, endInput.value).getTime() > Date.now();
+    errorEl.style.display = future ? 'block' : 'none';
+    return !future;
+  };
+}
+
 // Nachmittagsschlaf: Manuell / Timer
 const napManualBtn = document.getElementById('nap-manual-btn');
 const napTimerBtn = document.getElementById('nap-timer-btn');
 const napManualPanel = document.getElementById('nap-manual-panel');
 const napTimerPanel = document.getElementById('nap-timer-panel');
+const napDateInput = document.getElementById('nap-date');
 const napStartInput = document.getElementById('nap-start');
 const napEndInput = document.getElementById('nap-end');
+const napTimeError = document.getElementById('nap-time-error');
 const napDurationLabel = document.getElementById('nap-duration-label');
 const napSaveBtn = document.getElementById('nap-save');
 const timerDisplay = document.getElementById('timer-display');
@@ -1247,19 +1342,22 @@ function renderNapDuration() {
   napSaveBtn.style.background = minutes > 0 ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
   return minutes;
 }
+napDateInput.value = isoDate(new Date());
 napStartInput.value = formatTime(new Date(Date.now() - 60 * 60000));
 napEndInput.value = formatTime(new Date());
 napStartInput.addEventListener('input', renderNapDuration);
 napEndInput.addEventListener('input', renderNapDuration);
 renderNapDuration();
+const napTimeIsValid = setupPastOnlyDateTimeRange(napDateInput, napStartInput, napEndInput, napTimeError);
 
 napSaveBtn.addEventListener('click', async () => {
-  if (!currentUser) return;
+  if (!currentUser || !napTimeIsValid()) return;
   const minutes = renderNapDuration();
   if (minutes <= 0) return;
   napSaveBtn.disabled = true;
   try {
     await addDoc(collection(db, 'naps'), {
+      date: napDateInput.value,
       startTime: napStartInput.value,
       endTime: napEndInput.value,
       durationMinutes: minutes,
@@ -1438,8 +1536,10 @@ function entryBusinessTimestamp(doc) {
   return doc.createdAt ? doc.createdAt.toDate() : null;
 }
 
-// Whether a feedings/diaperChanges doc's business date is today — legacy
-// docs without a `date` field predate the picker and were always same-day.
+// Whether a doc's business date is today — works for any collection whose
+// docs carry an explicit `date` field (feedings, diaperChanges, manual naps).
+// Docs without one (timer naps, or legacy docs predating their date picker)
+// were always same-day, so they default to true.
 function entryIsToday(doc, now) {
   return doc.date ? doc.date === isoDate(now) : true;
 }
@@ -1534,11 +1634,12 @@ async function loadOverview() {
 
   // Schlafen
   try {
-    const [openNap, lastNight, todayNaps] = await Promise.all([
+    const [openNap, lastNight, todayNapsRaw] = await Promise.all([
       findOpenNap(),
       getMostRecent('nightWakeups'),
       getTodayDocs('naps')
     ]);
+    const todayNaps = todayNapsRaw.filter((n) => entryIsToday(n, now));
 
     const badge = document.getElementById('schlafen-running-badge');
     const schlafenAgoEl = document.getElementById('schlafen-ago');
@@ -1739,13 +1840,12 @@ async function getAnalyseRangeDocs(name, start) {
 }
 
 // The business date a doc counts for — never createdAt (when it was saved),
-// always the date the event actually happened on. feedings/diaperChanges
-// store an explicit `date` since their date picker was added; nightWakeups
-// already store one too (nightEnd, via the night-offset navigator, which can
-// legitimately point days into the past); timer naps carry a full real
-// timestamp in startTime. Manual naps are the only remaining case with no
-// separate date field at all, so createdAt's date is the only business date
-// available for those.
+// always the date the event actually happened on. feedings/diaperChanges/
+// manual naps all store an explicit `date` field via their date pickers;
+// nightWakeups stores one too (nightEnd, via the night-offset navigator,
+// which can legitimately point days into the past); timer naps carry a full
+// real timestamp in startTime instead. createdAt's date is only a fallback,
+// for legacy docs saved before their collection had a date field.
 function analyseBusinessDateKey(doc) {
   if (doc.date) return doc.date;
   if (doc.nightEnd) return doc.nightEnd;

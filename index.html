@@ -264,6 +264,7 @@
     --accent: oklch(72% 0.11 250);
     --accent-strong: oklch(48% 0.13 250);
     --accent-soft: oklch(93% 0.025 250);
+    --warn: oklch(58% 0.17 25);
     --surface: oklch(99% 0.002 250);
     --surface-alt: oklch(93% 0.004 250);
     --text: oklch(27% 0.006 250);
@@ -324,19 +325,30 @@
         <div id="minutes-chips" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
       </div>
 
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+            <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
+          </svg>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Datum</div>
+            <input id="stillen-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+          </div>
+        </div>
+        <div style="height: 1px; background: var(--border);"></div>
+        <div style="display: flex; align-items: center; gap: 10px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
             <circle cx="12" cy="12" r="8.5"/>
             <path d="M12 7.5v5l3.2 2"/>
           </svg>
-          <div>
+          <div style="min-width: 0; flex: 1;">
             <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Uhrzeit</div>
-            <input id="stillen-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none;">
+            <input id="stillen-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
           </div>
         </div>
-        <button id="stillen-time-now" style="border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
+        <button id="stillen-time-now" style="width: 100%; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
       </div>
+      <div id="stillen-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
     </div>
 
     <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
@@ -449,19 +461,30 @@
         </div>
       </div>
 
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+            <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
+          </svg>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Datum</div>
+            <input id="windeln-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+          </div>
+        </div>
+        <div style="height: 1px; background: var(--border);"></div>
+        <div style="display: flex; align-items: center; gap: 10px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
             <circle cx="12" cy="12" r="8.5"/>
             <path d="M12 7.5v5l3.2 2"/>
           </svg>
-          <div>
+          <div style="min-width: 0; flex: 1;">
             <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Uhrzeit</div>
-            <input id="windeln-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none;">
+            <input id="windeln-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
           </div>
         </div>
-        <button id="windeln-time-now" style="border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
+        <button id="windeln-time-now" style="width: 100%; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
       </div>
+      <div id="windeln-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
     </div>
 
     <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
@@ -882,6 +905,43 @@ document.querySelectorAll('.quick-btn').forEach((btn) => {
   });
 });
 
+// Wires a Datum+Uhrzeit pair (used identically by Stillen and Windeln) so it
+// can never represent a future point in time: the date input's native `max`
+// blocks future days outright; whenever the chosen date is today, the time
+// input's `max` is kept in sync with the current clock and any already-future
+// value gets snapped back down to it. Returns an isValid() check to run at
+// save time too — the authoritative guard, since native `max` attributes are
+// a soft UI hint some browsers don't strictly enforce, and the clock keeps
+// moving between when the field was last touched and when Save is clicked.
+function setupPastOnlyDateTime(dateInput, timeInput, nowBtn, errorEl) {
+  function today() { return isoDate(new Date()); }
+  function clamp() {
+    dateInput.max = today();
+    if (dateInput.value === today()) {
+      timeInput.max = formatTime(new Date());
+      if (timeInput.value && timeInput.value > timeInput.max) timeInput.value = timeInput.max;
+    } else {
+      timeInput.removeAttribute('max');
+    }
+    errorEl.style.display = 'none';
+  }
+  dateInput.addEventListener('change', clamp);
+  timeInput.addEventListener('change', clamp);
+  nowBtn.addEventListener('click', () => {
+    dateInput.value = today();
+    timeInput.value = formatTime(new Date());
+    clamp();
+  });
+  clamp();
+  return function isValid() {
+    if (!dateInput.value || !timeInput.value) return false;
+    const chosen = timeOnDate(new Date(dateInput.value + 'T00:00:00'), timeInput.value);
+    const future = chosen.getTime() > Date.now();
+    errorEl.style.display = future ? 'block' : 'none';
+    return !future;
+  };
+}
+
 // --- Stillen screen logic ---
 const feedBottleBtn = document.getElementById('feed-bottle-btn');
 const feedBreastBtn = document.getElementById('feed-breast-btn');
@@ -891,6 +951,7 @@ const amountInput = document.getElementById('amount-input');
 const minutesInput = document.getElementById('minutes-input');
 const amountChipsEl = document.getElementById('amount-chips');
 const minuteChipsEl = document.getElementById('minutes-chips');
+const stillenDateInput = document.getElementById('stillen-date');
 const stillenTimeInput = document.getElementById('stillen-time');
 const stillenSaveBtn = document.getElementById('stillen-save');
 
@@ -937,15 +998,17 @@ buildChips(minuteChipsEl, [5, 10, 15, 20, 25, 30], 'min', minutesInput);
 amountInput.addEventListener('input', () => buildChips(amountChipsEl, [60, 90, 120, 150, 180, 210], 'ml', amountInput));
 minutesInput.addEventListener('input', () => buildChips(minuteChipsEl, [5, 10, 15, 20, 25, 30], 'min', minutesInput));
 
+stillenDateInput.value = isoDate(new Date());
 stillenTimeInput.value = formatTime(new Date());
-document.getElementById('stillen-time-now').addEventListener('click', () => { stillenTimeInput.value = formatTime(new Date()); });
+const stillenTimeIsValid = setupPastOnlyDateTime(stillenDateInput, stillenTimeInput, document.getElementById('stillen-time-now'), document.getElementById('stillen-time-error'));
 
 stillenSaveBtn.addEventListener('click', async () => {
-  if (!currentUser) return;
+  if (!currentUser || !stillenTimeIsValid()) return;
   const entry = {
     type: feedType,
     amount: feedType === 'bottle' ? Number(amountInput.value) : null,
     minutes: feedType === 'breast' ? Number(minutesInput.value) : null,
+    date: stillenDateInput.value,
     time: stillenTimeInput.value,
     createdBy: currentUser.email,
     createdAt: serverTimestamp()
@@ -968,6 +1031,7 @@ const colorSection = document.getElementById('color-section');
 const warnNote = document.getElementById('warn-note');
 const okColorsEl = document.getElementById('ok-colors');
 const warnColorsEl = document.getElementById('warn-colors');
+const windelnDateInput = document.getElementById('windeln-date');
 const windelnTimeInput = document.getElementById('windeln-time');
 const windelnSaveBtn = document.getElementById('windeln-save');
 
@@ -1051,15 +1115,17 @@ bigCard.addEventListener('click', () => { big = !big; if (big) buildColorSwatche
 renderToggles();
 buildColorSwatches();
 
+windelnDateInput.value = isoDate(new Date());
 windelnTimeInput.value = formatTime(new Date());
-document.getElementById('windeln-time-now').addEventListener('click', () => { windelnTimeInput.value = formatTime(new Date()); });
+const windelnTimeIsValid = setupPastOnlyDateTime(windelnDateInput, windelnTimeInput, document.getElementById('windeln-time-now'), document.getElementById('windeln-time-error'));
 
 windelnSaveBtn.addEventListener('click', async () => {
-  if (!currentUser || (!small && !big)) return;
+  if (!currentUser || (!small && !big) || !windelnTimeIsValid()) return;
   const entry = {
     small,
     big,
     color: big ? diaperColor : null,
+    date: windelnDateInput.value,
     time: windelnTimeInput.value,
     createdBy: currentUser.email,
     createdAt: serverTimestamp()
@@ -1363,6 +1429,34 @@ function timeOnDate(baseDate, hhmm) {
   return d;
 }
 
+// The full business timestamp for a feedings/diaperChanges doc — combines
+// its explicit `date` (added once the date picker existed) with `time`,
+// falling back to createdAt's own date for legacy docs saved before then.
+function entryBusinessTimestamp(doc) {
+  if (doc.date && doc.time) return timeOnDate(new Date(doc.date + 'T00:00:00'), doc.time);
+  if (doc.time && doc.createdAt) return timeOnDate(doc.createdAt.toDate(), doc.time);
+  return doc.createdAt ? doc.createdAt.toDate() : null;
+}
+
+// Whether a feedings/diaperChanges doc's business date is today — legacy
+// docs without a `date` field predate the picker and were always same-day.
+function entryIsToday(doc, now) {
+  return doc.date ? doc.date === isoDate(now) : true;
+}
+
+// createdAt order alone isn't reliable once entries can be backdated: logging
+// something for earlier today *after* already logging something more recent
+// would make the backdated doc look "most recent" by save time. Pull a small
+// recent batch and re-sort by actual business timestamp instead of trusting
+// Firestore's createdAt order directly.
+async function getMostRecentByBusinessTime(name) {
+  const snap = await getDocs(query(collection(db, name), orderBy('createdAt', 'desc'), limit(5)));
+  if (snap.empty) return null;
+  const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));
+  return docs[0];
+}
+
 // Manual naps store endTime as a bare "HH:MM" string, timer naps as a full
 // ISO datetime — new Date() can't parse "HH:MM" directly, so branch by source.
 function napEndDate(n, baseDate) {
@@ -1377,9 +1471,10 @@ async function loadOverview() {
 
   // Stillen
   try {
-    const [lastFeeding, todayFeedings] = await Promise.all([getMostRecent('feedings'), getTodayDocs('feedings')]);
-    if (lastFeeding && lastFeeding.createdAt) {
-      document.getElementById('stillen-ago').textContent = timeAgo(lastFeeding.time ? timeOnDate(now, lastFeeding.time) : lastFeeding.createdAt.toDate());
+    const [lastFeeding, todayFeedingsRaw] = await Promise.all([getMostRecentByBusinessTime('feedings'), getTodayDocs('feedings')]);
+    const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now));
+    if (lastFeeding && entryBusinessTimestamp(lastFeeding)) {
+      document.getElementById('stillen-ago').textContent = timeAgo(entryBusinessTimestamp(lastFeeding));
       document.getElementById('stillen-detail').textContent = lastFeeding.type === 'bottle'
         ? 'Fläschchen · ' + lastFeeding.amount + ' ml'
         : 'Brust · ' + lastFeeding.minutes + ' Min';
@@ -1390,9 +1485,10 @@ async function loadOverview() {
     const totalMl = todayFeedings.filter((f) => f.type === 'bottle').reduce((sum, f) => sum + (f.amount || 0), 0);
     document.getElementById('stillen-stats').textContent = 'Heute: ' + todayFeedings.length + '×' + (totalMl > 0 ? ' · ' + totalMl + ' ml gesamt' : '');
     todayFeedings.forEach((f) => {
-      if (!f.createdAt) return;
+      const ts = entryBusinessTimestamp(f);
+      if (!ts) return;
       timelineEvents.push({
-        ts: f.time ? timeOnDate(now, f.time) : f.createdAt.toDate(),
+        ts,
         color: 'var(--stillen)',
         label: f.type === 'bottle' ? 'Fläschchen · ' + f.amount + ' ml' : 'Brust · ' + f.minutes + ' Min'
       });
@@ -1403,7 +1499,8 @@ async function loadOverview() {
 
   // Windeln
   try {
-    const [lastDiaper, todayDiapers] = await Promise.all([getMostRecent('diaperChanges'), getTodayDocs('diaperChanges')]);
+    const [lastDiaper, todayDiapersRaw] = await Promise.all([getMostRecentByBusinessTime('diaperChanges'), getTodayDocs('diaperChanges')]);
+    const todayDiapers = todayDiapersRaw.filter((d) => entryIsToday(d, now));
     function diaperLabel(d) {
       const sizes = [];
       if (d.small) sizes.push('Klein');
@@ -1417,8 +1514,8 @@ async function loadOverview() {
       }
       return label;
     }
-    if (lastDiaper && lastDiaper.createdAt) {
-      document.getElementById('windeln-ago').textContent = timeAgo(lastDiaper.time ? timeOnDate(now, lastDiaper.time) : lastDiaper.createdAt.toDate());
+    if (lastDiaper && entryBusinessTimestamp(lastDiaper)) {
+      document.getElementById('windeln-ago').textContent = timeAgo(entryBusinessTimestamp(lastDiaper));
       document.getElementById('windeln-detail').innerHTML = diaperLabel(lastDiaper);
     } else {
       document.getElementById('windeln-ago').textContent = '';
@@ -1427,8 +1524,9 @@ async function loadOverview() {
     const bigCount = todayDiapers.filter((d) => d.big).length;
     document.getElementById('windeln-stats').textContent = 'Heute: ' + todayDiapers.length + '×' + (bigCount > 0 ? ' · davon ' + bigCount + '× groß' : '');
     todayDiapers.forEach((d) => {
-      if (!d.createdAt) return;
-      timelineEvents.push({ ts: d.time ? timeOnDate(now, d.time) : d.createdAt.toDate(), color: 'var(--windeln)', label: 'Windel ' + diaperLabel(d) });
+      const ts = entryBusinessTimestamp(d);
+      if (!ts) return;
+      timelineEvents.push({ ts, color: 'var(--windeln)', label: 'Windel ' + diaperLabel(d) });
     });
   } catch (error) {
     document.getElementById('windeln-detail').textContent = 'Fehler beim Laden';
@@ -1641,15 +1739,15 @@ async function getAnalyseRangeDocs(name, start) {
 }
 
 // The business date a doc counts for — never createdAt (when it was saved),
-// always the date the event actually happened on. nightWakeups already store
-// an explicit business date (nightEnd, via the night-offset navigator, which
-// can legitimately point days into the past); timer naps carry a full real
-// timestamp in startTime. Everything else (feedings, diaperChanges, manual
-// naps) only has a time-of-day field with no separate date field at all, so
-// createdAt's date is the only business date available for those — fixing
-// just the time-of-day (see the avgIntervalH fixes below) can't change which
-// day they land in, since there's nothing else to derive a date from.
+// always the date the event actually happened on. feedings/diaperChanges
+// store an explicit `date` since their date picker was added; nightWakeups
+// already store one too (nightEnd, via the night-offset navigator, which can
+// legitimately point days into the past); timer naps carry a full real
+// timestamp in startTime. Manual naps are the only remaining case with no
+// separate date field at all, so createdAt's date is the only business date
+// available for those.
 function analyseBusinessDateKey(doc) {
+  if (doc.date) return doc.date;
   if (doc.nightEnd) return doc.nightEnd;
   if (doc.source === 'timer' && doc.startTime) return isoDate(new Date(doc.startTime));
   if (!doc.createdAt) return null;
@@ -1703,7 +1801,7 @@ function computeStillenAnalysis(days, feedMap) {
   const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
   const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
 
-  const allTimestamps = feedMap.flat().filter((f) => f.createdAt).map((f) => f.time ? timeOnDate(f.createdAt.toDate(), f.time) : f.createdAt.toDate()).sort((a, b) => a - b);
+  const allTimestamps = feedMap.flat().map(entryBusinessTimestamp).filter(Boolean).sort((a, b) => a - b);
   let avgIntervalH = null;
   if (allTimestamps.length > 1) {
     const gaps = [];
@@ -1741,7 +1839,7 @@ function computeWindelnAnalysis(days, diaperMap) {
   const totalCount = perDay.reduce((s, d) => s + d.total, 0);
   const allDocs = diaperMap.flat();
 
-  const allTimestamps = allDocs.filter((x) => x.createdAt).map((x) => x.time ? timeOnDate(x.createdAt.toDate(), x.time) : x.createdAt.toDate()).sort((a, b) => a - b);
+  const allTimestamps = allDocs.map(entryBusinessTimestamp).filter(Boolean).sort((a, b) => a - b);
   let avgIntervalH = null;
   if (allTimestamps.length > 1) {
     const gaps = [];

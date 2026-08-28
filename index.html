@@ -1640,13 +1640,29 @@ async function getAnalyseRangeDocs(name, start) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+// The business date a doc counts for — never createdAt (when it was saved),
+// always the date the event actually happened on. nightWakeups already store
+// an explicit business date (nightEnd, via the night-offset navigator, which
+// can legitimately point days into the past); timer naps carry a full real
+// timestamp in startTime. Everything else (feedings, diaperChanges, manual
+// naps) only has a time-of-day field with no separate date field at all, so
+// createdAt's date is the only business date available for those — fixing
+// just the time-of-day (see the avgIntervalH fixes below) can't change which
+// day they land in, since there's nothing else to derive a date from.
+function analyseBusinessDateKey(doc) {
+  if (doc.nightEnd) return doc.nightEnd;
+  if (doc.source === 'timer' && doc.startTime) return isoDate(new Date(doc.startTime));
+  if (!doc.createdAt) return null;
+  return isoDate(doc.createdAt.toDate());
+}
+
 function analyseBucketByDay(docs, days) {
   const indexByDate = {};
   days.forEach((d, i) => { d.dayKeys.forEach((k) => { indexByDate[k] = i; }); });
   const map = days.map(() => []);
   docs.forEach((doc) => {
-    if (!doc.createdAt) return;
-    const key = isoDate(doc.createdAt.toDate());
+    const key = analyseBusinessDateKey(doc);
+    if (!key) return;
     const idx = indexByDate[key];
     if (idx !== undefined) map[idx].push(doc);
   });
@@ -1687,7 +1703,7 @@ function computeStillenAnalysis(days, feedMap) {
   const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
   const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
 
-  const allTimestamps = feedMap.flat().filter((f) => f.createdAt).map((f) => f.createdAt.toDate()).sort((a, b) => a - b);
+  const allTimestamps = feedMap.flat().filter((f) => f.createdAt).map((f) => f.time ? timeOnDate(f.createdAt.toDate(), f.time) : f.createdAt.toDate()).sort((a, b) => a - b);
   let avgIntervalH = null;
   if (allTimestamps.length > 1) {
     const gaps = [];
@@ -1725,7 +1741,7 @@ function computeWindelnAnalysis(days, diaperMap) {
   const totalCount = perDay.reduce((s, d) => s + d.total, 0);
   const allDocs = diaperMap.flat();
 
-  const allTimestamps = allDocs.filter((x) => x.createdAt).map((x) => x.createdAt.toDate()).sort((a, b) => a - b);
+  const allTimestamps = allDocs.filter((x) => x.createdAt).map((x) => x.time ? timeOnDate(x.createdAt.toDate(), x.time) : x.createdAt.toDate()).sort((a, b) => a - b);
   let avgIntervalH = null;
   if (allTimestamps.length > 1) {
     const gaps = [];

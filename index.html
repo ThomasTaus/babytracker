@@ -1937,6 +1937,13 @@ function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
 // bar chart's rendered bar width, see initNapHistogram — maps 1:1 to real
 // on-screen pixels. That's what makes the plot wider than its card and lets
 // it scroll horizontally once there are more (now hourly) bins than fit.
+// It's also why text here uses font-size 11.5 instead of the 13 every other
+// chart's <text> uses: those render inside a fluid viewBox="0 0 308 118"
+// width="100%" height="105" svg, which scales everything down by the
+// height-bound factor 105/118 ≈ 0.89 — so their nominal "13" renders at an
+// effective ~11.5px on screen. This chart has no such implicit scaling
+// (1 SVG unit = 1 real px), so it has to write the already-scaled value
+// directly to look the same size as its sibling charts.
 function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
   const baseline = 95, maxPx = 78, m = NAP_HIST_MARGIN_X;
   const plotW = 2 * m + bins.length * binPx;
@@ -1951,7 +1958,7 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
     const h = baseline - y(count);
     bars += '<rect x="' + bx + '" y="' + (baseline - h) + '" width="' + w + '" height="' + h + '" rx="4" fill="' + color + '"/>';
     if (count > 0) {
-      bars += '<text x="' + (bx + w / 2) + '" y="' + Math.max(12, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + color + '" text-anchor="middle">' + count + '</text>';
+      bars += '<text x="' + (bx + w / 2) + '" y="' + Math.max(12, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="11.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + count + '</text>';
     }
   });
   let labels = '';
@@ -1961,7 +1968,7 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
   }
   return '<svg viewBox="0 0 ' + plotW + ' 118" width="' + plotW + '" height="118">' +
     '<line x1="' + m + '" y1="95" x2="' + (plotW - m) + '" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>' +
+    '<g font-family="Work Sans, sans-serif" font-size="11.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>' +
     '</svg>';
 }
 

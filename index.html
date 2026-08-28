@@ -336,17 +336,19 @@
           </div>
         </div>
         <div style="height: 1px; background: var(--border);"></div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
-            <circle cx="12" cy="12" r="8.5"/>
-            <path d="M12 7.5v5l3.2 2"/>
-          </svg>
-          <div style="min-width: 0; flex: 1;">
-            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Uhrzeit</div>
-            <input id="stillen-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+              <circle cx="12" cy="12" r="8.5"/>
+              <path d="M12 7.5v5l3.2 2"/>
+            </svg>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Uhrzeit</div>
+              <input id="stillen-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+            </div>
           </div>
+          <button id="stillen-time-now" style="flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
         </div>
-        <button id="stillen-time-now" style="width: 100%; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
       </div>
       <div id="stillen-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
     </div>
@@ -472,17 +474,19 @@
           </div>
         </div>
         <div style="height: 1px; background: var(--border);"></div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
-            <circle cx="12" cy="12" r="8.5"/>
-            <path d="M12 7.5v5l3.2 2"/>
-          </svg>
-          <div style="min-width: 0; flex: 1;">
-            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Uhrzeit</div>
-            <input id="windeln-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+              <circle cx="12" cy="12" r="8.5"/>
+              <path d="M12 7.5v5l3.2 2"/>
+            </svg>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Uhrzeit</div>
+              <input id="windeln-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+            </div>
           </div>
+          <button id="windeln-time-now" style="flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
         </div>
-        <button id="windeln-time-now" style="width: 100%; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
       </div>
       <div id="windeln-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
     </div>
@@ -568,8 +572,8 @@
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <div style="text-align: center;">
-            <div id="night-label" style="font-size: 14px; font-weight: 600;"></div>
-            <div id="night-sublabel" style="font-size: 11px; color: var(--text-muted);"></div>
+            <div id="night-label" style="font-size: 18px; font-weight: 600;"></div>
+            <div id="night-sublabel" style="font-size: 12px; color: var(--text-muted);"></div>
           </div>
           <button id="night-next" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:default; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -577,22 +581,22 @@
         </div>
 
         <div style="display: flex; gap: 14px;">
-          <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; min-width: 0;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
               <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
             </svg>
             <div style="min-width: 0;">
               <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Start</div>
-              <input id="night-bedtime" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+              <input id="night-bedtime" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; font-family: inherit;">
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; min-width: 0;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
               <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
             </svg>
             <div style="min-width: 0;">
               <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende</div>
-              <input id="night-waketime" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+              <input id="night-waketime" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; font-family: inherit;">
             </div>
           </div>
         </div>
@@ -634,22 +638,22 @@
           </div>
           <div style="height: 1px; background: var(--border);"></div>
           <div style="display: flex; gap: 14px;">
-            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; min-width: 0;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
                 <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
               </svg>
               <div style="min-width: 0;">
                 <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Start</div>
-                <input id="nap-start" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+                <input id="nap-start" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; font-family: inherit;">
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; min-width: 0;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
                 <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
               </svg>
               <div style="min-width: 0;">
                 <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende</div>
-                <input id="nap-end" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; font-family: inherit;">
+                <input id="nap-end" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; font-family: inherit;">
               </div>
             </div>
           </div>

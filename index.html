@@ -1950,6 +1950,7 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
   const x = scaleLinear().domain([0, bins.length]).range([m, m + bins.length * binPx]);
   const binWidthHours = (binEndHour - binStartHour) / bins.length;
   const maxVal = Math.max(1, ...bins);
+  const totalCount = Math.max(1, bins.reduce((s, c) => s + c, 0));
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx]);
   let bars = '';
   bins.forEach((count, i) => {
@@ -1958,7 +1959,8 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
     const h = baseline - y(count);
     bars += '<rect x="' + bx + '" y="' + (baseline - h) + '" width="' + w + '" height="' + h + '" rx="4" fill="' + color + '"/>';
     if (count > 0) {
-      bars += '<text x="' + (bx + w / 2) + '" y="' + Math.max(12, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="11.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + count + '</text>';
+      const pct = analyseRound(count / totalCount * 100);
+      bars += '<text x="' + (bx + w / 2) + '" y="' + Math.max(12, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="11.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + pct + '%</text>';
     }
   });
   let labels = '';

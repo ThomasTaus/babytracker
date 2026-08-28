@@ -61,6 +61,15 @@
   #screen-analyse .a-ov-primary .unit { font-family: 'Work Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: var(--text-muted); margin-left: 5px; }
   #screen-analyse .a-ov-secondary { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   #screen-analyse .a-ov-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 11.5px; font-weight: 600; margin-top: 2px; }
+  #screen-analyse .a-hist-wrap { position: relative; }
+  #screen-analyse .a-hist-scroller { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  #screen-analyse .a-hist-scroller::-webkit-scrollbar { display: none; }
+  #screen-analyse .a-hist-fade { position: absolute; top: 0; bottom: 0; width: 22px; pointer-events: none; opacity: 0; transition: opacity .15s ease; z-index: 1; }
+  #screen-analyse .a-hist-fade-l { left: 0; background: linear-gradient(to right, var(--surface), transparent); }
+  #screen-analyse .a-hist-fade-r { right: 0; background: linear-gradient(to left, var(--surface), transparent); }
+  #screen-analyse .a-hist-chev { position: absolute; top: 0; bottom: 0; width: 14px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s ease; z-index: 2; color: var(--text-muted); pointer-events: none; }
+  #screen-analyse .a-hist-chev-l { left: -15px; transform: scaleX(-1); }
+  #screen-analyse .a-hist-chev-r { right: -15px; }
 </style>
 </head>
 <body>
@@ -1723,8 +1732,18 @@ function napStartHour(n) {
   return parseMinutes(n.startTime) / 60;
 }
 
-const NAP_HIST_START = 6, NAP_HIST_END = 20, NAP_HIST_BINS = 7;
+const NAP_HIST_START = 6, NAP_HIST_END = 20, NAP_HIST_BINS = NAP_HIST_END - NAP_HIST_START;
+// Side margin for the histogram's own SVG coordinate space — wide enough
+// that a text-anchor:middle two-digit hour label (e.g. "20") at the very
+// first/last tick doesn't overflow the viewBox and get clipped.
+const NAP_HIST_MARGIN_X = 12;
 
+// allNaps already only ever contains entries from the "Tagsüber" nap flow
+// (Manuell or Timer) — night sleep lives entirely in the separate
+// nightWakeups collection and never reaches this function, regardless of
+// what clock time a nap happened to start at. So a nap starting just before
+// 6 or after 20 is still a genuine daytime nap; it's clamped into the
+// nearest edge bin rather than dropped, so no data silently disappears.
 function computeNapHistogram(allNaps) {
   const binWidth = (NAP_HIST_END - NAP_HIST_START) / NAP_HIST_BINS;
   const bins = new Array(NAP_HIST_BINS).fill(0);
@@ -1862,10 +1881,15 @@ function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
     '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + analyseChartAxisLabels(perDay, color) + '</g>';
 }
 
-function svgHistogram(bins, binStartHour, binEndHour, color) {
-  const baseline = 95, maxPx = 78;
-  const x = scaleLinear().domain([0, bins.length]).range([4, 304]);
-  const binPx = x(1) - x(0);
+// Unlike the other Analyse charts, this one is rendered at an explicit
+// pixel scale (not a fluid viewBox) so binPx — measured live from a sibling
+// bar chart's rendered bar width, see initNapHistogram — maps 1:1 to real
+// on-screen pixels. That's what makes the plot wider than its card and lets
+// it scroll horizontally once there are more (now hourly) bins than fit.
+function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
+  const baseline = 95, maxPx = 78, m = NAP_HIST_MARGIN_X;
+  const plotW = 2 * m + bins.length * binPx;
+  const x = scaleLinear().domain([0, bins.length]).range([m, m + bins.length * binPx]);
   const binWidthHours = (binEndHour - binStartHour) / bins.length;
   const maxVal = Math.max(1, ...bins);
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx]);
@@ -1884,8 +1908,50 @@ function svgHistogram(bins, binStartHour, binEndHour, color) {
     const hour = binStartHour + i * binWidthHours;
     labels += '<text x="' + x(i) + '" y="111">' + hour + '</text>';
   }
-  return '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>';
+  return '<svg viewBox="0 0 ' + plotW + ' 118" width="' + plotW + '" height="118">' +
+    '<line x1="' + m + '" y1="95" x2="' + (plotW - m) + '" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
+    '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>' +
+    '</svg>';
+}
+
+// Measures the actual rendered bar width of the "Schläfchen pro Tag" chart
+// (so the two charts read as one visual rhythm) and initially scrolls to
+// center the busiest hour rather than always starting at 6 Uhr.
+function initNapHistogram(napHistogram) {
+  const scroller = document.getElementById('nap-hist-scroller');
+  if (!scroller) return;
+  const dayBar = document.querySelector('#nap-count-svg rect');
+  const binPx = dayBar ? dayBar.getBoundingClientRect().width : 30;
+  const n = napHistogram.length;
+  scroller.innerHTML = svgHistogram(napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E', binPx);
+
+  const plotW = 2 * NAP_HIST_MARGIN_X + n * binPx;
+  const viewportW = scroller.clientWidth;
+  const maxScroll = Math.max(0, plotW - viewportW);
+  const maxCount = Math.max(...napHistogram);
+  let peakIdx = Math.floor((n - 1) / 2);
+  if (maxCount > 0) {
+    peakIdx = 0;
+    for (let i = 1; i < n; i++) if (napHistogram[i] > napHistogram[peakIdx]) peakIdx = i;
+  }
+  const peakCenterX = NAP_HIST_MARGIN_X + peakIdx * binPx + binPx / 2;
+  scroller.scrollLeft = Math.min(maxScroll, Math.max(0, peakCenterX - viewportW / 2));
+
+  const wrap = scroller.parentElement;
+  const fadeL = wrap.querySelector('.a-hist-fade-l');
+  const fadeR = wrap.querySelector('.a-hist-fade-r');
+  const chevL = wrap.querySelector('.a-hist-chev-l');
+  const chevR = wrap.querySelector('.a-hist-chev-r');
+  function updateFades() {
+    const showL = scroller.scrollLeft > 2 ? '1' : '0';
+    const showR = scroller.scrollLeft < maxScroll - 2 ? '1' : '0';
+    fadeL.style.opacity = showL;
+    fadeR.style.opacity = showR;
+    chevL.style.opacity = showL;
+    chevR.style.opacity = showR;
+  }
+  scroller.addEventListener('scroll', updateFades);
+  updateFades();
 }
 
 function svgSparkline(perDay, valueFn, colorLight, colorToday) {
@@ -2034,12 +2100,17 @@ function renderAnalyseSchlafen(schlafen) {
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-label">Schläfchen pro Tag</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + schlafen.avgNapCount + ' / Tag</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.napCount / d.daysElapsed, '#4B3F9E', schlafen.avgNapCount) + '</svg>' +
+      '<svg id="nap-count-svg" viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.napCount / d.daysElapsed, '#4B3F9E', schlafen.avgNapCount) + '</svg>' +
       analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card">' +
       '<div class="a-card-label">Uhrzeit der Schläfchen</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgHistogram(schlafen.napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E') + '</svg>' +
+      '<div class="a-hist-wrap">' +
+        '<div class="a-hist-chev a-hist-chev-l">' + ANALYSE_ICON_CHEVRON + '</div>' +
+        '<div class="a-hist-chev a-hist-chev-r">' + ANALYSE_ICON_CHEVRON + '</div>' +
+        '<div class="a-hist-fade a-hist-fade-l"></div><div class="a-hist-fade a-hist-fade-r"></div>' +
+        '<div id="nap-hist-scroller" class="a-hist-scroller"></div>' +
+      '</div>' +
     '</div>' +
     renderAnalyseInsight(schlafen.insight, 'var(--schlafen-soft)', '#3A306E');
 }
@@ -2097,6 +2168,7 @@ async function loadAnalyse() {
     document.getElementById('analyse-view-stillen').innerHTML = renderAnalyseStillen(stillen);
     document.getElementById('analyse-view-windeln').innerHTML = renderAnalyseWindeln(windeln);
     document.getElementById('analyse-view-schlafen').innerHTML = renderAnalyseSchlafen(schlafen);
+    initNapHistogram(schlafen.napHistogram);
 
     document.querySelectorAll('#analyse-view-overview .a-ov-card').forEach((card) => {
       card.addEventListener('click', () => showAnalyseView(card.dataset.target));

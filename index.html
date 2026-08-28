@@ -1379,7 +1379,7 @@ async function loadOverview() {
   try {
     const [lastFeeding, todayFeedings] = await Promise.all([getMostRecent('feedings'), getTodayDocs('feedings')]);
     if (lastFeeding && lastFeeding.createdAt) {
-      document.getElementById('stillen-ago').textContent = timeAgo(lastFeeding.createdAt.toDate());
+      document.getElementById('stillen-ago').textContent = timeAgo(lastFeeding.time ? timeOnDate(now, lastFeeding.time) : lastFeeding.createdAt.toDate());
       document.getElementById('stillen-detail').textContent = lastFeeding.type === 'bottle'
         ? 'Fläschchen · ' + lastFeeding.amount + ' ml'
         : 'Brust · ' + lastFeeding.minutes + ' Min';
@@ -1392,7 +1392,7 @@ async function loadOverview() {
     todayFeedings.forEach((f) => {
       if (!f.createdAt) return;
       timelineEvents.push({
-        ts: f.createdAt.toDate(),
+        ts: f.time ? timeOnDate(now, f.time) : f.createdAt.toDate(),
         color: 'var(--stillen)',
         label: f.type === 'bottle' ? 'Fläschchen · ' + f.amount + ' ml' : 'Brust · ' + f.minutes + ' Min'
       });
@@ -1418,7 +1418,7 @@ async function loadOverview() {
       return label;
     }
     if (lastDiaper && lastDiaper.createdAt) {
-      document.getElementById('windeln-ago').textContent = timeAgo(lastDiaper.createdAt.toDate());
+      document.getElementById('windeln-ago').textContent = timeAgo(lastDiaper.time ? timeOnDate(now, lastDiaper.time) : lastDiaper.createdAt.toDate());
       document.getElementById('windeln-detail').innerHTML = diaperLabel(lastDiaper);
     } else {
       document.getElementById('windeln-ago').textContent = '';
@@ -1428,7 +1428,7 @@ async function loadOverview() {
     document.getElementById('windeln-stats').textContent = 'Heute: ' + todayDiapers.length + '×' + (bigCount > 0 ? ' · davon ' + bigCount + '× groß' : '');
     todayDiapers.forEach((d) => {
       if (!d.createdAt) return;
-      timelineEvents.push({ ts: d.createdAt.toDate(), color: 'var(--windeln)', label: 'Windel ' + diaperLabel(d) });
+      timelineEvents.push({ ts: d.time ? timeOnDate(now, d.time) : d.createdAt.toDate(), color: 'var(--windeln)', label: 'Windel ' + diaperLabel(d) });
     });
   } catch (error) {
     document.getElementById('windeln-detail').textContent = 'Fehler beim Laden';

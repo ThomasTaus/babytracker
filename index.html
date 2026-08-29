@@ -2187,11 +2187,24 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
 // Measures the actual rendered bar width of the "Schläfchen pro Tag" chart
 // (so the two charts read as one visual rhythm) and initially scrolls to
 // center the busiest hour rather than always starting at 6 Uhr.
+//
+// Both that measurement and scroller.clientWidth below return 0 if this
+// runs while the Schlafen view is display:none (e.g. loadAnalyse() firing
+// while a different Analyse tab is active) — getBoundingClientRect() on
+// anything inside a hidden subtree is always all-zero. A 0 binPx collapses
+// every bin to the same x position, which is what broke the chart in the
+// screenshot: bars too degenerate to render, their labels all stacked on
+// top of each other at the left edge. Guard the measurement itself, and
+// showAnalyseView() re-runs this once the view is actually visible so the
+// real bar width gets used instead of just falling back forever.
+let lastNapHistogram = null;
 function initNapHistogram(napHistogram) {
+  lastNapHistogram = napHistogram;
   const scroller = document.getElementById('nap-hist-scroller');
   if (!scroller) return;
   const dayBar = document.querySelector('#nap-count-svg rect');
-  const binPx = dayBar ? dayBar.getBoundingClientRect().width : 30;
+  let binPx = dayBar ? dayBar.getBoundingClientRect().width : 0;
+  if (!(binPx > 0)) binPx = 30;
   const n = napHistogram.length;
   scroller.innerHTML = svgHistogram(napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E', binPx);
 
@@ -2394,6 +2407,9 @@ function showAnalyseView(view) {
     btn.classList.toggle('active', btn.dataset.view === view);
   });
   document.getElementById('analyse-body').scrollTop = 0;
+  // The nap histogram measures a sibling chart's rendered bar width, which
+  // reads as 0 while this view was hidden — re-measure now that it's visible.
+  if (view === 'schlafen' && lastNapHistogram) initNapHistogram(lastNapHistogram);
 }
 document.querySelectorAll('.a-seg-btn').forEach((btn) => {
   btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));

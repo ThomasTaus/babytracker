@@ -564,9 +564,18 @@
         <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
       </div>
 
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Nachts</label>
+      <div style="display: flex; background: var(--surface-alt); border-radius: 18px; padding: 5px; gap: 5px;">
+        <button id="schlafen-mode-night-btn" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+          Nachts
+        </button>
+        <button id="schlafen-mode-day-btn" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+          Tagsüber
+        </button>
+      </div>
 
+      <div id="schlafen-night-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 0;">
           <button id="night-prev" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -621,9 +630,7 @@
         <button id="night-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
       </div>
 
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Tagsüber</label>
-
+      <div id="schlafen-day-panel" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; flex-direction: column; gap: 10px;">
         <div style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
           <button id="nap-manual-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Manuell</button>
           <button id="nap-timer-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Timer</button>
@@ -941,6 +948,7 @@ function showScreen(target) {
   Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
   if (target === 'heute') loadOverview();
   if (target === 'analyse') loadAnalyse();
+  if (target === 'schlafen') decideSchlafenDefault();
 }
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target));
@@ -1204,6 +1212,41 @@ function isoDate(d) {
 function parseMinutes(hhmm) {
   const [h, m] = hhmm.split(':').map(Number);
   return h * 60 + m;
+}
+
+const schlafenModeNightBtn = document.getElementById('schlafen-mode-night-btn');
+const schlafenModeDayBtn = document.getElementById('schlafen-mode-day-btn');
+const schlafenNightPanel = document.getElementById('schlafen-night-panel');
+const schlafenDayPanel = document.getElementById('schlafen-day-panel');
+
+function schlafenModeStyle(active) {
+  return active
+    ? 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: var(--accent); color: white;'
+    : 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: transparent; color: var(--text-muted);';
+}
+function setSchlafenMode(mode) {
+  schlafenModeNightBtn.setAttribute('style', schlafenModeStyle(mode === 'night'));
+  schlafenModeDayBtn.setAttribute('style', schlafenModeStyle(mode === 'day'));
+  schlafenNightPanel.style.display = mode === 'night' ? 'flex' : 'none';
+  schlafenDayPanel.style.display = mode === 'day' ? 'flex' : 'none';
+}
+schlafenModeNightBtn.addEventListener('click', () => setSchlafenMode('night'));
+schlafenModeDayBtn.addEventListener('click', () => setSchlafenMode('day'));
+setSchlafenMode('night');
+
+// Vorauswahl beim Öffnen der Schlafen-Seite: solange die letzte Nacht noch
+// nicht erfasst ist, startet man auf "Nachts" (das fehlt vermutlich noch);
+// sobald sie gespeichert ist, ist "Tagsüber" der wahrscheinlichere nächste
+// Eintrag. Läuft gerade ein Nap-Timer, hat das Vorrang vor dieser Heuristik.
+async function decideSchlafenDefault() {
+  if (openNapDocId) { setSchlafenMode('day'); return; }
+  try {
+    const lastNight = await getMostRecent('nightWakeups');
+    const lastNightLogged = !!(lastNight && lastNight.bedtime && lastNight.wakeTime && lastNight.nightEnd === isoDate(new Date()));
+    setSchlafenMode(lastNightLogged ? 'day' : 'night');
+  } catch (error) {
+    setSchlafenMode('night');
+  }
 }
 
 const nightPrevBtn = document.getElementById('night-prev');

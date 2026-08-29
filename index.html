@@ -427,23 +427,23 @@
         <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
       </div>
 
-      <div style="display: flex; gap: 12px;">
-        <div id="small-card" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:18px 12px; border-radius:18px; cursor:pointer; position:relative;">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <div style="display: flex; gap: 10px;">
+        <div id="small-card" style="flex:1; display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; cursor:pointer;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
             <path d="M12 3c3 4 6 7.5 6 11a6 6 0 1 1-12 0c0-3.5 3-7 6-11z"/>
           </svg>
-          <span style="font-size: 15px; font-weight: 600;">Klein</span>
-          <div class="check-badge" style="position:absolute; top:10px; right:10px; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+          <span style="font-size: 14.5px; font-weight: 600; flex: 1;">Klein</span>
+          <div class="check-badge" style="width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
           </div>
         </div>
-        <div id="big-card" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:18px 12px; border-radius:18px; cursor:pointer; position:relative;">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <div id="big-card" style="flex:1; display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; cursor:pointer;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
             <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
           </svg>
-          <span style="font-size: 15px; font-weight: 600;">Groß</span>
-          <div class="check-badge" style="position:absolute; top:10px; right:10px; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+          <span style="font-size: 14.5px; font-weight: 600; flex: 1;">Groß</span>
+          <div class="check-badge" style="width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
           </div>
         </div>
       </div>
@@ -1126,8 +1126,8 @@ let diaperColor = null;
 
 function cardStyle(active) {
   return active
-    ? 'flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:18px 12px; border-radius:18px; cursor:pointer; position:relative; background: var(--accent-soft); color: var(--accent-strong); border: 1.5px solid var(--accent);'
-    : 'flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:18px 12px; border-radius:18px; cursor:pointer; position:relative; background: var(--surface); color: var(--text-muted); border: 1.5px solid var(--border);';
+    ? 'flex:1; display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; cursor:pointer; background: var(--accent-soft); color: var(--accent-strong); border: 1.5px solid var(--accent);'
+    : 'flex:1; display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; cursor:pointer; background: var(--surface); color: var(--text-muted); border: 1.5px solid var(--border);';
 }
 function badgeBgStyle(el, active) {
   el.style.background = active ? 'var(--accent)' : 'var(--border)';

@@ -1298,10 +1298,13 @@ windelnUpdateBtn.addEventListener('click', async () => {
     windelnJustUpdatedId = updatedId;
     await loadWindelnEntries(true);
     windelnScrollEl.scrollTop = windelnListScrollTop;
-    setTimeout(async () => {
+    // Swap just this one row back to normal instead of reloading the whole
+    // list from Firestore again — a full reload would blank and rebuild
+    // every row just to change one badge back into two icons.
+    setTimeout(() => {
       windelnJustUpdatedId = null;
-      await loadWindelnEntries(true);
-      windelnScrollEl.scrollTop = windelnListScrollTop;
+      const oldRow = document.querySelector('#windeln-entries-list [data-entry-id="' + updatedId + '"]');
+      if (oldRow) oldRow.replaceWith(windelnEntryRow({ id: updatedId, ...entry }));
     }, 1800);
   } catch (error) {
     windelnUpdateBtn.textContent = 'Fehler beim Speichern';
@@ -1328,6 +1331,7 @@ function dayLabel(d, now) {
 function windelnEntryRow(entry) {
   const ts = entryBusinessTimestamp(entry);
   const row = document.createElement('div');
+  row.dataset.entryId = entry.id;
   row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border);';
 
   const time = document.createElement('span');

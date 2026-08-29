@@ -489,9 +489,19 @@
         </div>
       </div>
       <div id="windeln-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <span style="font-size: 13px; font-weight: 700; color: var(--text);">Einträge</span>
+        <div id="windeln-entries-list" style="display: flex; flex-direction: column;"></div>
+        <button id="windeln-entries-more" style="display: none; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 6px 0; cursor: pointer; align-self: center;">Weitere laden</button>
+      </div>
     </div>
 
-    <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
+    <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+      <div id="windeln-editing-banner" style="display: none; align-items: center; justify-content: space-between;">
+        <span style="font-size: 12px; color: var(--text-muted);">Eintrag wird bearbeitet</span>
+        <button id="windeln-edit-cancel" style="border: none; background: none; color: var(--accent-strong); font-weight: 600; font-size: 12px; cursor: pointer;">Abbrechen</button>
+      </div>
       <button id="windeln-save" style="width:100%; padding:16px; border:none; border-radius:16px; font-size:16px; font-weight:700; cursor:pointer; color:white;">Eintrag speichern</button>
     </div>
 
@@ -847,7 +857,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, doc, query, where, orderBy, limit, getDocs, serverTimestamp
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { scaleBand, scaleLinear, scalePoint } from "./vendor/d3/d3-scale.js";
 import { line as d3Line, area as d3Area, curveLinear } from "./vendor/d3/d3-shape.js";
@@ -949,6 +959,7 @@ function showScreen(target) {
   if (target === 'heute') loadOverview();
   if (target === 'analyse') loadAnalyse();
   if (target === 'schlafen') decideSchlafenDefault();
+  if (target === 'windeln') loadWindelnEntries(true);
 }
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target));
@@ -1179,6 +1190,29 @@ windelnDateInput.value = isoDate(new Date());
 windelnTimeInput.value = formatTime(new Date());
 const windelnTimeIsValid = setupPastOnlyDateTime(windelnDateInput, windelnTimeInput, document.getElementById('windeln-time-now'), document.getElementById('windeln-time-error'));
 
+let editingDiaperId = null;
+const windelnEditingBanner = document.getElementById('windeln-editing-banner');
+const windelnEditCancelBtn = document.getElementById('windeln-edit-cancel');
+
+// Reuses the entry form for editing: populates it from an existing doc and
+// switches Save into update mode. Passing null clears back to a fresh entry.
+function setWindelnEditing(entry) {
+  editingDiaperId = entry ? entry.id : null;
+  windelnEditingBanner.style.display = editingDiaperId ? 'flex' : 'none';
+  windelnSaveBtn.textContent = editingDiaperId ? 'Eintrag aktualisieren' : 'Eintrag speichern';
+  if (!entry) return;
+  small = !!entry.small;
+  big = !!entry.big;
+  diaperColor = entry.color || null;
+  renderToggles();
+  buildColorSwatches();
+  windelnDateInput.value = entry.date || isoDate(new Date());
+  windelnTimeInput.value = entry.time || formatTime(new Date());
+  windelnDateInput.dispatchEvent(new Event('change'));
+  screens.windeln.firstElementChild.scrollTo({ top: 0, behavior: 'smooth' });
+}
+windelnEditCancelBtn.addEventListener('click', () => setWindelnEditing(null));
+
 windelnSaveBtn.addEventListener('click', async () => {
   if (!currentUser || (!small && !big) || !windelnTimeIsValid()) return;
   const entry = {
@@ -1186,20 +1220,146 @@ windelnSaveBtn.addEventListener('click', async () => {
     big,
     color: big ? diaperColor : null,
     date: windelnDateInput.value,
-    time: windelnTimeInput.value,
-    createdBy: currentUser.email,
-    createdAt: serverTimestamp()
+    time: windelnTimeInput.value
   };
   windelnSaveBtn.disabled = true;
   try {
-    await addDoc(collection(db, 'diaperChanges'), entry);
-    windelnSaveBtn.textContent = 'Gespeichert ✓';
-    setTimeout(() => { windelnSaveBtn.textContent = 'Eintrag speichern'; windelnSaveBtn.disabled = false; }, 1400);
+    if (editingDiaperId) {
+      await updateDoc(doc(db, 'diaperChanges', editingDiaperId), entry);
+      windelnSaveBtn.textContent = 'Aktualisiert ✓';
+      setTimeout(() => { setWindelnEditing(null); windelnSaveBtn.disabled = false; }, 1400);
+    } else {
+      await addDoc(collection(db, 'diaperChanges'), { ...entry, createdBy: currentUser.email, createdAt: serverTimestamp() });
+      windelnSaveBtn.textContent = 'Gespeichert ✓';
+      setTimeout(() => { windelnSaveBtn.textContent = 'Eintrag speichern'; windelnSaveBtn.disabled = false; }, 1400);
+    }
+    loadWindelnEntries(true);
   } catch (error) {
     windelnSaveBtn.textContent = 'Fehler beim Speichern';
     windelnSaveBtn.disabled = false;
   }
 });
+
+// --- Windeln: Einträge-Liste (bearbeiten/löschen) ---
+const WINDELN_PAGE_SIZE = 15;
+let windelnEntriesLastSnap = null;
+let windelnEntriesAllLoaded = false;
+let windelnEntriesLastDayKey = null;
+
+function dayLabel(d, now) {
+  if (isoDate(d) === isoDate(now)) return 'Heute';
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (isoDate(d) === isoDate(yesterday)) return 'Gestern';
+  return fmtDayDate(d);
+}
+
+function windelnEntryRow(entry) {
+  const ts = entryBusinessTimestamp(entry);
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);';
+
+  const time = document.createElement('span');
+  time.textContent = ts ? formatTime(ts) : '--:--';
+  time.style.cssText = 'font-size:13px; font-weight:600; color:var(--text); width:38px; flex-shrink:0; font-variant-numeric:tabular-nums;';
+  row.appendChild(time);
+
+  const sizeBadge = document.createElement('span');
+  sizeBadge.textContent = entry.big ? 'Groß' : 'Klein';
+  sizeBadge.style.cssText = 'font-size:12px; padding:3px 8px; border-radius:8px; flex-shrink:0; ' +
+    (entry.big ? 'background:var(--accent-soft); color:var(--accent-strong);' : 'background:var(--surface-alt); color:var(--text-muted);');
+  row.appendChild(sizeBadge);
+
+  if (entry.big && entry.color && COLOR_BY_ID[entry.color]) {
+    const dot = document.createElement('span');
+    dot.title = COLOR_BY_ID[entry.color].label;
+    dot.style.cssText = 'width:9px; height:9px; border-radius:50%; flex-shrink:0; background:' + COLOR_BY_ID[entry.color].hex + ';';
+    row.appendChild(dot);
+  }
+
+  const spacer = document.createElement('span');
+  spacer.style.flex = '1';
+  row.appendChild(spacer);
+
+  const editBtn = document.createElement('button');
+  editBtn.setAttribute('aria-label', 'Bearbeiten');
+  editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
+  editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  editBtn.addEventListener('click', () => setWindelnEditing(entry));
+  row.appendChild(editBtn);
+
+  const delBtn = document.createElement('button');
+  delBtn.setAttribute('aria-label', 'Löschen');
+  delBtn.style.cssText = 'border:none; background:none; color:var(--warn); padding:6px; cursor:pointer; display:flex;';
+  delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
+  delBtn.addEventListener('click', async () => {
+    if (!confirm('Diesen Windel-Eintrag wirklich löschen?')) return;
+    delBtn.disabled = true;
+    try {
+      await deleteDoc(doc(db, 'diaperChanges', entry.id));
+      if (editingDiaperId === entry.id) setWindelnEditing(null);
+      loadWindelnEntries(true);
+    } catch (error) {
+      delBtn.disabled = false;
+    }
+  });
+  row.appendChild(delBtn);
+
+  return row;
+}
+
+function appendWindelnEntries(docs) {
+  const list = document.getElementById('windeln-entries-list');
+  const now = new Date();
+  docs.forEach((entry) => {
+    const ts = entryBusinessTimestamp(entry);
+    const dayKey = ts ? isoDate(ts) : 'unbekannt';
+    if (dayKey !== windelnEntriesLastDayKey) {
+      const header = document.createElement('div');
+      header.textContent = ts ? dayLabel(ts, now) : 'Unbekanntes Datum';
+      header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 0 2px;';
+      list.appendChild(header);
+      windelnEntriesLastDayKey = dayKey;
+    }
+    list.appendChild(windelnEntryRow(entry));
+  });
+  if (list.children.length === 0) {
+    const empty = document.createElement('div');
+    empty.textContent = 'Noch keine Einträge.';
+    empty.style.cssText = 'font-size:13px; color:var(--text-muted); padding:8px 0;';
+    list.appendChild(empty);
+  }
+}
+
+async function loadWindelnEntries(reset) {
+  if (reset) {
+    windelnEntriesLastSnap = null;
+    windelnEntriesAllLoaded = false;
+    windelnEntriesLastDayKey = null;
+    document.getElementById('windeln-entries-list').innerHTML = '';
+  }
+  if (windelnEntriesAllLoaded) return;
+  const moreBtn = document.getElementById('windeln-entries-more');
+  moreBtn.textContent = 'Lädt…';
+  moreBtn.style.display = 'block';
+  moreBtn.disabled = true;
+  try {
+    const q = windelnEntriesLastSnap
+      ? query(collection(db, 'diaperChanges'), orderBy('createdAt', 'desc'), startAfter(windelnEntriesLastSnap), limit(WINDELN_PAGE_SIZE))
+      : query(collection(db, 'diaperChanges'), orderBy('createdAt', 'desc'), limit(WINDELN_PAGE_SIZE));
+    const snap = await getDocs(q);
+    if (snap.docs.length < WINDELN_PAGE_SIZE) windelnEntriesAllLoaded = true;
+    if (!snap.empty) windelnEntriesLastSnap = snap.docs[snap.docs.length - 1];
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));
+    appendWindelnEntries(docs);
+  } finally {
+    moreBtn.textContent = 'Weitere laden';
+    moreBtn.disabled = false;
+    moreBtn.style.display = windelnEntriesAllLoaded ? 'none' : 'block';
+  }
+}
+document.getElementById('windeln-entries-more').addEventListener('click', () => loadWindelnEntries(false));
 
 // --- Schlafen screen logic ---
 function fmtDayDate(d) {

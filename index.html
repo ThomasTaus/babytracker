@@ -1607,6 +1607,14 @@ function windelnEntryRow(entry) {
     dot.title = COLOR_BY_ID[entry.color].label;
     dot.style.cssText = 'width:9px; height:9px; border-radius:50%; flex-shrink:0; background:' + COLOR_BY_ID[entry.color].hex + ';';
     row.appendChild(dot);
+
+    if (WARN_COLOR_IDS.includes(entry.color)) {
+      const warnIcon = document.createElement('span');
+      warnIcon.title = 'Bitte beobachten';
+      warnIcon.style.cssText = 'display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:var(--warn); flex-shrink:0;';
+      warnIcon.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 14.5H3.5z"/><line x1="12" y1="10.5" x2="12" y2="14"/></svg>';
+      row.appendChild(warnIcon);
+    }
   }
 
   const spacer = document.createElement('span');

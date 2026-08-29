@@ -74,6 +74,16 @@
   #screen-analyse .a-hist-chev { position: absolute; top: 0; bottom: 0; width: 14px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s ease; z-index: 2; color: var(--text-muted); pointer-events: none; }
   #screen-analyse .a-hist-chev-l { left: -15px; transform: scaleX(-1); }
   #screen-analyse .a-hist-chev-r { right: -15px; }
+
+  #screen-windeln .w-color-wrap { position: relative; }
+  #screen-windeln .w-color-scroller { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 6px 6px 8px; }
+  #screen-windeln .w-color-scroller::-webkit-scrollbar { display: none; }
+  #screen-windeln .w-color-fade { position: absolute; top: 0; bottom: 0; width: 26px; pointer-events: none; opacity: 0; transition: opacity .15s ease; z-index: 1; }
+  #screen-windeln .w-color-fade-l { left: 0; background: linear-gradient(to right, var(--surface), transparent); }
+  #screen-windeln .w-color-fade-r { right: 0; background: linear-gradient(to left, var(--surface), transparent); }
+  #screen-windeln .w-color-chev { position: absolute; top: 0; bottom: 0; width: 14px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s ease; z-index: 2; color: var(--text-muted); pointer-events: none; }
+  #screen-windeln .w-color-chev-l { left: -15px; transform: scaleX(-1); }
+  #screen-windeln .w-color-chev-r { right: -15px; }
 </style>
 </head>
 <body>
@@ -460,22 +470,24 @@
         </div>
       </div>
 
-      <div id="color-section" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 16px;">
-        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Farbe</label>
-        <div>
-          <div style="font-size: 12px; font-weight: 600; color: var(--ok); margin-bottom: 10px;">Unauffällig</div>
-          <div id="ok-colors" style="display: flex; gap: 14px;"></div>
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div id="color-section" style="display: none; flex-direction: column; gap: 14px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Farbe</label>
+            <div class="w-color-wrap" style="margin-top: 10px;">
+              <div class="w-color-chev w-color-chev-l"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              <div class="w-color-chev w-color-chev-r"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              <div class="w-color-fade w-color-fade-l"></div>
+              <div class="w-color-fade w-color-fade-r"></div>
+              <div id="color-scroller" class="w-color-scroller"></div>
+            </div>
+          </div>
+          <div id="warn-note" style="display: none; background: var(--warn-soft); border-radius: 14px; padding: 12px 14px; font-size: 12.5px; color: var(--text); line-height: 1.4;">
+            Bei Rot, Schwarz oder Weiß/Grau sicherheitshalber die Kinderärztin oder den Kinderarzt kontaktieren.
+          </div>
         </div>
-        <div>
-          <div style="font-size: 12px; font-weight: 600; color: var(--warn); margin-bottom: 10px;">Bitte beobachten</div>
-          <div id="warn-colors" style="display: flex; gap: 14px;"></div>
-        </div>
-        <div id="warn-note" style="display: none; background: var(--warn-soft); border-radius: 14px; padding: 12px 14px; font-size: 12.5px; color: var(--text); line-height: 1.4;">
-          Bei Rot, Schwarz oder Weiß/Grau sicherheitshalber die Kinderärztin oder den Kinderarzt kontaktieren.
-        </div>
-      </div>
+        <div id="color-divider" style="display: none; height: 1px; background: var(--border);"></div>
 
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
             <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
@@ -499,8 +511,14 @@
           </div>
           <button id="windeln-time-now" style="flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
         </div>
+        <div id="windeln-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+
+        <button id="windeln-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white;">Eintrag speichern</button>
+        <div id="windeln-edit-actions" style="display: none; gap: 10px;">
+          <button id="windeln-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+          <button id="windeln-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+        </div>
       </div>
-      <div id="windeln-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
 
       <div id="windeln-historie-section" style="display: flex; flex-direction: column; gap: 10px;">
         <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Historie</label>
@@ -508,14 +526,6 @@
           <div id="windeln-entries-list" style="display: flex; flex-direction: column;"></div>
           <button id="windeln-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
         </div>
-      </div>
-    </div>
-
-    <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
-      <button id="windeln-save" style="width:100%; padding:16px; border:none; border-radius:16px; font-size:16px; font-weight:700; cursor:pointer; color:white;">Eintrag speichern</button>
-      <div id="windeln-edit-actions" style="display: none; gap: 10px;">
-        <button id="windeln-update" style="flex: 1.7; padding:15px 10px; border:none; border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-        <button id="windeln-cancel-edit" style="flex: 1; padding:15px 10px; border:1px solid var(--border); border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
       </div>
     </div>
 
@@ -1322,9 +1332,9 @@ document.getElementById('stillen-entries-more').addEventListener('click', () => 
 const smallCard = document.getElementById('small-card');
 const bigCard = document.getElementById('big-card');
 const colorSection = document.getElementById('color-section');
+const colorDivider = document.getElementById('color-divider');
 const warnNote = document.getElementById('warn-note');
-const okColorsEl = document.getElementById('ok-colors');
-const warnColorsEl = document.getElementById('warn-colors');
+const colorScrollerEl = document.getElementById('color-scroller');
 const windelnDateInput = document.getElementById('windeln-date');
 const windelnTimeInput = document.getElementById('windeln-time');
 const windelnSaveBtn = document.getElementById('windeln-save');
@@ -1360,6 +1370,7 @@ function renderToggles() {
   badgeBgStyle(smallCard.querySelector('.check-badge'), small);
   badgeBgStyle(bigCard.querySelector('.check-badge'), big);
   colorSection.style.display = big ? 'flex' : 'none';
+  colorDivider.style.display = big ? 'block' : 'none';
   if (!big) diaperColor = null;
   updateSaveState();
 }
@@ -1372,11 +1383,36 @@ function badgeStyle(ok) {
   return 'position:absolute; top:-3px; right:-3px; width:17px; height:17px; border-radius:50%; background:' + (ok ? 'var(--ok)' : 'var(--warn)') + '; display:flex; align-items:center; justify-content:center; border: 2px solid var(--surface);';
 }
 function buildColorSwatches() {
-  okColorsEl.innerHTML = '';
-  OK_COLORS.forEach((c) => okColorsEl.appendChild(makeSwatch(c, true)));
-  warnColorsEl.innerHTML = '';
-  WARN_COLORS.forEach((c) => warnColorsEl.appendChild(makeSwatch(c, false)));
+  const prevScrollLeft = colorScrollerEl.scrollLeft;
+  colorScrollerEl.innerHTML = '';
+  OK_COLORS.forEach((c) => colorScrollerEl.appendChild(makeSwatch(c, true)));
+  WARN_COLORS.forEach((c) => colorScrollerEl.appendChild(makeSwatch(c, false)));
+  colorScrollerEl.scrollLeft = prevScrollLeft;
   warnNote.style.display = WARN_COLORS.some((c) => c.id === diaperColor) ? 'block' : 'none';
+  initColorScroll();
+}
+
+function initColorScroll() {
+  const wrap = colorScrollerEl.closest('.w-color-wrap');
+  const fadeL = wrap.querySelector('.w-color-fade-l');
+  const fadeR = wrap.querySelector('.w-color-fade-r');
+  const chevL = wrap.querySelector('.w-color-chev-l');
+  const chevR = wrap.querySelector('.w-color-chev-r');
+  function update() {
+    const maxScroll = colorScrollerEl.scrollWidth - colorScrollerEl.clientWidth;
+    const showL = colorScrollerEl.scrollLeft > 2 ? '1' : '0';
+    const showR = colorScrollerEl.scrollLeft < maxScroll - 2 ? '1' : '0';
+    fadeL.style.opacity = showL;
+    chevL.style.opacity = showL;
+    fadeR.style.opacity = showR;
+    chevR.style.opacity = showR;
+  }
+  if (!colorScrollerEl.dataset.scrollWired) {
+    colorScrollerEl.dataset.scrollWired = '1';
+    colorScrollerEl.addEventListener('scroll', update);
+    new ResizeObserver(update).observe(colorScrollerEl);
+  }
+  update();
 }
 function makeSwatch(c, ok) {
   const wrap = document.createElement('div');
@@ -1405,7 +1441,7 @@ function updateSaveState() {
 }
 
 smallCard.addEventListener('click', () => { small = !small; renderToggles(); });
-bigCard.addEventListener('click', () => { big = !big; if (big) buildColorSwatches(); renderToggles(); });
+bigCard.addEventListener('click', () => { big = !big; renderToggles(); if (big) buildColorSwatches(); });
 renderToggles();
 buildColorSwatches();
 

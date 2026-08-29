@@ -285,7 +285,7 @@
           </div>
           <div>
             <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Stillen</div>
-            <div style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
+            <div id="stillen-subtitle" style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
           </div>
         </div>
         <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
@@ -351,10 +351,22 @@
         </div>
       </div>
       <div id="stillen-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+
+      <div id="stillen-historie-section" style="display: flex; flex-direction: column; gap: 10px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Historie</label>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden;">
+          <div id="stillen-entries-list" style="display: flex; flex-direction: column;"></div>
+          <button id="stillen-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
+        </div>
+      </div>
     </div>
 
     <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
       <button id="stillen-save" style="width:100%; padding:16px; border:none; border-radius:16px; font-size:16px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong);">Eintrag speichern</button>
+      <div id="stillen-edit-actions" style="display: none; gap: 10px;">
+        <button id="stillen-update" style="flex: 1.7; padding:15px 10px; border:none; border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+        <button id="stillen-cancel-edit" style="flex: 1; padding:15px 10px; border:1px solid var(--border); border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+      </div>
     </div>
 
     <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
@@ -962,6 +974,7 @@ function showScreen(target) {
   if (target === 'analyse') loadAnalyse();
   if (target === 'schlafen') decideSchlafenDefault();
   if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); loadWindelnEntries(true); }
+  if (target === 'stillen') { if (editingFeedingId) exitStillenEdit(false); loadStillenEntries(true); }
 }
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target));
@@ -1091,11 +1104,219 @@ stillenSaveBtn.addEventListener('click', async () => {
     await addDoc(collection(db, 'feedings'), entry);
     stillenSaveBtn.textContent = 'Gespeichert ✓';
     setTimeout(() => { stillenSaveBtn.textContent = 'Eintrag speichern'; stillenSaveBtn.disabled = false; }, 1400);
+    loadStillenEntries(true);
   } catch (error) {
     stillenSaveBtn.textContent = 'Fehler beim Speichern';
     stillenSaveBtn.disabled = false;
   }
 });
+
+// --- Stillen: Historie (bearbeiten/löschen), selbes Muster wie Windeln ---
+let editingFeedingId = null;
+let stillenListScrollTop = 0;
+let stillenJustUpdatedId = null;
+const stillenSubtitleEl = document.getElementById('stillen-subtitle');
+const stillenHistorieSection = document.getElementById('stillen-historie-section');
+const stillenEditActions = document.getElementById('stillen-edit-actions');
+const stillenUpdateBtn = document.getElementById('stillen-update');
+const stillenCancelEditBtn = document.getElementById('stillen-cancel-edit');
+const stillenTimeNowBtn = document.getElementById('stillen-time-now');
+const stillenScrollEl = screens.stillen.firstElementChild;
+const STILLEN_PAGE_SIZE = 15;
+let stillenEntriesLastSnap = null;
+let stillenEntriesAllLoaded = false;
+let stillenEntriesLastDayKey = null;
+
+function resetStillenForm() {
+  setFeedType('bottle');
+  amountInput.value = 120;
+  minutesInput.value = 10;
+  buildChips(amountChipsEl, [60, 90, 120, 150, 180, 210], 'ml', amountInput);
+  buildChips(minuteChipsEl, [5, 10, 15, 20, 25, 30], 'min', minutesInput);
+  stillenDateInput.value = isoDate(new Date());
+  stillenTimeInput.value = formatTime(new Date());
+  stillenDateInput.dispatchEvent(new Event('change'));
+}
+
+function enterStillenEdit(entry) {
+  stillenListScrollTop = stillenScrollEl.scrollTop;
+  editingFeedingId = entry.id;
+  setFeedType(entry.type);
+  if (entry.type === 'bottle') {
+    amountInput.value = entry.amount || 120;
+    buildChips(amountChipsEl, [60, 90, 120, 150, 180, 210], 'ml', amountInput);
+  } else {
+    minutesInput.value = entry.minutes || 10;
+    buildChips(minuteChipsEl, [5, 10, 15, 20, 25, 30], 'min', minutesInput);
+  }
+  const entryTs = entryBusinessTimestamp(entry);
+  stillenDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
+  stillenTimeInput.value = entry.time || formatTime(new Date());
+  stillenDateInput.dispatchEvent(new Event('change'));
+
+  stillenSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+    'Eintrag bearbeiten</span>';
+  stillenHistorieSection.style.display = 'none';
+  stillenTimeNowBtn.style.display = 'none';
+  stillenSaveBtn.style.display = 'none';
+  stillenEditActions.style.display = 'flex';
+  stillenScrollEl.scrollTop = 0;
+}
+
+function exitStillenEdit(restoreScroll) {
+  editingFeedingId = null;
+  stillenSubtitleEl.textContent = 'Eintrag hinzufügen';
+  stillenHistorieSection.style.display = 'flex';
+  stillenTimeNowBtn.style.display = '';
+  stillenSaveBtn.style.display = '';
+  stillenEditActions.style.display = 'none';
+  resetStillenForm();
+  if (restoreScroll) stillenScrollEl.scrollTop = stillenListScrollTop;
+}
+stillenCancelEditBtn.addEventListener('click', () => exitStillenEdit(true));
+
+stillenUpdateBtn.addEventListener('click', async () => {
+  if (!currentUser || !stillenTimeIsValid() || !editingFeedingId) return;
+  const updatedId = editingFeedingId;
+  const entry = {
+    type: feedType,
+    amount: feedType === 'bottle' ? Number(amountInput.value) : null,
+    minutes: feedType === 'breast' ? Number(minutesInput.value) : null,
+    date: stillenDateInput.value,
+    time: stillenTimeInput.value
+  };
+  stillenUpdateBtn.disabled = true;
+  try {
+    await updateDoc(doc(db, 'feedings', updatedId), entry);
+    exitStillenEdit(false);
+    stillenJustUpdatedId = updatedId;
+    await loadStillenEntries(true);
+    stillenScrollEl.scrollTop = stillenListScrollTop;
+    setTimeout(() => {
+      stillenJustUpdatedId = null;
+      const oldRow = document.querySelector('#stillen-entries-list [data-entry-id="' + updatedId + '"]');
+      if (oldRow) oldRow.replaceWith(stillenEntryRow({ id: updatedId, ...entry }));
+    }, 1800);
+  } catch (error) {
+    stillenUpdateBtn.textContent = 'Fehler beim Speichern';
+    setTimeout(() => { stillenUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
+  } finally {
+    stillenUpdateBtn.disabled = false;
+  }
+});
+
+function stillenEntryRow(entry) {
+  const ts = entryBusinessTimestamp(entry);
+  const row = document.createElement('div');
+  row.dataset.entryId = entry.id;
+  row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border);';
+
+  const time = document.createElement('span');
+  time.textContent = ts ? formatTime(ts) : '--:--';
+  time.style.cssText = 'font-size:13px; font-weight:600; color:var(--text); width:38px; flex-shrink:0; font-variant-numeric:tabular-nums;';
+  row.appendChild(time);
+
+  const typeBadge = document.createElement('span');
+  typeBadge.textContent = entry.type === 'bottle' ? 'Fläschchen' : 'Brust';
+  typeBadge.style.cssText = 'font-size:12px; padding:3px 8px; border-radius:8px; flex-shrink:0; background:var(--accent-soft); color:var(--accent-strong);';
+  row.appendChild(typeBadge);
+
+  const detail = document.createElement('span');
+  detail.textContent = entry.type === 'bottle' ? (entry.amount || 0) + ' ml' : (entry.minutes || 0) + ' Min';
+  detail.style.cssText = 'font-size:12.5px; color:var(--text-muted); flex-shrink:0;';
+  row.appendChild(detail);
+
+  const spacer = document.createElement('span');
+  spacer.style.flex = '1';
+  row.appendChild(spacer);
+
+  if (entry.id === stillenJustUpdatedId) {
+    const badge = document.createElement('span');
+    badge.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--accent-strong); background:var(--accent-soft); padding:4px 9px; border-radius:999px;';
+    badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert';
+    row.appendChild(badge);
+    return row;
+  }
+
+  const editBtn = document.createElement('button');
+  editBtn.setAttribute('aria-label', 'Bearbeiten');
+  editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
+  editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  editBtn.addEventListener('click', () => enterStillenEdit(entry));
+  row.appendChild(editBtn);
+
+  const delBtn = document.createElement('button');
+  delBtn.setAttribute('aria-label', 'Löschen');
+  delBtn.style.cssText = 'border:none; background:none; color:var(--warn); padding:6px; cursor:pointer; display:flex;';
+  delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
+  delBtn.addEventListener('click', async () => {
+    if (!confirm('Diesen Stillen-Eintrag wirklich löschen?')) return;
+    delBtn.disabled = true;
+    try {
+      await deleteDoc(doc(db, 'feedings', entry.id));
+      loadStillenEntries(true);
+    } catch (error) {
+      delBtn.disabled = false;
+    }
+  });
+  row.appendChild(delBtn);
+
+  return row;
+}
+
+function appendStillenEntries(docs) {
+  const list = document.getElementById('stillen-entries-list');
+  const now = new Date();
+  docs.forEach((entry) => {
+    const ts = entryBusinessTimestamp(entry);
+    const dayKey = ts ? isoDate(ts) : 'unbekannt';
+    if (dayKey !== stillenEntriesLastDayKey) {
+      const header = document.createElement('div');
+      header.textContent = ts ? dayLabel(ts, now) : 'Unbekanntes Datum';
+      header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;';
+      list.appendChild(header);
+      stillenEntriesLastDayKey = dayKey;
+    }
+    list.appendChild(stillenEntryRow(entry));
+  });
+  if (list.children.length === 0) {
+    const empty = document.createElement('div');
+    empty.textContent = 'Noch keine Einträge.';
+    empty.style.cssText = 'font-size:13px; color:var(--text-muted); padding:8px 14px;';
+    list.appendChild(empty);
+  }
+}
+
+async function loadStillenEntries(reset) {
+  if (reset) {
+    stillenEntriesLastSnap = null;
+    stillenEntriesAllLoaded = false;
+    stillenEntriesLastDayKey = null;
+    document.getElementById('stillen-entries-list').innerHTML = '';
+  }
+  if (stillenEntriesAllLoaded) return;
+  const moreBtn = document.getElementById('stillen-entries-more');
+  moreBtn.textContent = 'Lädt…';
+  moreBtn.style.display = 'block';
+  moreBtn.disabled = true;
+  try {
+    const q = stillenEntriesLastSnap
+      ? query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), startAfter(stillenEntriesLastSnap), limit(STILLEN_PAGE_SIZE))
+      : query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(STILLEN_PAGE_SIZE));
+    const snap = await getDocs(q);
+    if (snap.docs.length < STILLEN_PAGE_SIZE) stillenEntriesAllLoaded = true;
+    if (!snap.empty) stillenEntriesLastSnap = snap.docs[snap.docs.length - 1];
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));
+    appendStillenEntries(docs);
+  } finally {
+    moreBtn.textContent = 'Weitere laden';
+    moreBtn.disabled = false;
+    moreBtn.style.display = stillenEntriesAllLoaded ? 'none' : 'block';
+  }
+}
+document.getElementById('stillen-entries-more').addEventListener('click', () => loadStillenEntries(false));
 
 // --- Windeln screen logic ---
 const smallCard = document.getElementById('small-card');

@@ -1942,7 +1942,11 @@ function computeWindelnAnalysis(days, diaperMap) {
     const docs = diaperMap[i];
     return {
       label: d.label, fullLabel: d.fullLabel, isToday: d.isToday, daysElapsed: d.daysElapsed,
-      small: docs.filter((x) => x.small).length,
+      // Mutually exclusive so the stacked bar's total height matches the
+      // real wechsel count: a diaper with both small and big set counts
+      // once, under "big" (the medically-relevant category — the warn-color
+      // tracking below already only cares about big regardless of small).
+      small: docs.filter((x) => x.small && !x.big).length,
       big: docs.filter((x) => x.big).length,
       total: docs.length
     };

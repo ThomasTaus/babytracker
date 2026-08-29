@@ -421,7 +421,7 @@
           </div>
           <div>
             <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Windel wechseln</div>
-            <div style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
+            <div id="windeln-subtitle" style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
           </div>
         </div>
         <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
@@ -490,19 +490,21 @@
       </div>
       <div id="windeln-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
 
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <span style="font-size: 13px; font-weight: 700; color: var(--text);">Einträge</span>
-        <div id="windeln-entries-list" style="display: flex; flex-direction: column;"></div>
-        <button id="windeln-entries-more" style="display: none; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 6px 0; cursor: pointer; align-self: center;">Weitere laden</button>
+      <div id="windeln-historie-section" style="display: flex; flex-direction: column; gap: 10px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Historie</label>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden;">
+          <div id="windeln-entries-list" style="display: flex; flex-direction: column;"></div>
+          <button id="windeln-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
+        </div>
       </div>
     </div>
 
-    <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
-      <div id="windeln-editing-banner" style="display: none; align-items: center; justify-content: space-between;">
-        <span style="font-size: 12px; color: var(--text-muted);">Eintrag wird bearbeitet</span>
-        <button id="windeln-edit-cancel" style="border: none; background: none; color: var(--accent-strong); font-weight: 600; font-size: 12px; cursor: pointer;">Abbrechen</button>
-      </div>
+    <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
       <button id="windeln-save" style="width:100%; padding:16px; border:none; border-radius:16px; font-size:16px; font-weight:700; cursor:pointer; color:white;">Eintrag speichern</button>
+      <div id="windeln-edit-actions" style="display: none; gap: 10px;">
+        <button id="windeln-update" style="flex: 1.7; padding:15px 10px; border:none; border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+        <button id="windeln-cancel-edit" style="flex: 1; padding:15px 10px; border:1px solid var(--border); border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+      </div>
     </div>
 
     <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
@@ -959,7 +961,7 @@ function showScreen(target) {
   if (target === 'heute') loadOverview();
   if (target === 'analyse') loadAnalyse();
   if (target === 'schlafen') decideSchlafenDefault();
-  if (target === 'windeln') loadWindelnEntries(true);
+  if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); loadWindelnEntries(true); }
 }
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target));
@@ -1191,16 +1193,34 @@ windelnTimeInput.value = formatTime(new Date());
 const windelnTimeIsValid = setupPastOnlyDateTime(windelnDateInput, windelnTimeInput, document.getElementById('windeln-time-now'), document.getElementById('windeln-time-error'));
 
 let editingDiaperId = null;
-const windelnEditingBanner = document.getElementById('windeln-editing-banner');
-const windelnEditCancelBtn = document.getElementById('windeln-edit-cancel');
+let windelnListScrollTop = 0;
+let windelnJustUpdatedId = null;
+const windelnSubtitleEl = document.getElementById('windeln-subtitle');
+const windelnHistorieSection = document.getElementById('windeln-historie-section');
+const windelnEditActions = document.getElementById('windeln-edit-actions');
+const windelnUpdateBtn = document.getElementById('windeln-update');
+const windelnCancelEditBtn = document.getElementById('windeln-cancel-edit');
+const windelnTimeNowBtn = document.getElementById('windeln-time-now');
+const windelnScrollEl = screens.windeln.firstElementChild;
 
-// Reuses the entry form for editing: populates it from an existing doc and
-// switches Save into update mode. Passing null clears back to a fresh entry.
-function setWindelnEditing(entry) {
-  editingDiaperId = entry ? entry.id : null;
-  windelnEditingBanner.style.display = editingDiaperId ? 'flex' : 'none';
-  windelnSaveBtn.textContent = editingDiaperId ? 'Eintrag aktualisieren' : 'Eintrag speichern';
-  if (!entry) return;
+function resetWindelnForm() {
+  small = true;
+  big = false;
+  diaperColor = null;
+  renderToggles();
+  buildColorSwatches();
+  windelnDateInput.value = isoDate(new Date());
+  windelnTimeInput.value = formatTime(new Date());
+  windelnDateInput.dispatchEvent(new Event('change'));
+}
+
+// Editing opens its own "window": the Historie and the Jetzt-shortcut are
+// hidden (editing an already-dated entry, not logging one for now), and the
+// footer swaps to Aktualisieren/Abbrechen. No inline scroll trick — entering
+// jumps straight to the top since there's nothing else left on the screen.
+function enterWindelnEdit(entry) {
+  windelnListScrollTop = windelnScrollEl.scrollTop;
+  editingDiaperId = entry.id;
   small = !!entry.small;
   big = !!entry.big;
   diaperColor = entry.color || null;
@@ -1209,9 +1229,30 @@ function setWindelnEditing(entry) {
   windelnDateInput.value = entry.date || isoDate(new Date());
   windelnTimeInput.value = entry.time || formatTime(new Date());
   windelnDateInput.dispatchEvent(new Event('change'));
-  screens.windeln.firstElementChild.scrollTo({ top: 0, behavior: 'smooth' });
+
+  windelnSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+    'Eintrag bearbeiten</span>';
+  windelnHistorieSection.style.display = 'none';
+  windelnTimeNowBtn.style.display = 'none';
+  windelnSaveBtn.style.display = 'none';
+  windelnEditActions.style.display = 'flex';
+  windelnScrollEl.scrollTop = 0;
 }
-windelnEditCancelBtn.addEventListener('click', () => setWindelnEditing(null));
+
+// restoreScroll is false only for the initial tab-open safety reset, where
+// there's no previous Historie position worth returning to yet.
+function exitWindelnEdit(restoreScroll) {
+  editingDiaperId = null;
+  windelnSubtitleEl.textContent = 'Eintrag hinzufügen';
+  windelnHistorieSection.style.display = 'flex';
+  windelnTimeNowBtn.style.display = '';
+  windelnSaveBtn.style.display = '';
+  windelnEditActions.style.display = 'none';
+  resetWindelnForm();
+  if (restoreScroll) windelnScrollEl.scrollTop = windelnListScrollTop;
+}
+windelnCancelEditBtn.addEventListener('click', () => exitWindelnEdit(true));
 
 windelnSaveBtn.addEventListener('click', async () => {
   if (!currentUser || (!small && !big) || !windelnTimeIsValid()) return;
@@ -1220,23 +1261,44 @@ windelnSaveBtn.addEventListener('click', async () => {
     big,
     color: big ? diaperColor : null,
     date: windelnDateInput.value,
-    time: windelnTimeInput.value
+    time: windelnTimeInput.value,
+    createdBy: currentUser.email,
+    createdAt: serverTimestamp()
   };
   windelnSaveBtn.disabled = true;
   try {
-    if (editingDiaperId) {
-      await updateDoc(doc(db, 'diaperChanges', editingDiaperId), entry);
-      windelnSaveBtn.textContent = 'Aktualisiert ✓';
-      setTimeout(() => { setWindelnEditing(null); windelnSaveBtn.disabled = false; }, 1400);
-    } else {
-      await addDoc(collection(db, 'diaperChanges'), { ...entry, createdBy: currentUser.email, createdAt: serverTimestamp() });
-      windelnSaveBtn.textContent = 'Gespeichert ✓';
-      setTimeout(() => { windelnSaveBtn.textContent = 'Eintrag speichern'; windelnSaveBtn.disabled = false; }, 1400);
-    }
+    await addDoc(collection(db, 'diaperChanges'), entry);
+    windelnSaveBtn.textContent = 'Gespeichert ✓';
+    setTimeout(() => { windelnSaveBtn.textContent = 'Eintrag speichern'; windelnSaveBtn.disabled = false; }, 1400);
     loadWindelnEntries(true);
   } catch (error) {
     windelnSaveBtn.textContent = 'Fehler beim Speichern';
     windelnSaveBtn.disabled = false;
+  }
+});
+
+windelnUpdateBtn.addEventListener('click', async () => {
+  if (!currentUser || (!small && !big) || !windelnTimeIsValid() || !editingDiaperId) return;
+  const updatedId = editingDiaperId;
+  const entry = {
+    small,
+    big,
+    color: big ? diaperColor : null,
+    date: windelnDateInput.value,
+    time: windelnTimeInput.value
+  };
+  windelnUpdateBtn.disabled = true;
+  try {
+    await updateDoc(doc(db, 'diaperChanges', updatedId), entry);
+    exitWindelnEdit(true);
+    windelnJustUpdatedId = updatedId;
+    await loadWindelnEntries(true);
+    setTimeout(() => { windelnJustUpdatedId = null; loadWindelnEntries(true); }, 1800);
+  } catch (error) {
+    windelnUpdateBtn.textContent = 'Fehler beim Speichern';
+    setTimeout(() => { windelnUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
+  } finally {
+    windelnUpdateBtn.disabled = false;
   }
 });
 
@@ -1257,7 +1319,7 @@ function dayLabel(d, now) {
 function windelnEntryRow(entry) {
   const ts = entryBusinessTimestamp(entry);
   const row = document.createElement('div');
-  row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);';
+  row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border);';
 
   const time = document.createElement('span');
   time.textContent = ts ? formatTime(ts) : '--:--';
@@ -1281,11 +1343,19 @@ function windelnEntryRow(entry) {
   spacer.style.flex = '1';
   row.appendChild(spacer);
 
+  if (entry.id === windelnJustUpdatedId) {
+    const badge = document.createElement('span');
+    badge.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--accent-strong); background:var(--accent-soft); padding:4px 9px; border-radius:999px;';
+    badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert';
+    row.appendChild(badge);
+    return row;
+  }
+
   const editBtn = document.createElement('button');
   editBtn.setAttribute('aria-label', 'Bearbeiten');
   editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
   editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-  editBtn.addEventListener('click', () => setWindelnEditing(entry));
+  editBtn.addEventListener('click', () => enterWindelnEdit(entry));
   row.appendChild(editBtn);
 
   const delBtn = document.createElement('button');
@@ -1297,7 +1367,6 @@ function windelnEntryRow(entry) {
     delBtn.disabled = true;
     try {
       await deleteDoc(doc(db, 'diaperChanges', entry.id));
-      if (editingDiaperId === entry.id) setWindelnEditing(null);
       loadWindelnEntries(true);
     } catch (error) {
       delBtn.disabled = false;
@@ -1317,7 +1386,7 @@ function appendWindelnEntries(docs) {
     if (dayKey !== windelnEntriesLastDayKey) {
       const header = document.createElement('div');
       header.textContent = ts ? dayLabel(ts, now) : 'Unbekanntes Datum';
-      header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 0 2px;';
+      header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;';
       list.appendChild(header);
       windelnEntriesLastDayKey = dayKey;
     }
@@ -1326,7 +1395,7 @@ function appendWindelnEntries(docs) {
   if (list.children.length === 0) {
     const empty = document.createElement('div');
     empty.textContent = 'Noch keine Einträge.';
-    empty.style.cssText = 'font-size:13px; color:var(--text-muted); padding:8px 0;';
+    empty.style.cssText = 'font-size:13px; color:var(--text-muted); padding:8px 14px;';
     list.appendChild(empty);
   }
 }

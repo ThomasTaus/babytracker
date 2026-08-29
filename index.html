@@ -274,6 +274,7 @@
     --accent: oklch(72% 0.11 250);
     --accent-strong: oklch(48% 0.13 250);
     --accent-soft: oklch(93% 0.025 250);
+    --stop: #C0392B;
     --warn: oklch(58% 0.17 25);
     --surface: oklch(99% 0.002 250);
     --surface-alt: oklch(93% 0.004 250);
@@ -327,15 +328,72 @@
       </div>
 
       <div id="breast-panel" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 14px;">
-        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Dauer</label>
-        <div style="display: flex; align-items: baseline; gap: 8px;">
-          <input id="minutes-input" type="number" value="10" style="width: 90px; font-family: 'Fredoka', sans-serif; font-size: 36px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0;">
-          <span style="font-size: 18px; color: var(--text-muted); font-weight: 500;">min</span>
+        <div id="breast-mode-toggle" style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
+          <button id="feed-breast-manual-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Manuell</button>
+          <button id="feed-breast-timer-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Timer</button>
         </div>
-        <div id="minutes-chips" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+
+        <div id="breast-manual-panel" style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+              <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
+            </svg>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Datum</div>
+              <input id="breast-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
+            </div>
+          </div>
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="display: flex; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+                <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
+              </svg>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Start</div>
+                <input id="breast-start" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+                <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
+              </svg>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende</div>
+                <input id="breast-end" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
+              </div>
+            </div>
+          </div>
+          <div id="breast-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">Dauer</div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 22px; padding: 2px 0; margin-top: -8px;">
+            <button id="breast-dur-dec" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <div style="text-align: center; min-width: 90px;">
+              <div id="breast-dur-display" style="font-size: 18px; font-weight: 600; line-height: 1;">–</div>
+            </div>
+            <button id="breast-dur-inc" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <button id="breast-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+        </div>
+
+        <div id="breast-timer-panel" style="display: none; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0;">
+          <div id="breast-timer-display" style="font-family: 'Fredoka', sans-serif; font-size: 32px; font-weight: 600; letter-spacing: 0.02em;">00:00:00</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div id="breast-timer-sublabel" style="font-size: 12px; color: var(--text-muted);">Bereit zum Start</div>
+            <button id="breast-timer-refresh-btn" title="Status aktualisieren" style="border:none; background:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex; align-items:center;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5"/></svg>
+            </button>
+          </div>
+          <button id="breast-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Start</button>
+        </div>
       </div>
 
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+      <div id="stillen-datetime-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
             <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
@@ -371,7 +429,7 @@
       </div>
     </div>
 
-    <div style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
+    <div id="stillen-bottombar" style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
       <button id="stillen-save" style="width:100%; padding:16px; border:none; border-radius:16px; font-size:16px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong);">Eintrag speichern</button>
       <div id="stillen-edit-actions" style="display: none; gap: 10px;">
         <button id="stillen-update" style="flex: 1.7; padding:15px 10px; border:none; border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
@@ -968,6 +1026,7 @@ onAuthStateChanged(auth, async (user) => {
   appEl.style.display = 'block';
   loadOverview();
   resumeOpenNapIfAny();
+  resumeOpenFeedingIfAny();
 });
 
 // --- Tab navigation ---
@@ -1044,19 +1103,77 @@ const feedBreastBtn = document.getElementById('feed-breast-btn');
 const bottlePanel = document.getElementById('bottle-panel');
 const breastPanel = document.getElementById('breast-panel');
 const amountInput = document.getElementById('amount-input');
-const minutesInput = document.getElementById('minutes-input');
 const amountChipsEl = document.getElementById('amount-chips');
-const minuteChipsEl = document.getElementById('minutes-chips');
 const stillenDateInput = document.getElementById('stillen-date');
 const stillenTimeInput = document.getElementById('stillen-time');
+const stillenTimeErrorEl = document.getElementById('stillen-time-error');
 const stillenSaveBtn = document.getElementById('stillen-save');
+const stillenDatetimeCard = document.getElementById('stillen-datetime-card');
+const stillenBottombar = document.getElementById('stillen-bottombar');
+
+// Brust: eigener Manuell/Timer-Umschalter, wie bei Schlafen → Tagsüber.
+const breastModeToggle = document.getElementById('breast-mode-toggle');
+const feedBreastManualBtn = document.getElementById('feed-breast-manual-btn');
+const feedBreastTimerBtn = document.getElementById('feed-breast-timer-btn');
+const breastManualPanel = document.getElementById('breast-manual-panel');
+const breastTimerPanel = document.getElementById('breast-timer-panel');
+const breastDateInput = document.getElementById('breast-date');
+const breastStartInput = document.getElementById('breast-start');
+const breastEndInput = document.getElementById('breast-end');
+const breastTimeError = document.getElementById('breast-time-error');
+const breastDurDisplay = document.getElementById('breast-dur-display');
+const breastDurDecBtn = document.getElementById('breast-dur-dec');
+const breastDurIncBtn = document.getElementById('breast-dur-inc');
+const breastSaveBtn = document.getElementById('breast-save');
+const breastTimerDisplay = document.getElementById('breast-timer-display');
+const breastTimerSublabel = document.getElementById('breast-timer-sublabel');
+const breastTimerToggleBtn = document.getElementById('breast-timer-toggle-btn');
+const breastTimerRefreshBtn = document.getElementById('breast-timer-refresh-btn');
 
 let feedType = 'bottle';
+let editingFeedingId = null;
+let breastMode = 'manual';
 
 function segStyle(active) {
   return active
     ? 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: var(--accent); color: white;'
     : 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: transparent; color: var(--text-muted);';
+}
+
+function breastSegStyle(active) {
+  return active
+    ? 'flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: var(--accent); color: white;'
+    : 'flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: transparent; color: var(--text-muted);';
+}
+
+function setBreastMode(mode) {
+  breastMode = mode;
+  feedBreastManualBtn.setAttribute('style', breastSegStyle(mode === 'manual'));
+  feedBreastTimerBtn.setAttribute('style', breastSegStyle(mode === 'timer'));
+  breastManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
+  breastTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
+}
+feedBreastManualBtn.addEventListener('click', () => setBreastMode('manual'));
+feedBreastTimerBtn.addEventListener('click', () => setBreastMode('timer'));
+
+// Beim Bearbeiten eines Brust-Eintrags gibt es keinen Manuell/Timer-Umschalter
+// und keinen eigenen Speichern-Button mehr — nur die Felder, gespeichert wird
+// wie bei Fläschchen über die feste Leiste unten.
+function refreshBreastPanelForEditState() {
+  const editing = !!editingFeedingId;
+  breastModeToggle.style.display = editing ? 'none' : 'flex';
+  breastSaveBtn.style.display = editing ? 'none' : 'block';
+  if (editing) setBreastMode('manual');
+}
+
+// Fläschchen behält die feste Datum/Uhrzeit-Karte + Speichern-Leiste unten;
+// Brust bringt beides in der eigenen Karte mit (Manuell/Timer) und blendet
+// die Leiste unten nur beim Bearbeiten wieder ein.
+function updateStillenChromeForState() {
+  stillenDatetimeCard.style.display = feedType === 'bottle' ? 'flex' : 'none';
+  if (feedType !== 'bottle') stillenTimeErrorEl.style.display = 'none';
+  stillenBottombar.style.display = (editingFeedingId || feedType === 'bottle') ? 'block' : 'none';
+  refreshBreastPanelForEditState();
 }
 
 function setFeedType(type) {
@@ -1065,10 +1182,12 @@ function setFeedType(type) {
   feedBreastBtn.setAttribute('style', segStyle(type === 'breast'));
   bottlePanel.style.display = type === 'bottle' ? 'flex' : 'none';
   breastPanel.style.display = type === 'breast' ? 'flex' : 'none';
+  updateStillenChromeForState();
 }
 feedBottleBtn.addEventListener('click', () => setFeedType('bottle'));
 feedBreastBtn.addEventListener('click', () => setFeedType('breast'));
 setFeedType('bottle');
+setBreastMode('manual');
 
 function chipStyle(selected) {
   return selected
@@ -1090,20 +1209,18 @@ function buildChips(container, values, unit, input) {
   });
 }
 buildChips(amountChipsEl, [60, 90, 120, 150, 180, 210], 'ml', amountInput);
-buildChips(minuteChipsEl, [5, 10, 15, 20, 25, 30], 'min', minutesInput);
 amountInput.addEventListener('input', () => buildChips(amountChipsEl, [60, 90, 120, 150, 180, 210], 'ml', amountInput));
-minutesInput.addEventListener('input', () => buildChips(minuteChipsEl, [5, 10, 15, 20, 25, 30], 'min', minutesInput));
 
 stillenDateInput.value = isoDate(new Date());
 stillenTimeInput.value = formatTime(new Date());
-const stillenTimeIsValid = setupPastOnlyDateTime(stillenDateInput, stillenTimeInput, document.getElementById('stillen-time-now'), document.getElementById('stillen-time-error'));
+const stillenTimeIsValid = setupPastOnlyDateTime(stillenDateInput, stillenTimeInput, document.getElementById('stillen-time-now'), stillenTimeErrorEl);
 
 stillenSaveBtn.addEventListener('click', async () => {
   if (!currentUser || !stillenTimeIsValid()) return;
   const entry = {
-    type: feedType,
-    amount: feedType === 'bottle' ? Number(amountInput.value) : null,
-    minutes: feedType === 'breast' ? Number(minutesInput.value) : null,
+    type: 'bottle',
+    amount: Number(amountInput.value),
+    minutes: null,
     date: stillenDateInput.value,
     time: stillenTimeInput.value,
     createdBy: currentUser.email,
@@ -1121,8 +1238,193 @@ stillenSaveBtn.addEventListener('click', async () => {
   }
 });
 
+// Brust-Dauer wird aus Start/Ende berechnet, per Stepper in 5-Minuten-Schritten
+// feinjustierbar (kürzere Schritte als bei Schlafen, da Stillzeiten typischerweise
+// nur 5–25 Minuten dauern) — sonst exakt das Muster von stepNapDuration.
+function renderBreastDuration() {
+  const minutes = Math.max(0, parseMinutes(breastEndInput.value) - parseMinutes(breastStartInput.value));
+  breastDurDisplay.textContent = minutes > 0 ? Math.floor(minutes / 60) + ':' + String(minutes % 60).padStart(2, '0') : '–';
+  breastSaveBtn.style.background = minutes > 0 ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+  return minutes;
+}
+function stepBreastDuration(deltaMin) {
+  const startMin = parseMinutes(breastStartInput.value);
+  const currentMin = Math.max(0, parseMinutes(breastEndInput.value) - startMin);
+  const nextMin = Math.max(0, Math.min(23 * 60 + 45, currentMin + deltaMin));
+  const endMin = (startMin + nextMin) % 1440;
+  breastEndInput.value = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+  breastEndInput.dispatchEvent(new Event('change', { bubbles: true }));
+  renderBreastDuration();
+}
+function wireBreastDurStepper(btn, deltaMin) {
+  let holdTimeout = null;
+  let holdInterval = null;
+  const stop = () => { clearTimeout(holdTimeout); clearInterval(holdInterval); holdTimeout = null; holdInterval = null; };
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    stepBreastDuration(deltaMin);
+    holdTimeout = setTimeout(() => { holdInterval = setInterval(() => stepBreastDuration(deltaMin), 150); }, 450);
+  });
+  btn.addEventListener('pointerup', stop);
+  btn.addEventListener('pointerleave', stop);
+  btn.addEventListener('pointercancel', stop);
+}
+wireBreastDurStepper(breastDurDecBtn, -5);
+wireBreastDurStepper(breastDurIncBtn, 5);
+
+breastDateInput.value = isoDate(new Date());
+const breastDefaultNow = new Date();
+const breastTodayMidnight = new Date(breastDefaultNow); breastTodayMidnight.setHours(0, 0, 0, 0);
+breastStartInput.value = formatTime(new Date(Math.max(breastTodayMidnight.getTime(), breastDefaultNow.getTime() - 15 * 60000)));
+breastEndInput.value = formatTime(breastDefaultNow);
+breastStartInput.addEventListener('input', renderBreastDuration);
+breastEndInput.addEventListener('input', renderBreastDuration);
+renderBreastDuration();
+const breastTimeIsValid = setupPastOnlyDateTimeRange(breastDateInput, breastStartInput, breastEndInput, breastTimeError);
+
+breastSaveBtn.addEventListener('click', async () => {
+  if (!currentUser || !breastTimeIsValid()) return;
+  const minutes = renderBreastDuration();
+  if (minutes <= 0) return;
+  breastSaveBtn.disabled = true;
+  try {
+    await addDoc(collection(db, 'feedings'), {
+      type: 'breast',
+      amount: null,
+      minutes,
+      durationMinutes: minutes,
+      date: breastDateInput.value,
+      time: breastStartInput.value,
+      startTime: breastStartInput.value,
+      endTime: breastEndInput.value,
+      source: 'manual',
+      createdBy: currentUser.email,
+      createdAt: serverTimestamp()
+    });
+    breastSaveBtn.textContent = 'Gespeichert ✓';
+    setTimeout(() => { breastSaveBtn.textContent = 'Eintrag speichern'; breastSaveBtn.disabled = false; }, 1400);
+    loadStillenEntries(true);
+  } catch (error) {
+    breastSaveBtn.textContent = 'Fehler beim Speichern';
+    breastSaveBtn.disabled = false;
+  }
+});
+
+// --- Brust-Timer: robust gegen Schließen der App, Zustand lebt in Firestore
+// (identisches Muster zum Schlafen-Timer, eigene Variablen/IDs, selbe Collection
+// wie die manuellen Brust-Einträge — 'feedings', unterschieden über type). ---
+let openFeedingDocId = null;
+let openFeedingStartedAt = null;
+let feedingTimerInterval = null;
+
+async function findOpenFeeding() {
+  const q = query(collection(db, 'feedings'), where('type', '==', 'breast'), where('endTime', '==', null));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
+}
+
+function renderBreastTimerDisplay() {
+  if (!openFeedingStartedAt) {
+    breastTimerDisplay.textContent = '00:00:00';
+    breastTimerSublabel.textContent = 'Bereit zum Start';
+    breastTimerToggleBtn.textContent = 'Start';
+    breastTimerToggleBtn.style.background = 'var(--accent-strong)';
+    return;
+  }
+  const elapsed = Math.floor((Date.now() - openFeedingStartedAt) / 1000);
+  const hh = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+  breastTimerDisplay.textContent = hh + ':' + mm + ':' + ss;
+  breastTimerSublabel.textContent = 'Stillt seit ' + formatTime(new Date(openFeedingStartedAt));
+  breastTimerToggleBtn.textContent = 'Stop';
+  breastTimerToggleBtn.style.background = 'var(--stop)';
+}
+
+async function syncFeedingState() {
+  const open = await findOpenFeeding();
+  if (open) {
+    openFeedingDocId = open.id;
+    openFeedingStartedAt = new Date(open.startTime).getTime();
+    if (!feedingTimerInterval) feedingTimerInterval = setInterval(renderBreastTimerDisplay, 1000);
+  } else {
+    if (feedingTimerInterval) { clearInterval(feedingTimerInterval); feedingTimerInterval = null; }
+    openFeedingDocId = null;
+    openFeedingStartedAt = null;
+  }
+  renderBreastTimerDisplay();
+  return open;
+}
+
+async function resumeOpenFeedingIfAny() {
+  const open = await syncFeedingState();
+  if (open) {
+    setFeedType('breast');
+    setBreastMode('timer');
+    showScreen('stillen');
+  }
+}
+
+breastTimerRefreshBtn.addEventListener('click', async () => {
+  breastTimerRefreshBtn.disabled = true;
+  try {
+    await syncFeedingState();
+  } catch (error) {
+    breastTimerSublabel.textContent = 'Aktualisieren fehlgeschlagen';
+  }
+  breastTimerRefreshBtn.disabled = false;
+});
+
+breastTimerToggleBtn.addEventListener('click', async () => {
+  if (!currentUser) return;
+  breastTimerToggleBtn.disabled = true;
+  try {
+    if (!openFeedingDocId) {
+      const startedAt = new Date();
+      const ref = await addDoc(collection(db, 'feedings'), {
+        type: 'breast',
+        amount: null,
+        minutes: null,
+        durationMinutes: null,
+        date: isoDate(startedAt),
+        time: formatTime(startedAt),
+        startTime: startedAt.toISOString(),
+        endTime: null,
+        source: 'timer',
+        createdBy: currentUser.email,
+        createdAt: serverTimestamp()
+      });
+      openFeedingDocId = ref.id;
+      openFeedingStartedAt = startedAt.getTime();
+      feedingTimerInterval = setInterval(renderBreastTimerDisplay, 1000);
+      renderBreastTimerDisplay();
+    } else {
+      const open = await findOpenFeeding();
+      const targetId = open ? open.id : openFeedingDocId;
+      const startedAt = open ? new Date(open.startTime) : new Date(openFeedingStartedAt);
+      const endedAt = new Date();
+      const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
+      await updateDoc(doc(db, 'feedings', targetId), {
+        endTime: endedAt.toISOString(),
+        durationMinutes,
+        minutes: durationMinutes
+      });
+      clearInterval(feedingTimerInterval);
+      feedingTimerInterval = null;
+      openFeedingDocId = null;
+      openFeedingStartedAt = null;
+      renderBreastTimerDisplay();
+      loadStillenEntries(true);
+    }
+  } catch (error) {
+    breastTimerSublabel.textContent = 'Fehler: ' + error.message;
+  }
+  breastTimerToggleBtn.disabled = false;
+});
+
 // --- Stillen: Historie (bearbeiten/löschen), selbes Muster wie Windeln ---
-let editingFeedingId = null;
 let stillenListScrollTop = 0;
 let stillenJustUpdatedId = null;
 const stillenSubtitleEl = document.getElementById('stillen-subtitle');
@@ -1140,14 +1442,24 @@ let stillenEntriesLastDayKey = null;
 function resetStillenForm() {
   setFeedType('bottle');
   amountInput.value = 120;
-  minutesInput.value = 10;
   buildChips(amountChipsEl, [60, 90, 120, 150, 180, 210], 'ml', amountInput);
-  buildChips(minuteChipsEl, [5, 10, 15, 20, 25, 30], 'min', minutesInput);
   stillenDateInput.value = isoDate(new Date());
   stillenTimeInput.value = formatTime(new Date());
   stillenDateInput.dispatchEvent(new Event('change'));
+
+  setBreastMode('manual');
+  breastDateInput.value = isoDate(new Date());
+  const now = new Date();
+  const todayMidnight = new Date(now); todayMidnight.setHours(0, 0, 0, 0);
+  breastStartInput.value = formatTime(new Date(Math.max(todayMidnight.getTime(), now.getTime() - 15 * 60000)));
+  breastEndInput.value = formatTime(now);
+  breastDateInput.dispatchEvent(new Event('change'));
+  renderBreastDuration();
 }
 
+// Legacy-Einträge (nur `time`+`minutes`) sowie Timer-Einträge (ISO-Zeitstempel
+// in startTime/endTime) müssen beim Bearbeiten genauso sauber vorbefüllt werden
+// wie neue manuelle Einträge (bloße "HH:MM"-Strings) — daher die Fallunterscheidung.
 function enterStillenEdit(entry) {
   stillenListScrollTop = stillenScrollEl.scrollTop;
   editingFeedingId = entry.id;
@@ -1155,14 +1467,31 @@ function enterStillenEdit(entry) {
   if (entry.type === 'bottle') {
     amountInput.value = entry.amount || 120;
     buildChips(amountChipsEl, [60, 90, 120, 150, 180, 210], 'ml', amountInput);
+    const entryTs = entryBusinessTimestamp(entry);
+    stillenDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
+    stillenTimeInput.value = entry.time || formatTime(new Date());
+    stillenDateInput.dispatchEvent(new Event('change'));
   } else {
-    minutesInput.value = entry.minutes || 10;
-    buildChips(minuteChipsEl, [5, 10, 15, 20, 25, 30], 'min', minutesInput);
+    const entryTs = entryBusinessTimestamp(entry);
+    breastDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
+    let startVal, endVal;
+    if (entry.startTime && /^\d{2}:\d{2}$/.test(entry.startTime)) {
+      startVal = entry.startTime;
+      endVal = entry.endTime && /^\d{2}:\d{2}$/.test(entry.endTime) ? entry.endTime : formatTime(new Date());
+    } else if (entry.startTime) {
+      startVal = formatTime(new Date(entry.startTime));
+      endVal = entry.endTime ? formatTime(new Date(entry.endTime)) : formatTime(new Date());
+    } else {
+      startVal = entry.time || formatTime(new Date());
+      const startMin = parseMinutes(startVal);
+      const endMin = (startMin + (entry.minutes || 0)) % 1440;
+      endVal = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+    }
+    breastStartInput.value = startVal;
+    breastEndInput.value = endVal;
+    breastDateInput.dispatchEvent(new Event('change'));
+    renderBreastDuration();
   }
-  const entryTs = entryBusinessTimestamp(entry);
-  stillenDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
-  stillenTimeInput.value = entry.time || formatTime(new Date());
-  stillenDateInput.dispatchEvent(new Event('change'));
 
   stillenSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
@@ -1187,15 +1516,38 @@ function exitStillenEdit(restoreScroll) {
 stillenCancelEditBtn.addEventListener('click', () => exitStillenEdit(true));
 
 stillenUpdateBtn.addEventListener('click', async () => {
-  if (!currentUser || !stillenTimeIsValid() || !editingFeedingId) return;
+  if (!currentUser || !editingFeedingId) return;
   const updatedId = editingFeedingId;
-  const entry = {
-    type: feedType,
-    amount: feedType === 'bottle' ? Number(amountInput.value) : null,
-    minutes: feedType === 'breast' ? Number(minutesInput.value) : null,
-    date: stillenDateInput.value,
-    time: stillenTimeInput.value
-  };
+  let entry;
+  if (feedType === 'bottle') {
+    if (!stillenTimeIsValid()) return;
+    entry = {
+      type: 'bottle',
+      amount: Number(amountInput.value),
+      minutes: null,
+      durationMinutes: null,
+      date: stillenDateInput.value,
+      time: stillenTimeInput.value,
+      startTime: null,
+      endTime: null,
+      source: null
+    };
+  } else {
+    if (!breastTimeIsValid()) return;
+    const minutes = renderBreastDuration();
+    if (minutes <= 0) return;
+    entry = {
+      type: 'breast',
+      amount: null,
+      minutes,
+      durationMinutes: minutes,
+      date: breastDateInput.value,
+      time: breastStartInput.value,
+      startTime: breastStartInput.value,
+      endTime: breastEndInput.value,
+      source: 'manual'
+    };
+  }
   stillenUpdateBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'feedings', updatedId), entry);
@@ -1218,6 +1570,7 @@ stillenUpdateBtn.addEventListener('click', async () => {
 
 function stillenEntryRow(entry) {
   const ts = entryBusinessTimestamp(entry);
+  const isOpenFeeding = entry.type === 'breast' && entry.endTime === null;
   const row = document.createElement('div');
   row.dataset.entryId = entry.id;
   row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border);';
@@ -1233,7 +1586,7 @@ function stillenEntryRow(entry) {
   row.appendChild(typeBadge);
 
   const detail = document.createElement('span');
-  detail.textContent = entry.type === 'bottle' ? (entry.amount || 0) + ' ml' : (entry.minutes || 0) + ' Min';
+  detail.textContent = entry.type === 'bottle' ? (entry.amount || 0) + ' ml' : isOpenFeeding ? 'Läuft…' : (entry.minutes || 0) + ' Min';
   detail.style.cssText = 'font-size:12.5px; color:var(--text-muted); flex-shrink:0;';
   row.appendChild(detail);
 
@@ -1249,12 +1602,16 @@ function stillenEntryRow(entry) {
     return row;
   }
 
-  const editBtn = document.createElement('button');
-  editBtn.setAttribute('aria-label', 'Bearbeiten');
-  editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
-  editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-  editBtn.addEventListener('click', () => enterStillenEdit(entry));
-  row.appendChild(editBtn);
+  // Ein laufender Brust-Timer lässt sich nicht "bearbeiten" (kein Ende, keine
+  // Dauer) — nur löschen, falls versehentlich gestartet.
+  if (!isOpenFeeding) {
+    const editBtn = document.createElement('button');
+    editBtn.setAttribute('aria-label', 'Bearbeiten');
+    editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
+    editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    editBtn.addEventListener('click', () => enterStillenEdit(entry));
+    row.appendChild(editBtn);
+  }
 
   const delBtn = document.createElement('button');
   delBtn.setAttribute('aria-label', 'Löschen');
@@ -2151,10 +2508,14 @@ function entryIsToday(doc, now) {
 // would make the backdated doc look "most recent" by save time. Pull a small
 // recent batch and re-sort by actual business timestamp instead of trusting
 // Firestore's createdAt order directly.
-async function getMostRecentByBusinessTime(name) {
-  const snap = await getDocs(query(collection(db, name), orderBy('createdAt', 'desc'), limit(5)));
+// `predicate`, when given, filters out docs that shouldn't count as "the most
+// recent entry" yet — e.g. a still-running Brust-Timer (no duration until stopped).
+async function getMostRecentByBusinessTime(name, predicate) {
+  const snap = await getDocs(query(collection(db, name), orderBy('createdAt', 'desc'), limit(8)));
   if (snap.empty) return null;
-  const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  let docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  if (predicate) docs = docs.filter(predicate);
+  if (docs.length === 0) return null;
   docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));
   return docs[0];
 }
@@ -2173,8 +2534,8 @@ async function loadOverview() {
 
   // Stillen
   try {
-    const [lastFeeding, todayFeedingsRaw] = await Promise.all([getMostRecentByBusinessTime('feedings'), getTodayDocs('feedings')]);
-    const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now));
+    const [lastFeeding, todayFeedingsRaw] = await Promise.all([getMostRecentByBusinessTime('feedings', stillenIsFinished), getTodayDocs('feedings')]);
+    const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now) && stillenIsFinished(f));
     if (lastFeeding && entryBusinessTimestamp(lastFeeding)) {
       document.getElementById('stillen-ago').textContent = timeAgo(entryBusinessTimestamp(lastFeeding));
       document.getElementById('stillen-detail').textContent = lastFeeding.type === 'bottle'
@@ -2485,9 +2846,16 @@ function findAnalyseOutlierDay(perDay, valueFn) {
 
 function outlierDayLabel(day) { return day.isToday ? analyseProseTodayLabel : day.fullLabel; }
 
+// Ein noch laufender Brust-Timer (endTime === null) zählt erst als Eintrag,
+// sobald er gestoppt wurde — sonst würde ein offener Timer die Anzahl/Summe
+// verfälschen, obwohl seine Dauer noch gar nicht feststeht.
+function stillenIsFinished(f) {
+  return !(f.type === 'breast' && f.endTime === null);
+}
+
 function computeStillenAnalysis(days, feedMap) {
   const perDay = days.map((d, i) => {
-    const docs = feedMap[i];
+    const docs = feedMap[i].filter(stillenIsFinished);
     const bottle = docs.filter((f) => f.type === 'bottle');
     const breast = docs.filter((f) => f.type === 'breast');
     return {
@@ -2503,7 +2871,7 @@ function computeStillenAnalysis(days, feedMap) {
   const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
   const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
 
-  const allTimestamps = feedMap.flat().map(entryBusinessTimestamp).filter(Boolean).sort((a, b) => a - b);
+  const allTimestamps = feedMap.flat().filter(stillenIsFinished).map(entryBusinessTimestamp).filter(Boolean).sort((a, b) => a - b);
   let avgIntervalH = null;
   if (allTimestamps.length > 1) {
     const gaps = [];

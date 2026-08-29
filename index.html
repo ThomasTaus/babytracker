@@ -1291,10 +1291,18 @@ windelnUpdateBtn.addEventListener('click', async () => {
   windelnUpdateBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'diaperChanges', updatedId), entry);
-    exitWindelnEdit(true);
+    // loadWindelnEntries clears the list before refilling it, which resets
+    // scrollTop to 0 in the meantime — restore it only after each (re)load
+    // has actually repopulated the list, not right when the view swaps back.
+    exitWindelnEdit(false);
     windelnJustUpdatedId = updatedId;
     await loadWindelnEntries(true);
-    setTimeout(() => { windelnJustUpdatedId = null; loadWindelnEntries(true); }, 1800);
+    windelnScrollEl.scrollTop = windelnListScrollTop;
+    setTimeout(async () => {
+      windelnJustUpdatedId = null;
+      await loadWindelnEntries(true);
+      windelnScrollEl.scrollTop = windelnListScrollTop;
+    }, 1800);
   } catch (error) {
     windelnUpdateBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { windelnUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);

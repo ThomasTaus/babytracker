@@ -2654,10 +2654,21 @@ function schlafenEndTimeLabel(entry) {
   return entry.source === 'timer' ? formatTime(new Date(entry.endTime)) : entry.endTime;
 }
 
+// "2h 15min" statt "2:15" — die Historie-Zeile zeigt Startzeit, Endzeit und
+// Dauer nebeneinander; eine Dauer im selben Std:Min-Format wie eine Uhrzeit
+// (minutesToHHMM, das die Analyse für Durchschnitts-Bettzeiten braucht und
+// deshalb nicht angetastet wird) liest sich dort leicht wie eine dritte
+// Uhrzeit statt einer Zeitspanne.
+function formatSchlafenDuration(totalMin) {
+  const mins = Math.max(0, Math.round(totalMin));
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h > 0 ? (h + 'h ' + m + 'min') : (m + 'min');
+}
+
 function schlafenDurationLabel(entry) {
-  if (entry._type === 'night') return minutesToHHMM(nightDurationMinutes(entry));
+  if (entry._type === 'night') return formatSchlafenDuration(nightDurationMinutes(entry));
   if (entry.durationMinutes == null) return null;
-  return minutesToHHMM(entry.durationMinutes);
+  return formatSchlafenDuration(entry.durationMinutes);
 }
 
 async function fetchSchlafenChunk(name) {

@@ -2658,12 +2658,18 @@ function schlafenEndTimeLabel(entry) {
 // und Dauer nebeneinander; eine Dauer im selben Std:Min-Format wie eine
 // Uhrzeit (minutesToHHMM, das die Analyse für Durchschnitts-Bettzeiten
 // braucht und deshalb nicht angetastet wird) liest sich dort leicht wie
-// eine dritte Uhrzeit statt einer Zeitspanne. Reuses formatDuration() —
-// dieselbe Formatierung wie in der Heute-Übersicht.
+// eine dritte Uhrzeit statt einer Zeitspanne. Fast identisch zu
+// formatDuration() (Heute-Übersicht), aber "0 Min" bei vollen Stunden
+// weglassen ("2 Std" statt "2 Std 0 Min") — außer die Dauer ist unter
+// einer Stunde, dann bleibt "0 Min" stehen, sonst stünde gar keine Dauer
+// da. Eigene Funktion statt formatDuration() anzupassen, das diese
+// Kürzung an seinen anderen Stellen (Heute-Zeitverlauf) nicht haben soll.
 function schlafenDurationLabel(entry) {
-  if (entry._type === 'night') return formatDuration(nightDurationMinutes(entry));
-  if (entry.durationMinutes == null) return null;
-  return formatDuration(entry.durationMinutes);
+  const mins = entry._type === 'night' ? nightDurationMinutes(entry) : entry.durationMinutes;
+  if (mins == null) return null;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (h === 0) return m + ' Min';
+  return m > 0 ? (h + ' Std ' + m + ' Min') : (h + ' Std');
 }
 
 async function fetchSchlafenChunk(name) {

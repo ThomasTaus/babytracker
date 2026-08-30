@@ -319,14 +319,20 @@
       </div>
 
       <div id="bottle-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 18px;">
-        <div>
-          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Menge</label>
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px;">
-            <div style="display: flex; align-items: baseline; gap: 3px;">
-              <input id="amount-input" type="number" value="20" style="width: 34px; text-align: right; font-family: 'Work Sans', sans-serif; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0;">
-              <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">ml</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+            <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
+            <line x1="9" y1="12" x2="15" y2="12"/>
+          </svg>
+          <div style="min-width: 0; flex: 1;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Menge</label>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px;">
+              <div style="display: flex; align-items: baseline; gap: 3px;">
+                <input id="amount-input" type="number" value="20" style="width: 34px; text-align: right; font-family: 'Work Sans', sans-serif; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0;">
+                <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">ml</span>
+              </div>
+              <div id="amount-chips" style="display: flex; gap: 6px;"></div>
             </div>
-            <div id="amount-chips" style="display: flex; gap: 6px;"></div>
           </div>
         </div>
 

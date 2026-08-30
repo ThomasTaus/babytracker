@@ -2725,12 +2725,14 @@ function schlafenEntryRow(entry) {
     const dur = schlafenDurationLabel(entry);
     detail.textContent = (end || '--:--') + ' · ' + (dur || '–') + (entry._type === 'night' ? ' · ' + entry.wakeCount + 'x' : '');
   }
-  detail.style.cssText = 'font-size:12.5px; color:var(--text-muted); flex-shrink:0;';
+  // flex:1 + min-width:0 + Ellipsis statt flex-shrink:0 + separatem Spacer
+  // (wie bei Windeln/Stillen): dort ist der Detail-Text immer kurz und fix
+  // ("120 ml", "Klein"), hier kann er lang werden ("08:30 · 8 Std 40 Min ·
+  // 3x") und hätte sonst Stift/Mülleimer je nach Textlänge unterschiedlich
+  // weit nach rechts geschoben (auf Julias schmalem iPhone beobachtet) statt
+  // sie an fester Position zu halten.
+  detail.style.cssText = 'font-size:12.5px; color:var(--text-muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
   row.appendChild(detail);
-
-  const spacer = document.createElement('span');
-  spacer.style.flex = '1';
-  row.appendChild(spacer);
 
   if (entry.id === schlafenJustUpdatedId) {
     const badge = document.createElement('span');

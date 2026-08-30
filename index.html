@@ -2758,14 +2758,23 @@ function schlafenEntryRow(entry) {
   return row;
 }
 
+// Tagesgruppe muss von derselben Zeitbasis abgeleitet werden wie die
+// Sortierung (schlafenBusinessTimestamp, also die Startzeit) — nicht von
+// analyseBusinessDateKey (das Nächte über `nightEnd`, den Aufwach-Morgen,
+// gruppiert). Sonst landet eine Nacht mit Bettzeit am Vorabend im
+// nightEnd-Tag, aber mit einem Sortierwert vom Vortag — dort sortiert sie
+// dann fälschlich ganz nach unten statt (als spätester Eintrag des Abends,
+// an dem sie begann) nach oben. Gleiches Prinzip wie bei Windeln/Stillen,
+// die dayKey ebenfalls direkt aus dem Anzeige-Zeitstempel ableiten.
 function appendSchlafenEntries(docs) {
   const list = document.getElementById('schlafen-entries-list');
   const now = new Date();
   docs.forEach((entry) => {
-    const dayKey = analyseBusinessDateKey(entry);
+    const ts = schlafenBusinessTimestamp(entry);
+    const dayKey = ts ? isoDate(ts) : 'unbekannt';
     if (dayKey !== schlafenEntriesLastDayKey) {
       const header = document.createElement('div');
-      header.textContent = dayKey ? dayLabel(new Date(dayKey + 'T00:00:00'), now) : 'Unbekanntes Datum';
+      header.textContent = ts ? dayLabel(ts, now) : 'Unbekanntes Datum';
       header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;';
       list.appendChild(header);
       schlafenEntriesLastDayKey = dayKey;

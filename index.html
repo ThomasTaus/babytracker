@@ -356,6 +356,11 @@
           <button id="stillen-time-now" style="flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
         </div>
         <div id="stillen-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+        <button id="stillen-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+        <div id="stillen-bottle-edit-actions" style="display: none; gap: 10px;">
+          <button id="stillen-bottle-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+          <button id="stillen-bottle-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+        </div>
       </div>
 
       <div id="breast-panel" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 14px;">
@@ -410,6 +415,10 @@
             </button>
           </div>
           <button id="breast-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+          <div id="stillen-breast-edit-actions" style="display: none; gap: 10px;">
+            <button id="stillen-breast-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+            <button id="stillen-breast-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          </div>
         </div>
 
         <div id="breast-timer-panel" style="display: none; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0;">
@@ -430,14 +439,6 @@
           <div id="stillen-entries-list" style="display: flex; flex-direction: column;"></div>
           <button id="stillen-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
         </div>
-      </div>
-    </div>
-
-    <div id="stillen-bottombar" style="padding: 12px 24px 20px; background: var(--surface); border-top: 1px solid var(--border);">
-      <button id="stillen-save" style="width:100%; padding:16px; border:none; border-radius:16px; font-size:16px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong);">Eintrag speichern</button>
-      <div id="stillen-edit-actions" style="display: none; gap: 10px;">
-        <button id="stillen-update" style="flex: 1.7; padding:15px 10px; border:none; border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-        <button id="stillen-cancel-edit" style="flex: 1; padding:15px 10px; border:1px solid var(--border); border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
       </div>
     </div>
 
@@ -1113,7 +1114,9 @@ const stillenDateInput = document.getElementById('stillen-date');
 const stillenTimeInput = document.getElementById('stillen-time');
 const stillenTimeErrorEl = document.getElementById('stillen-time-error');
 const stillenSaveBtn = document.getElementById('stillen-save');
-const stillenBottombar = document.getElementById('stillen-bottombar');
+const stillenBottleEditActions = document.getElementById('stillen-bottle-edit-actions');
+const stillenBottleUpdateBtn = document.getElementById('stillen-bottle-update');
+const stillenBottleCancelEditBtn = document.getElementById('stillen-bottle-cancel-edit');
 
 // Brust: eigener Manuell/Timer-Umschalter, wie bei Schlafen → Tagsüber.
 const breastModeToggle = document.getElementById('breast-mode-toggle');
@@ -1129,6 +1132,9 @@ const breastDurDisplay = document.getElementById('breast-dur-display');
 const breastDurDecBtn = document.getElementById('breast-dur-dec');
 const breastDurIncBtn = document.getElementById('breast-dur-inc');
 const breastSaveBtn = document.getElementById('breast-save');
+const stillenBreastEditActions = document.getElementById('stillen-breast-edit-actions');
+const stillenBreastUpdateBtn = document.getElementById('stillen-breast-update');
+const stillenBreastCancelEditBtn = document.getElementById('stillen-breast-cancel-edit');
 const breastTimerDisplay = document.getElementById('breast-timer-display');
 const breastTimerSublabel = document.getElementById('breast-timer-sublabel');
 const breastTimerToggleBtn = document.getElementById('breast-timer-toggle-btn');
@@ -1161,21 +1167,28 @@ feedBreastManualBtn.addEventListener('click', () => setBreastMode('manual'));
 feedBreastTimerBtn.addEventListener('click', () => setBreastMode('timer'));
 
 // Beim Bearbeiten eines Brust-Eintrags gibt es keinen Manuell/Timer-Umschalter
-// und keinen eigenen Speichern-Button mehr — nur die Felder, gespeichert wird
-// wie bei Fläschchen über die feste Leiste unten.
+// und keinen eigenen Speichern-Button mehr — stattdessen Aktualisieren/Abbrechen,
+// direkt in der Brust-Karte (wie bei Windeln, keine feste Leiste unten).
 function refreshBreastPanelForEditState() {
   const editing = !!editingFeedingId;
   breastModeToggle.style.display = editing ? 'none' : 'flex';
   breastSaveBtn.style.display = editing ? 'none' : 'block';
+  stillenBreastEditActions.style.display = editing ? 'flex' : 'none';
   if (editing) setBreastMode('manual');
 }
 
-// Fläschchen behält Datum/Uhrzeit direkt in der Mengen-Karte + Speichern-Leiste
-// unten; Brust bringt beides in der eigenen Karte mit (Manuell/Timer) und
-// blendet die Leiste unten nur beim Bearbeiten wieder ein.
+// Fläschchen bringt Datum/Uhrzeit + Speichern- bzw. Aktualisieren/Abbrechen-
+// Buttons direkt in der Mengen-Karte mit — wie bei Windeln, keine feste
+// Leiste unten.
+function refreshBottlePanelForEditState() {
+  const editing = !!editingFeedingId;
+  stillenSaveBtn.style.display = editing ? 'none' : 'block';
+  stillenBottleEditActions.style.display = editing ? 'flex' : 'none';
+}
+
 function updateStillenChromeForState() {
   if (feedType !== 'bottle') stillenTimeErrorEl.style.display = 'none';
-  stillenBottombar.style.display = (editingFeedingId || feedType === 'bottle') ? 'block' : 'none';
+  refreshBottlePanelForEditState();
   refreshBreastPanelForEditState();
 }
 
@@ -1478,9 +1491,6 @@ let stillenListScrollTop = 0;
 let stillenJustUpdatedId = null;
 const stillenSubtitleEl = document.getElementById('stillen-subtitle');
 const stillenHistorieSection = document.getElementById('stillen-historie-section');
-const stillenEditActions = document.getElementById('stillen-edit-actions');
-const stillenUpdateBtn = document.getElementById('stillen-update');
-const stillenCancelEditBtn = document.getElementById('stillen-cancel-edit');
 const stillenTimeNowBtn = document.getElementById('stillen-time-now');
 const stillenScrollEl = screens.stillen.firstElementChild;
 const STILLEN_PAGE_SIZE = 15;
@@ -1547,8 +1557,6 @@ function enterStillenEdit(entry) {
     'Eintrag bearbeiten</span>';
   stillenHistorieSection.style.display = 'none';
   stillenTimeNowBtn.style.display = 'none';
-  stillenSaveBtn.style.display = 'none';
-  stillenEditActions.style.display = 'flex';
   stillenScrollEl.scrollTop = 0;
 }
 
@@ -1557,14 +1565,13 @@ function exitStillenEdit(restoreScroll) {
   stillenSubtitleEl.textContent = 'Eintrag hinzufügen';
   stillenHistorieSection.style.display = 'flex';
   stillenTimeNowBtn.style.display = '';
-  stillenSaveBtn.style.display = '';
-  stillenEditActions.style.display = 'none';
   resetStillenForm();
   if (restoreScroll) stillenScrollEl.scrollTop = stillenListScrollTop;
 }
-stillenCancelEditBtn.addEventListener('click', () => exitStillenEdit(true));
+stillenBottleCancelEditBtn.addEventListener('click', () => exitStillenEdit(true));
+stillenBreastCancelEditBtn.addEventListener('click', () => exitStillenEdit(true));
 
-stillenUpdateBtn.addEventListener('click', async () => {
+async function handleStillenUpdate(triggerBtn) {
   if (!currentUser || !editingFeedingId) return;
   const updatedId = editingFeedingId;
   let entry;
@@ -1597,7 +1604,7 @@ stillenUpdateBtn.addEventListener('click', async () => {
       source: 'manual'
     };
   }
-  stillenUpdateBtn.disabled = true;
+  triggerBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'feedings', updatedId), entry);
     exitStillenEdit(false);
@@ -1611,12 +1618,14 @@ stillenUpdateBtn.addEventListener('click', async () => {
       if (oldRow) oldRow.replaceWith(stillenEntryRow({ id: updatedId, ...entry }));
     }, 1800);
   } catch (error) {
-    stillenUpdateBtn.textContent = 'Fehler beim Speichern';
-    setTimeout(() => { stillenUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
+    triggerBtn.textContent = 'Fehler beim Speichern';
+    setTimeout(() => { triggerBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
   } finally {
-    stillenUpdateBtn.disabled = false;
+    triggerBtn.disabled = false;
   }
-});
+}
+stillenBottleUpdateBtn.addEventListener('click', () => handleStillenUpdate(stillenBottleUpdateBtn));
+stillenBreastUpdateBtn.addEventListener('click', () => handleStillenUpdate(stillenBreastUpdateBtn));
 
 function stillenEntryRow(entry) {
   const ts = entryBusinessTimestamp(entry);

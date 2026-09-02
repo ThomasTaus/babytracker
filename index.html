@@ -2213,12 +2213,16 @@ schlafenModeNightBtn.addEventListener('click', () => setSchlafenMode('night'));
 schlafenModeDayBtn.addEventListener('click', () => setSchlafenMode('day'));
 setSchlafenMode('night');
 
-// Vorauswahl beim Öffnen der Schlafen-Seite: "Nachts" hat immer einen
-// sinnvollen nächsten Schritt (Einschlafen, Vervollständigen oder ein Blick
-// auf die letzte Nacht), daher bleibt der Umschalter seit dem "Einschlafen"-
-// Button unten immer auf "Nachts" — anders als früher, wo bei bereits
-// erfasster letzter Nacht automatisch auf "Tagsüber" gesprungen wurde. Läuft
-// gerade ein Nap-Timer, hat das weiterhin Vorrang vor dieser Heuristik.
+// Vorauswahl beim Öffnen der Schlafen-Seite: "Tagsüber", wenn die letzte
+// Nacht schon vollständig erfasst ist und es noch nicht Abend ist (ab
+// 18 Uhr ist ohnehin kein Tagesschläfchen mehr zu erwarten) — sonst
+// "Nachts" (die letzte Nacht ist noch offen, oder es ist schon Abend/Nacht,
+// dann ist "Einschlafen"/Vervollständigen der wahrscheinlichere nächste
+// Eintrag). Läuft gerade ein Nap-Timer, hat das Vorrang vor dieser
+// Heuristik. Eigene, separate Abfrage von der "letzte Nacht vs. heute
+// Nacht"-Position innerhalb der Nachts-Karte (goToDefaultNightPosition,
+// dort mit 12 Uhr als Schwelle) — beide beantworten unterschiedliche
+// Fragen und dürfen unterschiedliche Uhrzeiten verwenden.
 async function decideSchlafenDefault() {
   if (openNapDocId) { setSchlafenMode('day'); return; }
   try {
@@ -2227,7 +2231,16 @@ async function decideSchlafenDefault() {
     openNightDocId = null;
     openNightData = null;
   }
-  setSchlafenMode('night');
+
+  let mode = 'night';
+  if (!openNightDocId) {
+    let lastNight = null;
+    try { lastNight = await findNightByEnd(isoDate(new Date())); } catch (error) { lastNight = null; }
+    const lastNightComplete = !!(lastNight && lastNight.wakeTime);
+    const hour = new Date().getHours();
+    if (lastNightComplete && hour < 18) mode = 'day';
+  }
+  setSchlafenMode(mode);
   await goToDefaultNightPosition();
 }
 

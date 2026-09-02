@@ -2466,6 +2466,15 @@ function updateNightView() {
   } else if (isTonightBlank) {
     nightStart = new Date(today);
     nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() + 1);
+  } else if (isComplete) {
+    // Zeigt die tatsächlich gespeicherten Werte des gefundenen Eintrags,
+    // nicht die aus nightOffset zurückgerechneten — die stimmen im
+    // Normalfall überein, aber falls ein Eintrag aus irgendeinem Grund
+    // einen abweichenden nightStart hat, macht das den Datensatz hier
+    // sichtbar statt ihn durch eine "schöngerechnete" Anzeige zu
+    // verschleiern (siehe Historie, die immer die echten Werte zeigt).
+    nightStart = new Date(entry.nightStart + 'T00:00:00');
+    nightEnd = new Date(entry.nightEnd + 'T00:00:00');
   } else {
     nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
     nightStart = new Date(nightEnd); nightStart.setDate(nightStart.getDate() - 1);
@@ -2702,7 +2711,7 @@ nightSaveBtn.addEventListener('click', async () => {
   const startOnly = isTonight && !nightWaketimeInput.value;
   const entry = startOnly
     ? {
-        nightStart: isoDate(new Date()),
+        nightStart: isoDate(today),
         nightEnd: null,
         bedtime: nightBedtimeInput.value,
         wakeTime: null,

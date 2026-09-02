@@ -2228,11 +2228,7 @@ async function decideSchlafenDefault() {
     openNightData = null;
   }
   setSchlafenMode('night');
-  if (openNightDocId) {
-    nightOffset = 0;
-    nightUnlocked = false;
-  }
-  await loadNightPosition();
+  await goToDefaultNightPosition();
 }
 
 // Bearbeiten öffnet ein eigenes "Fenster", wie bei Windeln/Stillen: Historie
@@ -2257,6 +2253,7 @@ function enterSchlafenEdit(entry) {
     const nightEndDate = new Date(entry.nightEnd + 'T00:00:00');
     nightOffset = Math.max(0, Math.round((todayStartDate() - nightEndDate) / 86400000));
     nightUnlocked = false;
+    nightShowTonight = false;
     wakeCount = entry.wakeCount || 0;
     nightBedtimeInput.value = entry.bedtime;
     nightWaketimeInput.value = entry.wakeTime;
@@ -2331,6 +2328,15 @@ let wakeCount = 1;
 // und den Text/die Aktion des einzigen Speichern-Buttons unten.
 let viewedNightEntry = null;
 let nightUnlocked = false;
+// nightOffset 0 ist strukturell IMMER "die Nacht, die mit heute endet" (die
+// letzte Nacht) — das bleibt für ältere Nächte (nightOffset > 0) und den
+// Historie-Bearbeiten-Flow unverändert. "Heute Nacht" (die noch gar nicht
+// begonnen hat, endet also erst morgen) ist keine eigene Zahl, sondern
+// dieses Flag bei nightOffset 0: false = letzte Nacht anzeigen (klassisch,
+// nie "Einschlafen" — die Bettzeit liegt dort immer schon in der
+// Vergangenheit), true = heutige Nacht anzeigen ("Einschlafen" möglich).
+// Nur relevant, während editingNightId leer ist.
+let nightShowTonight = false;
 
 // --- Offene Nacht: robust gegen Schließen der App, Zustand lebt in
 // Firestore (gleiches Prinzip wie der Nap-Timer via openNapDocId/findOpenNap
@@ -2361,21 +2367,27 @@ async function syncOpenNight() {
 
 // Für exitSchlafenEdit (siehe Schlafen-Historie weiter unten) — setzt nur
 // die Navigationsposition zurück; welche Werte in den Feldern landen,
-// entscheidet loadNightPosition() selbst anhand dessen, was für diese Position
-// in Firestore existiert (offen / vollständig / noch nichts).
+// entscheidet goToDefaultNightPosition() selbst anhand dessen, was für die
+// letzte Nacht/heutige Nacht in Firestore existiert.
 function resetNightForm() {
-  nightOffset = 0;
-  nightUnlocked = false;
-  loadNightPosition();
+  goToDefaultNightPosition();
 }
 
-// Bedtime always falls on nightStart (at least one day before nightEnd), so
-// it's never in the future. Waketime falls on nightEnd, which only equals
-// today when viewing "Letzte Nacht" (nightOffset 0) — that's the only case
-// where it needs a not-in-the-future clamp; any older night is already
-// entirely in the past regardless of the clock time chosen.
+// Ob die Aufwachzeit gegen "nicht in der Zukunft" geklemmt werden muss: gilt
+// für die letzte Nacht (nightEnd = heute) und für einen offenen Eintrag
+// (dessen nightEnd beim Abschließen ebenfalls auf heute gesetzt wird) — bei
+// "Heute Nacht" (endet erst morgen) ist jede Ende-Uhrzeit unweigerlich
+// "zukünftig" relativ zu jetzt, eine Prüfung ergäbe dort keinen Sinn.
+// Während der Historie-Bearbeitung (editingNightId) gilt weiterhin exakt die
+// ursprüngliche Regel (nightOffset 0 = die bearbeitete Nacht endet heute) —
+// viewedNightEntry ist in dem Modus nicht aktuell und darf nicht mitzählen.
+function nightWaketimeNeedsFutureClamp() {
+  if (editingNightId) return nightOffset === 0;
+  if (viewedNightEntry && viewedNightEntry._open) return true;
+  return nightOffset === 0 && !nightShowTonight;
+}
 function clampNightWaketime() {
-  if (nightOffset === 0) {
+  if (nightWaketimeNeedsFutureClamp()) {
     nightWaketimeInput.max = formatTime(new Date());
     if (nightWaketimeInput.value && nightWaketimeInput.value > nightWaketimeInput.max) {
       nightWaketimeInput.value = nightWaketimeInput.max;
@@ -2386,7 +2398,7 @@ function clampNightWaketime() {
   nightTimeError.style.display = 'none';
 }
 function nightTimeIsValid() {
-  if (nightOffset !== 0 || !nightWaketimeInput.value) return true;
+  if (!nightWaketimeNeedsFutureClamp() || !nightWaketimeInput.value) return true;
   const future = timeOnDate(new Date(), nightWaketimeInput.value).getTime() > Date.now();
   nightTimeError.style.display = future ? 'block' : 'none';
   return !future;
@@ -2403,7 +2415,7 @@ nightWaketimeInput.addEventListener('input', () => {
     const needsEnd = !nightWaketimeInput.value;
     nightSaveBtn.style.opacity = needsEnd ? '0.5' : '1';
     nightSaveBtn.style.cursor = needsEnd ? 'not-allowed' : 'pointer';
-  } else if (!viewedNightEntry && nightOffset === 0) {
+  } else if (!viewedNightEntry && nightOffset === 0 && nightShowTonight) {
     nightSaveBtn.textContent = nightWaketimeInput.value ? 'Eintrag speichern' : 'Einschlafen';
   }
 });
@@ -2411,25 +2423,25 @@ nightWaketimeInput.addEventListener('input', () => {
 // updateNightView() zeichnet Label/Badge/Sperre/Button-Text rein aus dem
 // bereits bekannten viewedNightEntry + den aktuellen Feldwerten — ohne
 // Firestore-Zugriff. loadNightPosition() macht zusätzlich davor den Lookup
-// für die aktuelle ◀/▶-Position und befüllt die Felder daraus. Getrennt,
-// damit z.B. der Aufwach-Stepper (nur Wertänderung) nicht bei jedem Klick
-// die gerade gesetzten Feldwerte mit einem frischen Firestore-Lookup
+// für die aktuelle Position und befüllt die Felder daraus. Getrennt, damit
+// z.B. der Aufwach-Stepper (nur Wertänderung) nicht bei jedem Klick die
+// gerade gesetzten Feldwerte mit einem frischen Firestore-Lookup
 // überschreibt.
 function updateNightView() {
   const today = new Date();
-  const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
-  const isCurrent = nightOffset === 0;
+  const isLastNightSlot = nightOffset === 0 && !nightShowTonight;
 
   // Während der Historie-Bearbeitung (enterSchlafenEdit) sind die Felder
   // schon mit den Werten des zu bearbeitenden Eintrags belegt — hier nur
   // Label/Navigator nachziehen, kein Umschalten des Speichern-Buttons (das
   // übernehmen night-update/-cancel-edit).
   if (editingNightId) {
+    const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
     const nightStart = new Date(nightEnd); nightStart.setDate(nightStart.getDate() - 1);
     nightLabelEl.textContent = fmtDayDate(nightStart) + ' → ' + fmtDayDate(nightEnd);
-    nightSublabelEl.textContent = isCurrent ? 'Letzte Nacht' : '';
-    nightNextBtn.style.opacity = isCurrent ? '0.4' : '1';
-    nightNextBtn.style.cursor = isCurrent ? 'default' : 'pointer';
+    nightSublabelEl.textContent = isLastNightSlot ? 'Letzte Nacht' : '';
+    nightNextBtn.style.opacity = isLastNightSlot ? '0.4' : '1';
+    nightNextBtn.style.cursor = isLastNightSlot ? 'default' : 'pointer';
     nightRunningBadge.style.display = 'none';
     nightLockedRow.style.display = 'none';
     wakeCountEl.textContent = wakeCount;
@@ -2441,12 +2453,30 @@ function updateNightView() {
   const isOpen = !!(entry && entry._open);
   const isComplete = !!(entry && !entry._open);
   const locked = isComplete && !nightUnlocked;
+  // "Heute Nacht": nightOffset 0 + der Umschalter zeigt vorwärts (weil
+  // offen, oder weil noch nichts erfasst ist) — die einzige Position, an
+  // der "Einschlafen" je Sinn ergibt.
+  const isTonightSlot = nightOffset === 0 && nightShowTonight;
+  const isTonightBlank = isTonightSlot && !isOpen;
 
-  const nightStart = isOpen ? new Date(entry.nightStart + 'T00:00:00') : (() => { const d = new Date(nightEnd); d.setDate(d.getDate() - 1); return d; })();
+  let nightStart, nightEnd;
+  if (isOpen) {
+    nightStart = new Date(entry.nightStart + 'T00:00:00');
+    nightEnd = null;
+  } else if (isTonightBlank) {
+    nightStart = new Date(today);
+    nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() + 1);
+  } else {
+    nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
+    nightStart = new Date(nightEnd); nightStart.setDate(nightStart.getDate() - 1);
+  }
   nightLabelEl.textContent = isOpen ? (fmtDayDate(nightStart) + ' → …') : (fmtDayDate(nightStart) + ' → ' + fmtDayDate(nightEnd));
-  nightSublabelEl.textContent = isCurrent ? 'Letzte Nacht' : '';
-  nightNextBtn.style.opacity = isCurrent ? '0.4' : '1';
-  nightNextBtn.style.cursor = isCurrent ? 'default' : 'pointer';
+  nightSublabelEl.textContent = isOpen ? '' : (isTonightBlank ? 'Heute Nacht' : (isLastNightSlot ? 'Letzte Nacht' : ''));
+  // "Weiter" ist nur gesperrt, wenn wir schon an der neuesten Position sind
+  // (heutige Nacht, offen oder noch leer) — von der letzten Nacht (oder
+  // älter) aus geht es immer noch einen Schritt weiter nach vorne.
+  nightNextBtn.style.opacity = isTonightSlot ? '0.4' : '1';
+  nightNextBtn.style.cursor = isTonightSlot ? 'default' : 'pointer';
 
   nightRunningBadge.style.display = isOpen ? 'flex' : 'none';
   if (isOpen) nightRunningBadgeText.textContent = 'läuft seit ' + entry.bedtime;
@@ -2476,7 +2506,10 @@ function updateNightView() {
       const needsEnd = !nightWaketimeInput.value;
       nightSaveBtn.style.opacity = needsEnd ? '0.5' : '1';
       nightSaveBtn.style.cursor = needsEnd ? 'not-allowed' : 'pointer';
-    } else if (isCurrent) {
+    } else if (isTonightBlank) {
+      // Hier und nur hier ergibt "Einschlafen" Sinn — jede andere Position
+      // (auch die leere letzte Nacht) liegt per Definition schon in der
+      // Vergangenheit, siehe else-Zweig.
       nightSaveBtn.textContent = nightWaketimeInput.value ? 'Eintrag speichern' : 'Einschlafen';
       nightSaveBtn.style.opacity = '1';
       nightSaveBtn.style.cursor = 'pointer';
@@ -2488,26 +2521,42 @@ function updateNightView() {
   }
 }
 
-// Zeigt genau die Nacht, auf die der ◀/▶-Navigator gerade steht — und zwar
-// mit ihrem echten Firestore-Zustand (noch nichts erfasst / offen, weil per
+// Zeigt genau die Nacht, auf die der Navigator gerade steht — und zwar mit
+// ihrem echten Firestore-Zustand (noch nichts erfasst / offen, weil per
 // "Einschlafen" gestartet / bereits vollständig), nicht bloß mit lokal
-// berechneten Default-Werten wie früher. Wird bei jeder Positionsänderung
-// aufgerufen (◀/▶, Tab-Wechsel, nach dem Speichern), nicht bei bloßen
-// Wertänderungen innerhalb derselben Position (siehe updateNightView).
+// berechneten Default-Werten. Wird bei jeder Positionsänderung aufgerufen
+// (◀/▶, nach dem Speichern), nicht bei bloßen Wertänderungen innerhalb
+// derselben Position (siehe updateNightView). "Heute Nacht" wird nie
+// nachgeschlagen — dort kann per Konstruktion noch kein Eintrag existieren,
+// außer dem ohnehin separat behandelten offenen (siehe unten).
 async function loadNightPosition() {
+  if (editingNightId) { updateNightView(); return; }
+
+  if (nightOffset === 0 && nightShowTonight) {
+    if (openNightDocId) {
+      viewedNightEntry = { id: openNightDocId, ...openNightData, _open: true };
+      nightBedtimeInput.value = viewedNightEntry.bedtime;
+      nightWaketimeInput.value = '';
+      wakeCount = viewedNightEntry.wakeCount || 0;
+    } else {
+      viewedNightEntry = null;
+      nightUnlocked = false;
+      nightBedtimeInput.value = formatTime(new Date());
+      nightWaketimeInput.value = '';
+      wakeCount = 1;
+    }
+    updateNightView();
+    return;
+  }
+
+  // nightOffset 0 (ohne nightShowTonight) = letzte Nacht, sonst weiter
+  // zurückliegende Nächte — unverändert wie vor "Heute Nacht".
   const today = new Date();
   const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
   const nightEndStr = isoDate(nightEnd);
-  const isCurrent = nightOffset === 0;
-
-  if (editingNightId) { updateNightView(); return; }
 
   let entry = null;
-  if (isCurrent && openNightDocId) {
-    entry = { id: openNightDocId, ...openNightData, _open: true };
-  } else {
-    try { entry = await findNightByEnd(nightEndStr); } catch (error) { entry = null; }
-  }
+  try { entry = await findNightByEnd(nightEndStr); } catch (error) { entry = null; }
   viewedNightEntry = entry;
   if (!entry) nightUnlocked = false;
 
@@ -2516,20 +2565,69 @@ async function loadNightPosition() {
     nightWaketimeInput.value = entry.wakeTime || '';
     wakeCount = entry.wakeCount || 0;
   } else {
-    nightBedtimeInput.value = isCurrent ? formatTime(new Date()) : '19:30';
+    nightBedtimeInput.value = '19:30';
     nightWaketimeInput.value = '';
     wakeCount = 1;
   }
 
   updateNightView();
 }
-nightPrevBtn.addEventListener('click', () => { nightOffset += 1; nightUnlocked = false; loadNightPosition(); });
-nightNextBtn.addEventListener('click', () => { if (nightOffset > 0) { nightOffset -= 1; nightUnlocked = false; loadNightPosition(); } });
+
+// Bestimmt beim (Wieder-)Öffnen der Nachts-Karte automatisch, ob "letzte
+// Nacht" (noch etwas zu tun) oder "heute Nacht" (letzte Nacht bereits
+// erfasst, oder es ist schon Nachmittag/Abend) die sinnvollere
+// Startposition ist — siehe Konversation: fertig erfasste letzte Nacht soll
+// nicht blockieren, und "Einschlafen" soll nicht mehr auftauchen, wenn es
+// eigentlich schon der nächste Morgen ist (dann klassisch nachtragen).
+async function goToDefaultNightPosition() {
+  nightOffset = 0;
+  nightUnlocked = false;
+  if (openNightDocId) {
+    nightShowTonight = true;
+    await loadNightPosition();
+    return;
+  }
+  let lastNight = null;
+  try { lastNight = await findNightByEnd(isoDate(new Date())); } catch (error) { lastNight = null; }
+  const lastNightComplete = !!(lastNight && lastNight.wakeTime);
+  const hour = new Date().getHours();
+  nightShowTonight = lastNightComplete || hour >= 12;
+  if (nightShowTonight) {
+    viewedNightEntry = null;
+    nightBedtimeInput.value = formatTime(new Date());
+    nightWaketimeInput.value = '';
+    wakeCount = 1;
+  } else {
+    viewedNightEntry = lastNight;
+    if (lastNight) {
+      nightBedtimeInput.value = lastNight.bedtime;
+      nightWaketimeInput.value = lastNight.wakeTime || '';
+      wakeCount = lastNight.wakeCount || 0;
+    } else {
+      nightBedtimeInput.value = '19:30';
+      nightWaketimeInput.value = '';
+      wakeCount = 1;
+    }
+  }
+  updateNightView();
+}
+nightPrevBtn.addEventListener('click', () => {
+  if (nightOffset === 0 && nightShowTonight) { nightShowTonight = false; } else { nightOffset += 1; }
+  nightUnlocked = false;
+  loadNightPosition();
+});
+nightNextBtn.addEventListener('click', () => {
+  if (nightOffset > 0) { nightOffset -= 1; }
+  else if (!nightShowTonight) { nightShowTonight = true; }
+  else { return; }
+  nightUnlocked = false;
+  loadNightPosition();
+});
 wakeDecBtn.addEventListener('click', () => { if (nightWaketimeInput.disabled) return; wakeCount = Math.max(0, wakeCount - 1); updateNightView(); });
 wakeIncBtn.addEventListener('click', () => { if (nightWaketimeInput.disabled) return; wakeCount += 1; updateNightView(); });
 nightPencilBtn.addEventListener('click', () => { nightUnlocked = true; updateNightView(); });
 nightUnlockCancelBtn.addEventListener('click', () => { nightUnlocked = false; loadNightPosition(); });
-loadNightPosition();
+goToDefaultNightPosition();
 
 // Einziger Speichern-Button für die Nachts-Karte: was er tut, hängt allein
 // davon ab, was loadNightPosition() für die aktuelle Navigator-Position
@@ -2585,10 +2683,23 @@ nightSaveBtn.addEventListener('click', async () => {
     return;
   }
 
+  // Nur erreichbar, wenn weder ein offener noch ein vollständiger Eintrag
+  // gefunden wurde — also entweder "Heute Nacht" (nightShowTonight) oder
+  // eine leere letzte/ältere Nacht. Beide brauchen ihre eigene
+  // Start/Ende-Berechnung: "Heute Nacht" beginnt heute und endet morgen,
+  // unabhängig von nightOffset (das bei "Heute Nacht" immer 0 ist, aber
+  // 0 sonst "letzte Nacht" bedeutet, siehe loadNightPosition).
+  const isTonight = nightOffset === 0 && nightShowTonight;
   const today = new Date();
-  const nightStart = new Date(today); nightStart.setDate(nightStart.getDate() - 1 - nightOffset);
-  const nightEndDate = new Date(today); nightEndDate.setDate(nightEndDate.getDate() - nightOffset);
-  const startOnly = nightOffset === 0 && !nightWaketimeInput.value;
+  let nightStart, nightEndDate;
+  if (isTonight) {
+    nightStart = new Date(today);
+    nightEndDate = new Date(today); nightEndDate.setDate(nightEndDate.getDate() + 1);
+  } else {
+    nightStart = new Date(today); nightStart.setDate(nightStart.getDate() - 1 - nightOffset);
+    nightEndDate = new Date(today); nightEndDate.setDate(nightEndDate.getDate() - nightOffset);
+  }
+  const startOnly = isTonight && !nightWaketimeInput.value;
   const entry = startOnly
     ? {
         nightStart: isoDate(new Date()),
@@ -2831,9 +2942,7 @@ async function resumeOpenNightIfAny() {
   const open = await syncOpenNight();
   if (open) {
     setSchlafenMode('night');
-    nightOffset = 0;
-    nightUnlocked = false;
-    await loadNightPosition();
+    await goToDefaultNightPosition();
     showScreen('schlafen');
   }
 }

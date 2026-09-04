@@ -4582,41 +4582,69 @@ function schlafenPick(chartId, i, toggle) {
   const host = document.getElementById('analyse-view-schlafen');
   let scrub = null;
 
+  // Schwelle, ab der eine Fingerbewegung als eindeutig gilt.
+  const SCRUB_LOCK_X = 6;    // waagerecht -> Balken abtasten
+  const SCRUB_CANCEL_Y = 10; // senkrecht  -> die Seite scrollt, Finger weg vom Diagramm
+
   host.addEventListener('pointerdown', (e) => {
     const svgEl = e.target.closest && e.target.closest('svg.a-chart');
     if (!svgEl) return;
     const id = svgEl.dataset.chart;
     if (!schlafenRender[id]) return;
     const i0 = schlafenIndexAt(svgEl, e.clientX, schlafenRender[id].bs.length);
+    // Mit der Maus gibt es keine Scroll-Mehrdeutigkeit: sofort auswählen.
+    // Mit dem Finger erst, wenn die Richtung feststeht — sonst reicht ein
+    // Scrollen über das Diagramm hinweg, um versehentlich etwas zu markieren.
+    const mouse = e.pointerType === 'mouse';
     scrub = {
-      id, moved: false, startX: e.clientX, startIndex: i0,
+      id, startX: e.clientX, startY: e.clientY, startIndex: i0,
+      locked: mouse, moved: false,
       wasSelected: !!(schlafenSelection && schlafenSelection.chartId === id && schlafenSelection.index === i0)
     };
-    schlafenPick(id, i0, false);
+    if (mouse) schlafenPick(id, i0, false);
   });
 
   host.addEventListener('pointermove', (e) => {
     if (!scrub) return;
+    if (!scrub.locked) {
+      const dx = Math.abs(e.clientX - scrub.startX);
+      const dy = Math.abs(e.clientY - scrub.startY);
+      // Senkrecht und deutlich dominant: der Nutzer scrollt. Geste aufgeben,
+      // ohne je etwas markiert zu haben.
+      if (dy > SCRUB_CANCEL_Y && dy > dx * 1.2) { scrub = null; return; }
+      if (dx < SCRUB_LOCK_X) return;   // noch nicht eindeutig — abwarten
+      scrub.locked = true;
+    }
     const svgEl = document.querySelector('#analyse-view-schlafen svg[data-chart="' + scrub.id + '"]');
     if (!svgEl) return;
     if (Math.abs(e.clientX - scrub.startX) > 4) scrub.moved = true;
     schlafenPick(scrub.id, schlafenIndexAt(svgEl, e.clientX, schlafenRender[scrub.id].bs.length), false);
   });
 
+  // Der Browser übernimmt die Geste als Scrollen (touch-action: pan-y) und
+  // schickt pointercancel — dann ist es keine Balkenauswahl.
+  host.addEventListener('pointercancel', () => { scrub = null; });
+
   window.addEventListener('pointerup', () => {
     if (!scrub) return;
+    const s = scrub;
+    scrub = null;
     // Nach einem Tipp keinen Fokus auf der Trefferfläche liegen lassen —
     // sonst bleibt der Fokusrahmen des Systems stehen (auf Android orange).
     const ae = document.activeElement;
     if (ae && ae.classList && ae.classList.contains('hit') && ae.blur) ae.blur();
+
+    // Nie festgelegt = kurzer Tipp ohne nennenswerte Bewegung: jetzt erst
+    // auswählen, bzw. eine bestehende Markierung wieder aufheben.
+    if (!s.locked) { schlafenPick(s.id, s.startIndex, true); return; }
+
     // Ein Tipp auf den bereits markierten Balken hebt die Markierung auf;
     // nach einer Wischbewegung bleibt sie stehen.
-    if (!scrub.moved && scrub.wasSelected && schlafenSelection &&
-        schlafenSelection.chartId === scrub.id && schlafenSelection.index === scrub.startIndex) {
+    if (!s.moved && s.wasSelected && schlafenSelection &&
+        schlafenSelection.chartId === s.id && schlafenSelection.index === s.startIndex) {
       schlafenSelection = null;
       applySchlafenSelection();
     }
-    scrub = null;
   });
 
   host.addEventListener('click', (e) => {

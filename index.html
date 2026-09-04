@@ -31,9 +31,9 @@
 
   #screen-analyse .a-seg { display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 3px; margin-top: 14px; }
   #screen-analyse .a-seg-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 2px; border-radius: 12px; font-weight: 600; font-size: 10.5px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
-  #screen-analyse .a-seg-btn.active { background: white; color: var(--stillen-strong); box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08); }
+  #screen-analyse .a-seg-btn.active { background: white; color: var(--fuettern-strong); box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08); }
   #screen-analyse .a-range-chip { padding: 7px 13px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid transparent; background: var(--surface-alt); color: var(--text-muted); cursor: pointer; }
-  #screen-analyse .a-range-chip.active { background: var(--stillen-soft); color: var(--stillen-strong); border-color: var(--stillen); cursor: pointer; }
+  #screen-analyse .a-range-chip.active { background: var(--fuettern-soft); color: var(--fuettern-strong); border-color: var(--fuettern); cursor: pointer; }
   #screen-analyse .a-range-chip.disabled { opacity: 0.5; cursor: default; }
   #screen-analyse .a-axis-unit { text-align: right; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-top: 2px; }
   #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
@@ -101,7 +101,7 @@
   <div id="screen-heute" style="
     --neutral-soft: oklch(93% 0.004 250);
     --neutral-strong: oklch(35% 0.006 250);
-    --stillen: oklch(72% 0.11 250); --stillen-strong: oklch(48% 0.13 250);
+    --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250);
     --windeln: #39ABAB;
     --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9;
     --ok: oklch(58% 0.11 150);
@@ -134,26 +134,26 @@
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--stillen); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--fuettern); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--stillen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
                 <line x1="9" y1="12" x2="15" y2="12"/>
               </svg>
-              <span style="font-weight: 700; font-size: 14px;">Stillen</span>
+              <span style="font-weight: 700; font-size: 14px;">Füttern</span>
             </div>
-            <span id="stillen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
+            <span id="fuettern-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
           </div>
-          <div id="stillen-detail" style="font-size: 13.5px;"></div>
+          <div id="fuettern-detail" style="font-size: 13.5px;"></div>
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
-            <span id="stillen-stats" style="font-size: 11px; color: var(--text-muted);"></span>
+            <span id="fuettern-stats" style="font-size: 11px; color: var(--text-muted);"></span>
             <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
-              <button class="quick-btn" data-action="entry" data-target="stillen" title="Eintrag hinzufügen">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--stillen-strong)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <button class="quick-btn" data-action="entry" data-target="fuettern" title="Eintrag hinzufügen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
-              <button class="quick-btn" data-action="analyse" data-target="stillen" title="Zur Analyse">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--stillen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.2" y="7" width="3.4" height="13" rx="1"/><rect x="14.4" y="10" width="3.4" height="10" rx="1"/></svg>
+              <button class="quick-btn" data-action="analyse" data-target="fuettern" title="Zur Analyse">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.2" y="7" width="3.4" height="13" rx="1"/><rect x="14.4" y="10" width="3.4" height="10" rx="1"/></svg>
               </button>
             </div>
           </div>
@@ -238,12 +238,12 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Heute</span>
       </button>
-      <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
           <line x1="9" y1="12" x2="15" y2="12"/>
         </svg>
-        <span style="font-size: 11px; font-weight: 600;">Stillen</span>
+        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
       </button>
       <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -269,8 +269,8 @@
     </div>
   </div>
 
-  <!-- Stillen -->
-  <div id="screen-stillen" style="
+  <!-- Füttern -->
+  <div id="screen-fuettern" style="
     --accent: oklch(72% 0.11 250);
     --accent-strong: oklch(48% 0.13 250);
     --accent-soft: oklch(93% 0.025 250);
@@ -295,8 +295,8 @@
             </svg>
           </div>
           <div>
-            <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Stillen</div>
-            <div id="stillen-subtitle" style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
+            <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Füttern</div>
+            <div id="fuettern-subtitle" style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
           </div>
         </div>
         <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
@@ -345,7 +345,7 @@
           </svg>
           <div style="min-width: 0; flex: 1;">
             <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Datum</div>
-            <input id="stillen-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
+            <input id="fuettern-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
           </div>
         </div>
         <div style="height: 1px; background: var(--border);"></div>
@@ -357,16 +357,16 @@
             </svg>
             <div style="min-width: 0; flex: 1;">
               <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Uhrzeit</div>
-              <input id="stillen-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
+              <input id="fuettern-time" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
             </div>
           </div>
-          <button id="stillen-time-now" style="flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
+          <button id="fuettern-time-now" style="flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
         </div>
-        <div id="stillen-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
-        <button id="stillen-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
-        <div id="stillen-bottle-edit-actions" style="display: none; gap: 10px;">
-          <button id="stillen-bottle-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-          <button id="stillen-bottle-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+        <div id="fuettern-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+        <button id="fuettern-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+        <div id="fuettern-bottle-edit-actions" style="display: none; gap: 10px;">
+          <button id="fuettern-bottle-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+          <button id="fuettern-bottle-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
         </div>
       </div>
 
@@ -422,9 +422,9 @@
             </button>
           </div>
           <button id="breast-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
-          <div id="stillen-breast-edit-actions" style="display: none; gap: 10px;">
-            <button id="stillen-breast-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-            <button id="stillen-breast-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          <div id="fuettern-breast-edit-actions" style="display: none; gap: 10px;">
+            <button id="fuettern-breast-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+            <button id="fuettern-breast-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
           </div>
         </div>
 
@@ -440,11 +440,11 @@
         </div>
       </div>
 
-      <div id="stillen-historie-section" style="display: flex; flex-direction: column; gap: 10px;">
+      <div id="fuettern-historie-section" style="display: flex; flex-direction: column; gap: 10px;">
         <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Historie</label>
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden;">
-          <div id="stillen-entries-list" style="display: flex; flex-direction: column;"></div>
-          <button id="stillen-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
+          <div id="fuettern-entries-list" style="display: flex; flex-direction: column;"></div>
+          <button id="fuettern-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
         </div>
       </div>
     </div>
@@ -456,12 +456,12 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Heute</span>
       </button>
-      <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--accent-strong); cursor: pointer;">
+      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--accent-strong); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
           <line x1="9" y1="12" x2="15" y2="12"/>
         </svg>
-        <span style="font-size: 11px; font-weight: 600;">Stillen</span>
+        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
       </button>
       <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -606,12 +606,12 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Heute</span>
       </button>
-      <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
           <line x1="9" y1="12" x2="15" y2="12"/>
         </svg>
-        <span style="font-size: 11px; font-weight: 600;">Stillen</span>
+        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
       </button>
       <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--accent-strong); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -838,12 +838,12 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Heute</span>
       </button>
-      <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
           <line x1="9" y1="12" x2="15" y2="12"/>
         </svg>
-        <span style="font-size: 11px; font-weight: 600;">Stillen</span>
+        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
       </button>
       <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -871,7 +871,7 @@
 
   <!-- Analyse -->
   <div id="screen-analyse" style="
-    --stillen: oklch(72% 0.11 250); --stillen-strong: oklch(48% 0.13 250); --stillen-soft: oklch(93% 0.025 250); --stillen-breast: oklch(80% 0.05 250);
+    --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250); --fuettern-soft: oklch(93% 0.025 250); --fuettern-breast: oklch(80% 0.05 250);
     --windeln: #39ABAB; --windeln-light: #8FD4D4; --windeln-soft: #DFF2F2;
     --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9; --schlafen-light: #B7ADEB;
     --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
@@ -905,9 +905,9 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>
           Übersicht
         </button>
-        <button class="a-seg-btn" data-view="stillen">
+        <button class="a-seg-btn" data-view="fuettern">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
-          Stillen
+          Füttern
         </button>
         <button class="a-seg-btn" data-view="windeln">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>
@@ -930,7 +930,7 @@
       <div id="analyse-view-overview" style="display: flex; flex-direction: column;">
         <div style="font-size: 13px; color: var(--text-muted);">Lade…</div>
       </div>
-      <div id="analyse-view-stillen" style="display: none; flex-direction: column;"></div>
+      <div id="analyse-view-fuettern" style="display: none; flex-direction: column;"></div>
       <div id="analyse-view-windeln" style="display: none; flex-direction: column;"></div>
       <div id="analyse-view-schlafen" style="display: none; flex-direction: column;"></div>
     </div>
@@ -942,12 +942,12 @@
         </svg>
         <span style="font-size: 11px; font-weight: 600;">Heute</span>
       </button>
-      <button class="tab-btn" data-target="stillen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
+      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
           <line x1="9" y1="12" x2="15" y2="12"/>
         </svg>
-        <span style="font-size: 11px; font-weight: 600;">Stillen</span>
+        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
       </button>
       <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -1070,13 +1070,13 @@ onAuthStateChanged(auth, async (user) => {
   resumeOpenNapIfAny();
   resumeOpenNightIfAny();
   resumeOpenFeedingIfAny();
-  refreshStillenAmountChips();
+  refreshFuetternAmountChips();
 });
 
 // --- Tab navigation ---
 const screens = {
   heute: document.getElementById('screen-heute'),
-  stillen: document.getElementById('screen-stillen'),
+  fuettern: document.getElementById('screen-fuettern'),
   windeln: document.getElementById('screen-windeln'),
   schlafen: document.getElementById('screen-schlafen'),
   analyse: document.getElementById('screen-analyse')
@@ -1087,7 +1087,7 @@ function showScreen(target) {
   if (target === 'analyse') loadAnalyse();
   if (target === 'schlafen') { if (editingNightId || editingNapId) exitSchlafenEdit(false); decideSchlafenDefault(); loadSchlafenEntries(true); }
   if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); loadWindelnEntries(true); }
-  if (target === 'stillen') { if (editingFeedingId) exitStillenEdit(false); loadStillenEntries(true); refreshStillenAmountChips(); }
+  if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); loadFuetternEntries(true); refreshFuetternAmountChips(); }
 }
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target));
@@ -1104,7 +1104,7 @@ document.querySelectorAll('.quick-btn').forEach((btn) => {
   });
 });
 
-// Wires a Datum+Uhrzeit pair (used identically by Stillen and Windeln) so it
+// Wires a Datum+Uhrzeit pair (used identically by Füttern and Windeln) so it
 // can never represent a future point in time: the date input's native `max`
 // blocks future days outright; whenever the chosen date is today, the time
 // input's `max` is kept in sync with the current clock and any already-future
@@ -1141,7 +1141,7 @@ function setupPastOnlyDateTime(dateInput, timeInput, nowBtn, errorEl) {
   };
 }
 
-// --- Stillen screen logic ---
+// --- Füttern screen logic ---
 const feedBottleBtn = document.getElementById('feed-bottle-btn');
 const feedBreastBtn = document.getElementById('feed-breast-btn');
 const bottlePanel = document.getElementById('bottle-panel');
@@ -1155,13 +1155,13 @@ function amountIsValid() {
   amountErrorEl.style.display = invalid ? 'block' : 'none';
   return !invalid;
 }
-const stillenDateInput = document.getElementById('stillen-date');
-const stillenTimeInput = document.getElementById('stillen-time');
-const stillenTimeErrorEl = document.getElementById('stillen-time-error');
-const stillenSaveBtn = document.getElementById('stillen-save');
-const stillenBottleEditActions = document.getElementById('stillen-bottle-edit-actions');
-const stillenBottleUpdateBtn = document.getElementById('stillen-bottle-update');
-const stillenBottleCancelEditBtn = document.getElementById('stillen-bottle-cancel-edit');
+const fuetternDateInput = document.getElementById('fuettern-date');
+const fuetternTimeInput = document.getElementById('fuettern-time');
+const fuetternTimeErrorEl = document.getElementById('fuettern-time-error');
+const fuetternSaveBtn = document.getElementById('fuettern-save');
+const fuetternBottleEditActions = document.getElementById('fuettern-bottle-edit-actions');
+const fuetternBottleUpdateBtn = document.getElementById('fuettern-bottle-update');
+const fuetternBottleCancelEditBtn = document.getElementById('fuettern-bottle-cancel-edit');
 
 // Brust: eigener Manuell/Timer-Umschalter, wie bei Schlafen → Tagsüber.
 const breastModeToggle = document.getElementById('breast-mode-toggle');
@@ -1177,9 +1177,9 @@ const breastDurDisplay = document.getElementById('breast-dur-display');
 const breastDurDecBtn = document.getElementById('breast-dur-dec');
 const breastDurIncBtn = document.getElementById('breast-dur-inc');
 const breastSaveBtn = document.getElementById('breast-save');
-const stillenBreastEditActions = document.getElementById('stillen-breast-edit-actions');
-const stillenBreastUpdateBtn = document.getElementById('stillen-breast-update');
-const stillenBreastCancelEditBtn = document.getElementById('stillen-breast-cancel-edit');
+const fuetternBreastEditActions = document.getElementById('fuettern-breast-edit-actions');
+const fuetternBreastUpdateBtn = document.getElementById('fuettern-breast-update');
+const fuetternBreastCancelEditBtn = document.getElementById('fuettern-breast-cancel-edit');
 const breastTimerDisplay = document.getElementById('breast-timer-display');
 const breastTimerSublabel = document.getElementById('breast-timer-sublabel');
 const breastTimerToggleBtn = document.getElementById('breast-timer-toggle-btn');
@@ -1218,7 +1218,7 @@ function refreshBreastPanelForEditState() {
   const editing = !!editingFeedingId;
   breastModeToggle.style.display = editing ? 'none' : 'flex';
   breastSaveBtn.style.display = editing ? 'none' : 'block';
-  stillenBreastEditActions.style.display = editing ? 'flex' : 'none';
+  fuetternBreastEditActions.style.display = editing ? 'flex' : 'none';
   if (editing) setBreastMode('manual');
 }
 
@@ -1227,12 +1227,12 @@ function refreshBreastPanelForEditState() {
 // Leiste unten.
 function refreshBottlePanelForEditState() {
   const editing = !!editingFeedingId;
-  stillenSaveBtn.style.display = editing ? 'none' : 'block';
-  stillenBottleEditActions.style.display = editing ? 'flex' : 'none';
+  fuetternSaveBtn.style.display = editing ? 'none' : 'block';
+  fuetternBottleEditActions.style.display = editing ? 'flex' : 'none';
 }
 
-function updateStillenChromeForState() {
-  if (feedType !== 'bottle') stillenTimeErrorEl.style.display = 'none';
+function updateFuetternChromeForState() {
+  if (feedType !== 'bottle') fuetternTimeErrorEl.style.display = 'none';
   refreshBottlePanelForEditState();
   refreshBreastPanelForEditState();
 }
@@ -1243,7 +1243,7 @@ function setFeedType(type) {
   feedBreastBtn.setAttribute('style', segStyle(type === 'breast'));
   bottlePanel.style.display = type === 'bottle' ? 'flex' : 'none';
   breastPanel.style.display = type === 'breast' ? 'flex' : 'none';
-  updateStillenChromeForState();
+  updateFuetternChromeForState();
 }
 feedBottleBtn.addEventListener('click', () => setFeedType('bottle'));
 feedBreastBtn.addEventListener('click', () => setFeedType('breast'));
@@ -1277,9 +1277,9 @@ function buildChips(container, values, unit, input) {
 // die Standard-Karte bestehen, damit die Cards nicht bei jedem Laden
 // hin- und herspringen. Angezeigt wird am Ende immer der Größe nach sortiert.
 const DEFAULT_BOTTLE_AMOUNTS = [20, 40, 80, 100];
-let stillenAmountChips = DEFAULT_BOTTLE_AMOUNTS.slice();
+let fuetternAmountChips = DEFAULT_BOTTLE_AMOUNTS.slice();
 
-async function computeStillenAmountChips() {
+async function computeFuetternAmountChips() {
   try {
     const start = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
     const docs = await getAnalyseRangeDocs('feedings', start);
@@ -1309,39 +1309,39 @@ async function computeStillenAmountChips() {
   }
 }
 
-async function refreshStillenAmountChips() {
-  stillenAmountChips = await computeStillenAmountChips();
-  buildChips(amountChipsEl, stillenAmountChips, '', amountInput);
+async function refreshFuetternAmountChips() {
+  fuetternAmountChips = await computeFuetternAmountChips();
+  buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
 }
 
-buildChips(amountChipsEl, stillenAmountChips, '', amountInput);
-amountInput.addEventListener('input', () => { buildChips(amountChipsEl, stillenAmountChips, '', amountInput); amountIsValid(); });
+buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
+amountInput.addEventListener('input', () => { buildChips(amountChipsEl, fuetternAmountChips, '', amountInput); amountIsValid(); });
 
-stillenDateInput.value = isoDate(new Date());
-stillenTimeInput.value = formatTime(new Date());
-const stillenTimeIsValid = setupPastOnlyDateTime(stillenDateInput, stillenTimeInput, document.getElementById('stillen-time-now'), stillenTimeErrorEl);
+fuetternDateInput.value = isoDate(new Date());
+fuetternTimeInput.value = formatTime(new Date());
+const fuetternTimeIsValid = setupPastOnlyDateTime(fuetternDateInput, fuetternTimeInput, document.getElementById('fuettern-time-now'), fuetternTimeErrorEl);
 
-stillenSaveBtn.addEventListener('click', async () => {
-  if (!currentUser || !stillenTimeIsValid() || !amountIsValid()) return;
+fuetternSaveBtn.addEventListener('click', async () => {
+  if (!currentUser || !fuetternTimeIsValid() || !amountIsValid()) return;
   const entry = {
     type: 'bottle',
     amount: Number(amountInput.value),
     minutes: null,
-    date: stillenDateInput.value,
-    time: stillenTimeInput.value,
+    date: fuetternDateInput.value,
+    time: fuetternTimeInput.value,
     createdBy: currentUser.email,
     createdAt: serverTimestamp()
   };
-  stillenSaveBtn.disabled = true;
+  fuetternSaveBtn.disabled = true;
   try {
     await addDoc(collection(db, 'feedings'), entry);
-    stillenSaveBtn.textContent = 'Gespeichert ✓';
-    setTimeout(() => { stillenSaveBtn.textContent = 'Eintrag speichern'; stillenSaveBtn.disabled = false; }, 1400);
-    loadStillenEntries(true);
-    refreshStillenAmountChips();
+    fuetternSaveBtn.textContent = 'Gespeichert ✓';
+    setTimeout(() => { fuetternSaveBtn.textContent = 'Eintrag speichern'; fuetternSaveBtn.disabled = false; }, 1400);
+    loadFuetternEntries(true);
+    refreshFuetternAmountChips();
   } catch (error) {
-    stillenSaveBtn.textContent = 'Fehler beim Speichern';
-    stillenSaveBtn.disabled = false;
+    fuetternSaveBtn.textContent = 'Fehler beim Speichern';
+    fuetternSaveBtn.disabled = false;
   }
 });
 
@@ -1410,7 +1410,7 @@ breastSaveBtn.addEventListener('click', async () => {
     });
     breastSaveBtn.textContent = 'Gespeichert ✓';
     setTimeout(() => { breastSaveBtn.textContent = 'Eintrag speichern'; breastSaveBtn.disabled = false; }, 1400);
-    loadStillenEntries(true);
+    loadFuetternEntries(true);
   } catch (error) {
     breastSaveBtn.textContent = 'Fehler beim Speichern';
     breastSaveBtn.disabled = false;
@@ -1470,7 +1470,7 @@ async function resumeOpenFeedingIfAny() {
   if (open) {
     setFeedType('breast');
     setBreastMode('timer');
-    showScreen('stillen');
+    showScreen('fuettern');
   }
 }
 
@@ -1523,7 +1523,7 @@ breastTimerToggleBtn.addEventListener('click', async () => {
       openFeedingDocId = null;
       openFeedingStartedAt = null;
       renderBreastTimerDisplay();
-      loadStillenEntries(true);
+      loadFuetternEntries(true);
     }
   } catch (error) {
     breastTimerSublabel.textContent = 'Fehler: ' + error.message;
@@ -1531,26 +1531,26 @@ breastTimerToggleBtn.addEventListener('click', async () => {
   breastTimerToggleBtn.disabled = false;
 });
 
-// --- Stillen: Historie (bearbeiten/löschen), selbes Muster wie Windeln ---
-let stillenListScrollTop = 0;
-let stillenJustUpdatedId = null;
-const stillenSubtitleEl = document.getElementById('stillen-subtitle');
-const stillenHistorieSection = document.getElementById('stillen-historie-section');
-const stillenTimeNowBtn = document.getElementById('stillen-time-now');
-const stillenScrollEl = screens.stillen.firstElementChild;
-const STILLEN_PAGE_SIZE = 15;
-let stillenEntriesLastSnap = null;
-let stillenEntriesAllLoaded = false;
-let stillenEntriesLastDayKey = null;
+// --- Füttern: Historie (bearbeiten/löschen), selbes Muster wie Windeln ---
+let fuetternListScrollTop = 0;
+let fuetternJustUpdatedId = null;
+const fuetternSubtitleEl = document.getElementById('fuettern-subtitle');
+const fuetternHistorieSection = document.getElementById('fuettern-historie-section');
+const fuetternTimeNowBtn = document.getElementById('fuettern-time-now');
+const fuetternScrollEl = screens.fuettern.firstElementChild;
+const FUETTERN_PAGE_SIZE = 15;
+let fuetternEntriesLastSnap = null;
+let fuetternEntriesAllLoaded = false;
+let fuetternEntriesLastDayKey = null;
 
-function resetStillenForm() {
+function resetFuetternForm() {
   setFeedType('bottle');
-  amountInput.value = stillenAmountChips[Math.floor(stillenAmountChips.length / 2)];
-  buildChips(amountChipsEl, stillenAmountChips, '', amountInput);
+  amountInput.value = fuetternAmountChips[Math.floor(fuetternAmountChips.length / 2)];
+  buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
   amountErrorEl.style.display = 'none';
-  stillenDateInput.value = isoDate(new Date());
-  stillenTimeInput.value = formatTime(new Date());
-  stillenDateInput.dispatchEvent(new Event('change'));
+  fuetternDateInput.value = isoDate(new Date());
+  fuetternTimeInput.value = formatTime(new Date());
+  fuetternDateInput.dispatchEvent(new Event('change'));
 
   setBreastMode('manual');
   breastDateInput.value = isoDate(new Date());
@@ -1565,18 +1565,18 @@ function resetStillenForm() {
 // Legacy-Einträge (nur `time`+`minutes`) sowie Timer-Einträge (ISO-Zeitstempel
 // in startTime/endTime) müssen beim Bearbeiten genauso sauber vorbefüllt werden
 // wie neue manuelle Einträge (bloße "HH:MM"-Strings) — daher die Fallunterscheidung.
-function enterStillenEdit(entry) {
-  stillenListScrollTop = stillenScrollEl.scrollTop;
+function enterFuetternEdit(entry) {
+  fuetternListScrollTop = fuetternScrollEl.scrollTop;
   editingFeedingId = entry.id;
   setFeedType(entry.type);
   if (entry.type === 'bottle') {
-    amountInput.value = entry.amount || stillenAmountChips[Math.floor(stillenAmountChips.length / 2)];
-    buildChips(amountChipsEl, stillenAmountChips, '', amountInput);
+    amountInput.value = entry.amount || fuetternAmountChips[Math.floor(fuetternAmountChips.length / 2)];
+    buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
     amountErrorEl.style.display = 'none';
     const entryTs = entryBusinessTimestamp(entry);
-    stillenDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
-    stillenTimeInput.value = entry.time || formatTime(new Date());
-    stillenDateInput.dispatchEvent(new Event('change'));
+    fuetternDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
+    fuetternTimeInput.value = entry.time || formatTime(new Date());
+    fuetternDateInput.dispatchEvent(new Event('change'));
   } else {
     const entryTs = entryBusinessTimestamp(entry);
     breastDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
@@ -1599,38 +1599,38 @@ function enterStillenEdit(entry) {
     renderBreastDuration();
   }
 
-  stillenSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
+  fuetternSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
     'Eintrag bearbeiten</span>';
-  stillenHistorieSection.style.display = 'none';
-  stillenTimeNowBtn.style.display = 'none';
-  stillenScrollEl.scrollTop = 0;
+  fuetternHistorieSection.style.display = 'none';
+  fuetternTimeNowBtn.style.display = 'none';
+  fuetternScrollEl.scrollTop = 0;
 }
 
-function exitStillenEdit(restoreScroll) {
+function exitFuetternEdit(restoreScroll) {
   editingFeedingId = null;
-  stillenSubtitleEl.textContent = 'Eintrag hinzufügen';
-  stillenHistorieSection.style.display = 'flex';
-  stillenTimeNowBtn.style.display = '';
-  resetStillenForm();
-  if (restoreScroll) stillenScrollEl.scrollTop = stillenListScrollTop;
+  fuetternSubtitleEl.textContent = 'Eintrag hinzufügen';
+  fuetternHistorieSection.style.display = 'flex';
+  fuetternTimeNowBtn.style.display = '';
+  resetFuetternForm();
+  if (restoreScroll) fuetternScrollEl.scrollTop = fuetternListScrollTop;
 }
-stillenBottleCancelEditBtn.addEventListener('click', () => exitStillenEdit(true));
-stillenBreastCancelEditBtn.addEventListener('click', () => exitStillenEdit(true));
+fuetternBottleCancelEditBtn.addEventListener('click', () => exitFuetternEdit(true));
+fuetternBreastCancelEditBtn.addEventListener('click', () => exitFuetternEdit(true));
 
-async function handleStillenUpdate(triggerBtn) {
+async function handleFuetternUpdate(triggerBtn) {
   if (!currentUser || !editingFeedingId) return;
   const updatedId = editingFeedingId;
   let entry;
   if (feedType === 'bottle') {
-    if (!stillenTimeIsValid() || !amountIsValid()) return;
+    if (!fuetternTimeIsValid() || !amountIsValid()) return;
     entry = {
       type: 'bottle',
       amount: Number(amountInput.value),
       minutes: null,
       durationMinutes: null,
-      date: stillenDateInput.value,
-      time: stillenTimeInput.value,
+      date: fuetternDateInput.value,
+      time: fuetternTimeInput.value,
       startTime: null,
       endTime: null,
       source: null
@@ -1654,15 +1654,15 @@ async function handleStillenUpdate(triggerBtn) {
   triggerBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'feedings', updatedId), entry);
-    exitStillenEdit(false);
-    stillenJustUpdatedId = updatedId;
-    if (entry.type === 'bottle') refreshStillenAmountChips();
-    await loadStillenEntries(true);
-    stillenScrollEl.scrollTop = stillenListScrollTop;
+    exitFuetternEdit(false);
+    fuetternJustUpdatedId = updatedId;
+    if (entry.type === 'bottle') refreshFuetternAmountChips();
+    await loadFuetternEntries(true);
+    fuetternScrollEl.scrollTop = fuetternListScrollTop;
     setTimeout(() => {
-      stillenJustUpdatedId = null;
-      const oldRow = document.querySelector('#stillen-entries-list [data-entry-id="' + updatedId + '"]');
-      if (oldRow) oldRow.replaceWith(stillenEntryRow({ id: updatedId, ...entry }));
+      fuetternJustUpdatedId = null;
+      const oldRow = document.querySelector('#fuettern-entries-list [data-entry-id="' + updatedId + '"]');
+      if (oldRow) oldRow.replaceWith(fuetternEntryRow({ id: updatedId, ...entry }));
     }, 1800);
   } catch (error) {
     triggerBtn.textContent = 'Fehler beim Speichern';
@@ -1671,10 +1671,10 @@ async function handleStillenUpdate(triggerBtn) {
     triggerBtn.disabled = false;
   }
 }
-stillenBottleUpdateBtn.addEventListener('click', () => handleStillenUpdate(stillenBottleUpdateBtn));
-stillenBreastUpdateBtn.addEventListener('click', () => handleStillenUpdate(stillenBreastUpdateBtn));
+fuetternBottleUpdateBtn.addEventListener('click', () => handleFuetternUpdate(fuetternBottleUpdateBtn));
+fuetternBreastUpdateBtn.addEventListener('click', () => handleFuetternUpdate(fuetternBreastUpdateBtn));
 
-function stillenEntryRow(entry) {
+function fuetternEntryRow(entry) {
   const ts = entryBusinessTimestamp(entry);
   const isOpenFeeding = entry.type === 'breast' && entry.endTime === null;
   const row = document.createElement('div');
@@ -1700,7 +1700,7 @@ function stillenEntryRow(entry) {
   spacer.style.flex = '1';
   row.appendChild(spacer);
 
-  if (entry.id === stillenJustUpdatedId) {
+  if (entry.id === fuetternJustUpdatedId) {
     const badge = document.createElement('span');
     badge.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--accent-strong); background:var(--accent-soft); padding:4px 9px; border-radius:999px;';
     badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert';
@@ -1715,7 +1715,7 @@ function stillenEntryRow(entry) {
     editBtn.setAttribute('aria-label', 'Bearbeiten');
     editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
     editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-    editBtn.addEventListener('click', () => enterStillenEdit(entry));
+    editBtn.addEventListener('click', () => enterFuetternEdit(entry));
     row.appendChild(editBtn);
   }
 
@@ -1724,12 +1724,12 @@ function stillenEntryRow(entry) {
   delBtn.style.cssText = 'border:none; background:none; color:var(--warn); padding:6px; cursor:pointer; display:flex;';
   delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
   delBtn.addEventListener('click', async () => {
-    if (!confirm('Diesen Stillen-Eintrag wirklich löschen?')) return;
+    if (!confirm('Diesen Fütterungs-Eintrag wirklich löschen?')) return;
     delBtn.disabled = true;
     try {
       await deleteDoc(doc(db, 'feedings', entry.id));
-      loadStillenEntries(true);
-      if (entry.type === 'bottle') refreshStillenAmountChips();
+      loadFuetternEntries(true);
+      if (entry.type === 'bottle') refreshFuetternAmountChips();
     } catch (error) {
       delBtn.disabled = false;
     }
@@ -1739,20 +1739,20 @@ function stillenEntryRow(entry) {
   return row;
 }
 
-function appendStillenEntries(docs) {
-  const list = document.getElementById('stillen-entries-list');
+function appendFuetternEntries(docs) {
+  const list = document.getElementById('fuettern-entries-list');
   const now = new Date();
   docs.forEach((entry) => {
     const ts = entryBusinessTimestamp(entry);
     const dayKey = ts ? isoDate(ts) : 'unbekannt';
-    if (dayKey !== stillenEntriesLastDayKey) {
+    if (dayKey !== fuetternEntriesLastDayKey) {
       const header = document.createElement('div');
       header.textContent = ts ? dayLabel(ts, now) : 'Unbekanntes Datum';
       header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;';
       list.appendChild(header);
-      stillenEntriesLastDayKey = dayKey;
+      fuetternEntriesLastDayKey = dayKey;
     }
-    list.appendChild(stillenEntryRow(entry));
+    list.appendChild(fuetternEntryRow(entry));
   });
   if (list.children.length === 0) {
     const empty = document.createElement('div');
@@ -1762,35 +1762,35 @@ function appendStillenEntries(docs) {
   }
 }
 
-async function loadStillenEntries(reset) {
+async function loadFuetternEntries(reset) {
   if (reset) {
-    stillenEntriesLastSnap = null;
-    stillenEntriesAllLoaded = false;
-    stillenEntriesLastDayKey = null;
-    document.getElementById('stillen-entries-list').innerHTML = '';
+    fuetternEntriesLastSnap = null;
+    fuetternEntriesAllLoaded = false;
+    fuetternEntriesLastDayKey = null;
+    document.getElementById('fuettern-entries-list').innerHTML = '';
   }
-  if (stillenEntriesAllLoaded) return;
-  const moreBtn = document.getElementById('stillen-entries-more');
+  if (fuetternEntriesAllLoaded) return;
+  const moreBtn = document.getElementById('fuettern-entries-more');
   moreBtn.textContent = 'Lädt…';
   moreBtn.style.display = 'block';
   moreBtn.disabled = true;
   try {
-    const q = stillenEntriesLastSnap
-      ? query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), startAfter(stillenEntriesLastSnap), limit(STILLEN_PAGE_SIZE))
-      : query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(STILLEN_PAGE_SIZE));
+    const q = fuetternEntriesLastSnap
+      ? query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), startAfter(fuetternEntriesLastSnap), limit(FUETTERN_PAGE_SIZE))
+      : query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(FUETTERN_PAGE_SIZE));
     const snap = await getDocs(q);
-    if (snap.docs.length < STILLEN_PAGE_SIZE) stillenEntriesAllLoaded = true;
-    if (!snap.empty) stillenEntriesLastSnap = snap.docs[snap.docs.length - 1];
+    if (snap.docs.length < FUETTERN_PAGE_SIZE) fuetternEntriesAllLoaded = true;
+    if (!snap.empty) fuetternEntriesLastSnap = snap.docs[snap.docs.length - 1];
     const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));
-    appendStillenEntries(docs);
+    appendFuetternEntries(docs);
   } finally {
     moreBtn.textContent = 'Weitere laden';
     moreBtn.disabled = false;
-    moreBtn.style.display = stillenEntriesAllLoaded ? 'none' : 'block';
+    moreBtn.style.display = fuetternEntriesAllLoaded ? 'none' : 'block';
   }
 }
-document.getElementById('stillen-entries-more').addEventListener('click', () => loadStillenEntries(false));
+document.getElementById('fuettern-entries-more').addEventListener('click', () => loadFuetternEntries(false));
 
 // --- Windeln screen logic ---
 const smallCard = document.getElementById('small-card');
@@ -2244,13 +2244,13 @@ async function decideSchlafenDefault() {
   await goToDefaultNightPosition();
 }
 
-// Bearbeiten öffnet ein eigenes "Fenster", wie bei Windeln/Stillen: Historie
+// Bearbeiten öffnet ein eigenes "Fenster", wie bei Windeln/Füttern: Historie
 // und der Nachts/Tagsüber-Umschalter werden versteckt (man bearbeitet einen
 // bereits feststehenden Eintrag, kein Umschalten mehr nötig), die passende
 // Maske (Nacht- oder Nap-Panel) zeigt die Werte vorausgefüllt, und die
 // Fußzeile wechselt zu Aktualisieren/Abbrechen. Zwei getrennte IDs, weil
 // Nächte und Naps in unterschiedlichen Collections liegen (anders als bei
-// Stillen, wo Fläschchen/Brust dieselbe `feedings`-Collection teilen).
+// Füttern, wo Fläschchen/Brust dieselbe `feedings`-Collection teilen).
 function enterSchlafenEdit(entry) {
   schlafenListScrollTop = schlafenScrollEl.scrollTop;
   schlafenHistorieSection.style.display = 'none';
@@ -2748,7 +2748,7 @@ nightSaveBtn.addEventListener('click', async () => {
   });
 });
 
-// Same past-only guarantee as setupPastOnlyDateTime (Stillen/Windeln), but
+// Same past-only guarantee as setupPastOnlyDateTime (Füttern/Windeln), but
 // for one date shared by two time fields (Start/Ende) instead of a single
 // time — the Timer nap flow doesn't need this at all, it's inherently
 // real-time and has no date/time inputs of its own.
@@ -3023,7 +3023,7 @@ timerToggleBtn.addEventListener('click', async () => {
 
 // --- Schlafen: Historie (bearbeiten/löschen), zusammengeführt aus beiden
 // Collections (naps + nightWakeups) zu einer chronologischen Liste, genau
-// wie beim Stillen-Screen (Fläschchen/Brust in derselben Liste). Absteigend
+// wie beim Füttern-Screen (Fläschchen/Brust in derselben Liste). Absteigend
 // nach Startzeit sortiert, gruppiert per Tag über dieselbe
 // analyseBusinessDateKey wie die Analyse-Auswertung weiter unten.
 const SCHLAFEN_PAGE_SIZE = 15;
@@ -3123,7 +3123,7 @@ function schlafenEntryRow(entry) {
     detail.textContent = (end || '--:--') + ' · ' + (dur || '–') + (entry._type === 'night' ? ' · ' + entry.wakeCount + 'x' : '');
   }
   // flex:1 + min-width:0 + Ellipsis statt flex-shrink:0 + separatem Spacer
-  // (wie bei Windeln/Stillen): dort ist der Detail-Text immer kurz und fix
+  // (wie bei Windeln/Füttern): dort ist der Detail-Text immer kurz und fix
   // ("120 ml", "Klein"), hier kann er lang werden ("08:30 · 8 Std 40 Min ·
   // 3x") und hätte sonst Stift/Mülleimer je nach Textlänge unterschiedlich
   // weit nach rechts geschoben (auf Julias schmalem iPhone beobachtet) statt
@@ -3141,7 +3141,7 @@ function schlafenEntryRow(entry) {
 
   // Ein laufender Nap-Timer oder eine offene Nacht lassen sich nicht
   // "bearbeiten" (kein Ende, keine Dauer) — nur löschen, falls versehentlich
-  // gestartet (siehe Stillen/Brust). Vervollständigt wird stattdessen ganz
+  // gestartet (siehe Füttern/Brust). Vervollständigt wird stattdessen ganz
   // regulär über die Nachts-Karte selbst (dort erkennt loadNightPosition()
   // den offenen Eintrag automatisch).
   if (!isOpen) {
@@ -3178,7 +3178,7 @@ function schlafenEntryRow(entry) {
 // gruppiert). Sonst landet eine Nacht mit Bettzeit am Vorabend im
 // nightEnd-Tag, aber mit einem Sortierwert vom Vortag — dort sortiert sie
 // dann fälschlich ganz nach unten statt (als spätester Eintrag des Abends,
-// an dem sie begann) nach oben. Gleiches Prinzip wie bei Windeln/Stillen,
+// an dem sie begann) nach oben. Gleiches Prinzip wie bei Windeln/Füttern,
 // die dayKey ebenfalls direkt aus dem Anzeige-Zeitstempel ableiten.
 function appendSchlafenEntries(docs) {
   const list = document.getElementById('schlafen-entries-list');
@@ -3390,32 +3390,32 @@ async function loadOverview() {
 
   const timelineEvents = [];
 
-  // Stillen
+  // Füttern
   try {
-    const [lastFeeding, todayFeedingsRaw] = await Promise.all([getMostRecentByBusinessTime('feedings', stillenIsFinished), getTodayDocs('feedings')]);
-    const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now) && stillenIsFinished(f));
+    const [lastFeeding, todayFeedingsRaw] = await Promise.all([getMostRecentByBusinessTime('feedings', fuetternIsFinished), getTodayDocs('feedings')]);
+    const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now) && fuetternIsFinished(f));
     if (lastFeeding && entryBusinessTimestamp(lastFeeding)) {
-      document.getElementById('stillen-ago').textContent = timeAgo(entryBusinessTimestamp(lastFeeding));
-      document.getElementById('stillen-detail').textContent = lastFeeding.type === 'bottle'
+      document.getElementById('fuettern-ago').textContent = timeAgo(entryBusinessTimestamp(lastFeeding));
+      document.getElementById('fuettern-detail').textContent = lastFeeding.type === 'bottle'
         ? 'Fläschchen · ' + lastFeeding.amount + ' ml'
         : 'Brust · ' + lastFeeding.minutes + ' Min';
     } else {
-      document.getElementById('stillen-ago').textContent = '';
-      document.getElementById('stillen-detail').textContent = 'Noch kein Eintrag';
+      document.getElementById('fuettern-ago').textContent = '';
+      document.getElementById('fuettern-detail').textContent = 'Noch kein Eintrag';
     }
     const totalMl = todayFeedings.filter((f) => f.type === 'bottle').reduce((sum, f) => sum + (f.amount || 0), 0);
-    document.getElementById('stillen-stats').textContent = 'Heute: ' + todayFeedings.length + '×' + (totalMl > 0 ? ' · ' + totalMl + ' ml gesamt' : '');
+    document.getElementById('fuettern-stats').textContent = 'Heute: ' + todayFeedings.length + '×' + (totalMl > 0 ? ' · ' + totalMl + ' ml gesamt' : '');
     todayFeedings.forEach((f) => {
       const ts = entryBusinessTimestamp(f);
       if (!ts) return;
       timelineEvents.push({
         ts,
-        color: 'var(--stillen)',
+        color: 'var(--fuettern)',
         label: f.type === 'bottle' ? 'Fläschchen · ' + f.amount + ' ml' : 'Brust · ' + f.minutes + ' Min'
       });
     });
   } catch (error) {
-    document.getElementById('stillen-detail').textContent = 'Fehler beim Laden';
+    document.getElementById('fuettern-detail').textContent = 'Fehler beim Laden';
   }
 
   // Windeln
@@ -3707,13 +3707,13 @@ function outlierDayLabel(day) { return day.isToday ? analyseProseTodayLabel : da
 // Ein noch laufender Brust-Timer (endTime === null) zählt erst als Eintrag,
 // sobald er gestoppt wurde — sonst würde ein offener Timer die Anzahl/Summe
 // verfälschen, obwohl seine Dauer noch gar nicht feststeht.
-function stillenIsFinished(f) {
+function fuetternIsFinished(f) {
   return !(f.type === 'breast' && f.endTime === null);
 }
 
-function computeStillenAnalysis(days, feedMap) {
+function computeFuetternAnalysis(days, feedMap) {
   const perDay = days.map((d, i) => {
-    const docs = feedMap[i].filter(stillenIsFinished);
+    const docs = feedMap[i].filter(fuetternIsFinished);
     const bottle = docs.filter((f) => f.type === 'bottle');
     const breast = docs.filter((f) => f.type === 'breast');
     return {
@@ -3729,7 +3729,7 @@ function computeStillenAnalysis(days, feedMap) {
   const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
   const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
 
-  const allTimestamps = feedMap.flat().filter(stillenIsFinished).map(entryBusinessTimestamp).filter(Boolean).sort((a, b) => a - b);
+  const allTimestamps = feedMap.flat().filter(fuetternIsFinished).map(entryBusinessTimestamp).filter(Boolean).sort((a, b) => a - b);
   let avgIntervalH = null;
   if (allTimestamps.length > 1) {
     const gaps = [];
@@ -4091,23 +4091,23 @@ function renderAnalyseInsight(text, bg, color) {
   return '<div class="a-insight" style="background:' + bg + '; color:' + color + ';">' + ANALYSE_ICON_STAR + '<span>' + text + '</span></div>';
 }
 
-function renderAnalyseOverview(stillen, windeln, schlafen) {
-  const stillenSpark = svgSparkline(stillen.perDay, (d) => (d.bottleCount + d.breastCount) / d.daysElapsed, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)');
+function renderAnalyseOverview(fuettern, windeln, schlafen) {
+  const fuetternSpark = svgSparkline(fuettern.perDay, (d) => (d.bottleCount + d.breastCount) / d.daysElapsed, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)');
   const windelnSpark = svgSparkline(windeln.perDay, (d) => d.total / d.daysElapsed, '#39ABAB', '#39ABAB');
   const schlafenSpark = svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + d.napMinutes / d.daysElapsed) / 60, '#6A5ACD', '#4B3F9E');
   const totalWechsel = windeln.perDay.reduce((s, d) => s + d.total, 0);
   const warnWechsel = windeln.warnCount;
 
   return '' +
-    '<div class="a-ov-card" data-target="stillen" style="border-left:4px solid var(--stillen);">' +
+    '<div class="a-ov-card" data-target="fuettern" style="border-left:4px solid var(--fuettern);">' +
       '<div class="a-ov-top"><div class="a-ov-id">' +
-        '<div class="a-ov-icon" style="background:var(--stillen-soft); color:var(--stillen-strong);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg></div>' +
-        '<span class="a-ov-name">Stillen</span></div>' +
-        '<svg viewBox="0 0 60 22" width="60" height="22">' + stillenSpark + '</svg>' +
+        '<div class="a-ov-icon" style="background:var(--fuettern-soft); color:var(--fuettern-strong);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg></div>' +
+        '<span class="a-ov-name">Füttern</span></div>' +
+        '<svg viewBox="0 0 60 22" width="60" height="22">' + fuetternSpark + '</svg>' +
       '</div>' +
-      '<div class="a-ov-primary">Ø ' + stillen.avgPerDay + ' <span class="unit">Fütterungen / Tag</span></div>' +
-      '<div class="a-ov-secondary">' + stillen.avgBottleMl + ' ml Ø Trinkmenge · ' + stillen.avgBreastMin + ' Min. Ø Stillzeit (Brust)</div>' +
-      '<div class="a-ov-bottom" style="color:var(--stillen-strong);">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
+      '<div class="a-ov-primary">Ø ' + fuettern.avgPerDay + ' <span class="unit">Fütterungen / Tag</span></div>' +
+      '<div class="a-ov-secondary">' + fuettern.avgBottleMl + ' ml Ø Trinkmenge · ' + fuettern.avgBreastMin + ' Min. Ø Stillzeit (Brust)</div>' +
+      '<div class="a-ov-bottom" style="color:var(--fuettern-strong);">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
     '</div>' +
     '<div class="a-ov-card" data-target="windeln" style="border-left:4px solid var(--windeln);">' +
       '<div class="a-ov-top"><div class="a-ov-id">' +
@@ -4133,30 +4133,30 @@ function renderAnalyseOverview(stillen, windeln, schlafen) {
     '</div>';
 }
 
-function renderAnalyseStillen(stillen) {
+function renderAnalyseFuettern(fuettern) {
   return '' +
     '<div class="a-stat-row">' +
-      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--stillen-strong);">' + stillen.avgPerDay + '</div><div class="a-stat-cap">Ø / TAG</div></div>' +
-      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--stillen-strong);">' + (stillen.avgIntervalH === null ? '–' : stillen.avgIntervalH + ' h') + '</div><div class="a-stat-cap">Ø ABSTAND</div></div>' +
-      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--stillen-strong);">' + stillen.bottlePct + '% / ' + stillen.breastPct + '%</div><div class="a-stat-cap">FLASCHE / BRUST</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--fuettern-strong);">' + fuettern.avgPerDay + '</div><div class="a-stat-cap">Ø / TAG</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--fuettern-strong);">' + (fuettern.avgIntervalH === null ? '–' : fuettern.avgIntervalH + ' h') + '</div><div class="a-stat-cap">Ø ABSTAND</div></div>' +
+      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--fuettern-strong);">' + fuettern.bottlePct + '% / ' + fuettern.breastPct + '%</div><div class="a-stat-cap">FLASCHE / BRUST</div></div>' +
     '</div>' +
     '<div class="a-card">' +
-      '<div class="a-card-value-row"><div><div class="a-card-label">Fütterungen pro Tag</div><div class="a-card-value">Ø ' + stillen.avgPerDay + ' / Tag</div></div>' +
-      '<div class="a-legend"><span><i style="background:var(--stillen-strong);"></i>Fläschchen</span><span><i style="background:var(--stillen-breast);"></i>Brust</span></div></div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(stillen.perDay, (d) => d.bottleCount / d.daysElapsed, (d) => d.breastCount / d.daysElapsed, 'oklch(48% 0.13 250)', 'oklch(80% 0.05 250)', stillen.avgPerDay) + '</svg>' +
+      '<div class="a-card-value-row"><div><div class="a-card-label">Fütterungen pro Tag</div><div class="a-card-value">Ø ' + fuettern.avgPerDay + ' / Tag</div></div>' +
+      '<div class="a-legend"><span><i style="background:var(--fuettern-strong);"></i>Fläschchen</span><span><i style="background:var(--fuettern-breast);"></i>Brust</span></div></div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(fuettern.perDay, (d) => d.bottleCount / d.daysElapsed, (d) => d.breastCount / d.daysElapsed, 'oklch(48% 0.13 250)', 'oklch(80% 0.05 250)', fuettern.avgPerDay) + '</svg>' +
       analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card">' +
-      '<div class="a-card-label">Trinkmenge (Fläschchen)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + stillen.avgBottleMl + ' ml / Tag</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.bottleMl / d.daysElapsed, 'oklch(48% 0.13 250)', 'a-area', stillen.avgBottleMl) + '</svg>' +
+      '<div class="a-card-label">Trinkmenge (Fläschchen)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + fuettern.avgBottleMl + ' ml / Tag</div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(fuettern.perDay, (d) => d.bottleMl / d.daysElapsed, 'oklch(48% 0.13 250)', 'a-area', fuettern.avgBottleMl) + '</svg>' +
       analyseAxisCaptionHtml() +
     '</div>' +
     '<div class="a-card">' +
-      '<div class="a-card-label">Stilldauer (Brust)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + stillen.avgBreastMin + ' Min. / Tag</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(stillen.perDay, (d) => d.breastMin / d.daysElapsed, 'oklch(48% 0.13 250)', 'breast-area', stillen.avgBreastMin) + '</svg>' +
+      '<div class="a-card-label">Stilldauer (Brust)</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + fuettern.avgBreastMin + ' Min. / Tag</div>' +
+      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgAreaLineChart(fuettern.perDay, (d) => d.breastMin / d.daysElapsed, 'oklch(48% 0.13 250)', 'breast-area', fuettern.avgBreastMin) + '</svg>' +
       analyseAxisCaptionHtml() +
     '</div>' +
-    renderAnalyseInsight(stillen.insight, 'var(--stillen-soft)', 'oklch(38% 0.09 250)');
+    renderAnalyseInsight(fuettern.insight, 'var(--fuettern-soft)', 'oklch(38% 0.09 250)');
 }
 
 function renderAnalyseWindeln(windeln) {
@@ -4218,7 +4218,7 @@ function renderAnalyseSchlafen(schlafen) {
     renderAnalyseInsight(schlafen.insight, 'var(--schlafen-soft)', '#3A306E');
 }
 
-const ANALYSE_VIEWS = ['overview', 'stillen', 'windeln', 'schlafen'];
+const ANALYSE_VIEWS = ['overview', 'fuettern', 'windeln', 'schlafen'];
 function showAnalyseView(view) {
   ANALYSE_VIEWS.forEach((v) => {
     document.getElementById('analyse-view-' + v).style.display = v === view ? 'flex' : 'none';
@@ -4266,12 +4266,12 @@ async function loadAnalyse() {
       getAnalyseRangeDocs('naps', start)
     ]);
 
-    const stillen = computeStillenAnalysis(days, analyseBucketByDay(feedings, days));
+    const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(feedings, days));
     const windeln = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days));
     const schlafen = computeSchlafenAnalysis(days, analyseBucketByDay(nights, days), analyseBucketByDay(naps, days));
 
-    document.getElementById('analyse-view-overview').innerHTML = renderAnalyseOverview(stillen, windeln, schlafen);
-    document.getElementById('analyse-view-stillen').innerHTML = renderAnalyseStillen(stillen);
+    document.getElementById('analyse-view-overview').innerHTML = renderAnalyseOverview(fuettern, windeln, schlafen);
+    document.getElementById('analyse-view-fuettern').innerHTML = renderAnalyseFuettern(fuettern);
     document.getElementById('analyse-view-windeln').innerHTML = renderAnalyseWindeln(windeln);
     document.getElementById('analyse-view-schlafen').innerHTML = renderAnalyseSchlafen(schlafen);
     initNapHistogram(schlafen.napHistogram);

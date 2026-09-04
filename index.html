@@ -75,6 +75,49 @@
   #screen-analyse .a-hist-chev-l { left: -15px; transform: scaleX(-1); }
   #screen-analyse .a-hist-chev-r { right: -15px; }
 
+  /* --- Interaktive Diagramme (Schlafen) --------------------------------- */
+  /* Kontextzeile unter den Einheiten-Chips: sagt, welcher Ausschnitt gerade
+     gezeigt wird. Lila, sobald das ein bestimmter ist (markierter Balken oder
+     aufgezogene Woche), grau beim laufenden Zeitraum. */
+  #screen-analyse .a-context { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 12px; min-height: 17px; }
+  #screen-analyse .a-context.sel { color: var(--schlafen-strong); }
+
+  #screen-analyse .a-chart-wrap { position: relative; }
+  #screen-analyse .a-chart { display: block; width: 100%; height: 105px; touch-action: pan-y; cursor: pointer; }
+  #screen-analyse .a-chart .sc-line, #screen-analyse .a-chart .sc-dot { pointer-events: none; }
+  #screen-analyse .a-chart .bk, #screen-analyse .a-chart .val { transition: opacity .16s ease; }
+  #screen-analyse .a-chart.has-sel .bk:not(.on) { opacity: 0.28; }
+  /* Nur dort, wo die Markierungslinie steht — sonst liefe sie durch die Zahl */
+  #screen-analyse .a-chart.is-active .bk.on .val { opacity: 0; }
+
+  /* Schwebendes Label über dem Diagramm — darf die Kartenüberschrift überlagern */
+  #screen-analyse .a-tip {
+    position: absolute; bottom: calc(100% - 2px); left: 0; z-index: 3;
+    background: var(--schlafen-strong); color: white;
+    border-radius: 11px; padding: 7px 11px 8px; pointer-events: none;
+    box-shadow: 0 6px 18px oklch(0% 0 0 / 0.18); white-space: nowrap;
+  }
+  #screen-analyse .a-tip-v { font-family: 'Fredoka', sans-serif; font-size: 15px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  #screen-analyse .a-tip-s { font-size: 11px; font-weight: 600; color: oklch(100% 0 0 / 0.78); margin-top: 1px; }
+
+  /* Legende wird zum Filter-Schalter */
+  #screen-analyse .a-legend button {
+    display: inline-flex; align-items: center; gap: 4px; border: none; cursor: pointer;
+    background: transparent; border-radius: 8px; padding: 4px 6px;
+    font-size: 10.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap;
+    font-family: 'Work Sans', sans-serif; transition: background .14s ease, opacity .14s ease;
+  }
+  #screen-analyse .a-legend button i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin: 0; transition: box-shadow .14s ease; }
+  #screen-analyse .a-legend button.solo { background: var(--schlafen-soft); color: var(--schlafen-strong); }
+  #screen-analyse .a-legend button.muted { opacity: 0.38; }
+  #screen-analyse .a-legend button.muted i { background: transparent !important; box-shadow: inset 0 0 0 1.5px currentColor; }
+
+  /* Angetippte Bedienelemente bleiben sonst fokussiert — Android zeichnet
+     darum einen bleibenden orangen Rahmen. Tastaturfokus bleibt sichtbar. */
+  #screen-analyse, #screen-analyse * { -webkit-tap-highlight-color: transparent; }
+  #screen-analyse :focus:not(:focus-visible) { outline: none; }
+  #screen-analyse .a-chart .hit:focus-visible { outline: 2px solid var(--schlafen-strong); outline-offset: -2px; }
+
   #screen-windeln .w-color-wrap { position: relative; }
   #screen-windeln .w-color-scroller { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 6px 6px 8px; }
   #screen-windeln .w-color-scroller::-webkit-scrollbar { display: none; }
@@ -920,10 +963,12 @@
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 16px;">
-        <div class="a-range-chip active" data-range="7d">7 Tage</div>
-        <div class="a-range-chip" data-range="8w">8 Wochen</div>
-        <div class="a-range-chip disabled" title="Verfügbar sobald genug Daten da sind">12 Monate</div>
+        <div class="a-range-chip active" data-scope="days">Tage</div>
+        <div class="a-range-chip" data-scope="weeks">Wochen</div>
+        <div class="a-range-chip disabled" title="Verfügbar sobald genug Daten da sind">Monate</div>
       </div>
+
+      <div id="analyse-context" class="a-context"></div>
     </div>
 
     <div id="analyse-body" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 16px 24px 16px; display: flex; flex-direction: column; gap: 14px;">
@@ -3560,11 +3605,19 @@ const ANALYSE_RANGE_DAYS = 7;
 const ANALYSE_WEEK_COUNT = 8;
 const ANALYSE_WEEKDAY_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const ANALYSE_WEEKDAY_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+const ANALYSE_MONTH_SHORT = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'];
+const ANALYSE_MONTH_FULL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 // Range-dependent labels/phrasing, set at the top of loadAnalyse() for whichever
 // range is currently selected, and read by the chart/insight builders below —
 // avoids threading a "range" parameter through every function signature.
-let analyseRange = '7d';
+// Zeitausschnitt der Analyse. Die Chips oben sind ein Zoomstufen-Regler, kein
+// reiner Zeitraum-Umschalter: sie sagen "wie fein", eine markierte Woche sagt
+// "wovon". `anchor` ist der letzte Tag des Tages-Ausschnitts (null = heute) —
+// nur damit lässt sich überhaupt eine zurückliegende Woche darstellen.
+// `drilledWeek`/`returnIndex`/`returnChart` merken sich den Weg dorthin, damit
+// "Wochen" wieder mit derselben Woche markiert zurückführt.
+let analyseScope = { mode: 'days', anchor: null, drilledWeek: null, returnIndex: null, returnChart: null };
 let analyseAxisTodayLabel = 'Heute';
 let analyseProseTodayLabel = 'Heute';
 let analyseRangeLabel = 'Woche';
@@ -3588,8 +3641,12 @@ function nightDurationMinutes(n) {
   return wake - bed;
 }
 
-function buildAnalyseDayBuckets() {
-  const start = todayStartDate();
+// endDate = letzter Tag des Ausschnitts (null = heute). Beim Hineinzoomen in
+// eine zurückliegende Kalenderwoche zeigt der Ausschnitt deren Tage, deshalb
+// darf hier nicht mehr fest von heute zurückgerechnet werden.
+function buildAnalyseDayBuckets(endDate) {
+  const todayKey = isoDate(todayStartDate());
+  const start = endDate ? new Date(endDate) : todayStartDate();
   start.setDate(start.getDate() - (ANALYSE_RANGE_DAYS - 1));
   const days = [];
   for (let i = 0; i < ANALYSE_RANGE_DAYS; i++) {
@@ -3599,7 +3656,8 @@ function buildAnalyseDayBuckets() {
       dayKeys: [isoDate(d)],
       label: ANALYSE_WEEKDAY_SHORT[d.getDay()],
       fullLabel: ANALYSE_WEEKDAY_FULL[d.getDay()],
-      isToday: i === ANALYSE_RANGE_DAYS - 1,
+      contextLabel: ANALYSE_WEEKDAY_FULL[d.getDay()] + ', ' + d.getDate() + '. ' + ANALYSE_MONTH_FULL[d.getMonth()],
+      isToday: isoDate(d) === todayKey,
       daysElapsed: 1
     });
   }
@@ -3646,8 +3704,10 @@ function buildAnalyseWeekBuckets() {
     const weekNum = isoWeekNumber(wStart);
     days.push({
       dayKeys,
+      weekStart: new Date(wStart),
       label: String(weekNum),
       fullLabel: 'Kalenderwoche ' + weekNum,
+      contextLabel: 'Kalenderwoche ' + weekNum,
       isToday: isCurrent,
       daysElapsed: dayKeys.length
     });
@@ -3844,8 +3904,13 @@ function computeSchlafenAnalysis(days, nightMap, napMap) {
     const nightMinutes = nights.length ? analyseAvg(nights.map(nightDurationMinutes)) : 0;
     const wakeCount = nights.length ? analyseAvg(nights.map((n) => n.wakeCount || 0)) : 0;
     return {
-      label: d.label, fullLabel: d.fullLabel, isToday: d.isToday, daysElapsed: d.daysElapsed,
-      nightMinutes, napMinutes, napCount: napsToday.length, hasNight: nights.length > 0, wakeCount
+      label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
+      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
+      nightMinutes, napMinutes, napCount: napsToday.length, hasNight: nights.length > 0, wakeCount,
+      // Für die Kennzahl-Kacheln, die dem markierten Balken folgen. null statt 0,
+      // damit ein Bucket ohne Nachteintrag als "–" erkennbar bleibt.
+      bedMin: nights.length ? analyseAvg(nights.map((n) => parseMinutes(n.bedtime))) : null,
+      wakeMin: nights.length ? analyseAvg(nights.map((n) => parseMinutes(n.wakeTime))) : null
     };
   });
 
@@ -3866,8 +3931,17 @@ function computeSchlafenAnalysis(days, nightMap, napMap) {
 
   const outlier = findAnalyseOutlierDay(daysWithNight, (d) => d.wakeCount);
 
+  // Ungerundete Fassungen derselben Mittelwerte. Die gerundeten bleiben für
+  // die Übersichtskarte; die interaktiven Diagramme brauchen exakte Werte,
+  // damit Ø-Linie und Kartenwert sich beim Filtern sauber aufaddieren.
+  const avgNightHExact = daysWithNight.length ? analyseAvg(daysWithNight.map((d) => d.nightMinutes)) / 60 : 0;
+  const avgNapHExact = perDay.reduce((s, d) => s + d.napMinutes, 0) / totalDays / 60;
+  const avgWakeExact = daysWithNight.length ? analyseAvg(daysWithNight.map((d) => d.wakeCount)) : null;
+  const avgNapCountExact = perDay.reduce((s, d) => s + d.napCount, 0) / totalDays;
+
   return {
     perDay, avgNightH, avgNapH, avgTotalH, avgWake, avgNapCount, avgBedtime, avgWaketime, napHistogram,
+    avgNightHExact, avgNapHExact, avgWakeExact, avgNapCountExact,
     insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + analyseRound(outlier.value) + '× Aufwachen — die meisten Unterbrechungen der letzten ' + analyseRangeLabel + '.') : null
   };
 }
@@ -4022,7 +4096,7 @@ function initNapHistogram(napHistogram) {
   lastNapHistogram = napHistogram;
   const scroller = document.getElementById('nap-hist-scroller');
   if (!scroller) return;
-  const dayBar = document.querySelector('#nap-count-svg rect');
+  const dayBar = document.querySelector('#analyse-view-schlafen svg[data-chart="schlaf-naps"] .bk rect');
   let binPx = dayBar ? dayBar.getBoundingClientRect().width : 0;
   if (!(binPx > 0)) binPx = 30;
   const n = napHistogram.length;
@@ -4053,6 +4127,13 @@ function initNapHistogram(napHistogram) {
     chevL.style.opacity = showL;
     chevR.style.opacity = showR;
   }
+  // Das Kartengerüst bleibt jetzt über Neuladen hinweg stehen, der Scroller
+  // also auch — ohne diese Sperre würde sich bei jedem Aufruf ein weiterer
+  // Scroll-Listener stapeln. Der Handler liest maxScroll frisch aus der
+  // Closure der jeweils letzten Registrierung, deshalb wird er hier gemerkt
+  // und beim erneuten Verdrahten ersetzt.
+  if (scroller._fadeHandler) scroller.removeEventListener('scroll', scroller._fadeHandler);
+  scroller._fadeHandler = updateFades;
   scroller.addEventListener('scroll', updateFades);
   updateFades();
 }
@@ -4182,30 +4263,160 @@ function renderAnalyseWindeln(windeln) {
     renderAnalyseInsight(windeln.insight, 'var(--windeln-soft)', '#1F6B6B');
 }
 
-function renderAnalyseSchlafen(schlafen) {
-  return '' +
-    '<div class="a-stat-grid">' +
-      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgTotalH + ' h</div><div class="a-stat-cap">Ø GESAMTSCHLAF</div></div>' +
-      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + '</div><div class="a-stat-cap">Ø AUFWACHEN</div></div>' +
-      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgWaketime + '</div><div class="a-stat-cap">Ø AUFWACHZEIT</div></div>' +
-      '<div class="a-stat-tile"><div class="a-stat-num" style="color:var(--schlafen-strong);">' + schlafen.avgBedtime + '</div><div class="a-stat-cap">Ø EINSCHLAFZEIT</div></div>' +
+// ===== Interaktive Diagramme (nur Schlafen) ==============================
+// Aufgebaut wie ein Register: jedes Diagramm ist ein Datensatz, eine generische
+// Funktion baut daraus Karte, Legende, SVG und Auswahlverhalten. Ein weiteres
+// interaktives Diagramm ist damit ein Eintrag hier, kein neuer Event-Code.
+// Füttern/Windeln/Übersicht laufen weiterhin über die alten Builder.
+
+function analyseHhmm(hours) {
+  const total = Math.round(hours * 60);
+  return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+}
+function analyseDe1(n) {
+  return n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+function analyseWeekRangeText(weekStart) {
+  const end = new Date(weekStart);
+  end.setDate(end.getDate() + 6);
+  let a = weekStart.getDate() + '.';
+  if (weekStart.getMonth() !== end.getMonth()) a += ' ' + ANALYSE_MONTH_SHORT[weekStart.getMonth()];
+  return 'KW ' + isoWeekNumber(weekStart) + ' · ' + a + '–' + end.getDate() + '. ' + ANALYSE_MONTH_SHORT[end.getMonth()];
+}
+
+const SCHLAFEN_CHARTS = {
+  'schlaf-gesamt': {
+    title: 'Gesamtschlaf pro Tag',
+    series: [
+      { key: 'night', label: 'Nachts', color: '#4B3F9E', value: (d) => d.nightMinutes / 60, mean: (a) => a.avgNightHExact },
+      { key: 'nap', label: 'Tagsüber', color: '#B7ADEB', value: (d) => d.napMinutes / d.daysElapsed / 60, mean: (a) => a.avgNapHExact }
+    ],
+    barLabel: (v) => String(analyseRound(v)),
+    headline: (v) => 'Ø ' + analyseHhmm(v) + ' Std.',
+    tipValue: (v) => analyseHhmm(v) + ' Std.',
+    detail: (v) => analyseHhmm(v)
+  },
+  'schlaf-aufwachen': {
+    title: 'Aufwachen pro Nacht',
+    series: [{ key: 'wake', label: 'Aufwachen', color: '#4B3F9E', value: (d) => d.wakeCount, mean: (a) => a.avgWakeExact || 0 }],
+    barLabel: (v) => String(analyseRound(v)),
+    headline: (v) => 'Ø ' + analyseDe1(v) + '× / Nacht',
+    tipValue: (v) => analyseDe1(v) + '× aufgewacht',
+    detail: (v) => analyseDe1(v) + '×'
+  },
+  'schlaf-naps': {
+    title: 'Schläfchen pro Tag',
+    series: [{ key: 'napc', label: 'Schläfchen', color: '#4B3F9E', value: (d) => d.napCount / d.daysElapsed, mean: (a) => a.avgNapCountExact }],
+    barLabel: (v) => String(analyseRound(v)),
+    headline: (v) => 'Ø ' + analyseDe1(v) + ' / Tag',
+    tipValue: (v) => analyseDe1(v) + ' Schläfchen',
+    detail: (v) => analyseDe1(v)
+  }
+};
+const SCHLAFEN_CARD_ORDER = ['schlaf-gesamt', 'schlaf-aufwachen', 'schlaf-naps'];
+
+// { chartId, index } — der markierte Balken. Global über alle Schlaf-Diagramme:
+// ein gewählter Tag wird überall hervorgehoben, das Label zeigt nur das
+// Diagramm, auf dem der Finger liegt.
+let schlafenSelection = null;
+// chartId -> isolierter series.key (Legendenfilter)
+const schlafenFilter = {};
+// Was zum Nachzeichnen einer Auswahl gebraucht wird, ohne das Diagramm neu zu
+// bauen: beim Wischen werden nur Linie, Punkt und Label bewegt.
+let schlafenRender = {};
+let schlafenAnalysis = null;
+let schlafenBuilt = false;
+
+function schlafenVisibleSeries(chartId, cfg) {
+  const iso = schlafenFilter[chartId];
+  return iso ? cfg.series.filter((s) => s.key === iso) : cfg.series;
+}
+
+// Liefert nur das Innenleben der SVG — der Rahmen der Karte bleibt stehen.
+function schlafenChartInner(chartId, cfg, analysis) {
+  const bs = analysis.perDay;
+  const { barW, gap } = analyseBarGeom(bs.length);
+  const startX = 4, baseline = 95, maxPx = 78;
+  const series = schlafenVisibleSeries(chartId, cfg);
+  const totals = bs.map((b) => series.reduce((s, se) => s + se.value(b), 0));
+  const mean = series.reduce((s, se) => s + (se.mean(analysis) || 0), 0);
+  const maxVal = Math.max(1, ...totals, mean);
+  const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx]);
+  const yOf = (v) => y(v);
+  schlafenRender[chartId] = { cfg, bs, series, totals, mean, barW, gap, startX, yOf };
+
+  let out = '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
+    svgMeanLine(mean, maxVal, baseline, maxPx, series[0].color);
+
+  bs.forEach((b, i) => {
+    const x = startX + i * (barW + gap);
+    let stack = 0, rects = '';
+    series.forEach((se) => {
+      const h = baseline - y(se.value(b));
+      rects += '<rect x="' + x + '" y="' + (baseline - stack - h) + '" width="' + barW +
+        '" height="' + Math.max(0, h) + '" rx="4" fill="' + se.color + '"/>';
+      stack += h;
+    });
+    // Beim markierten Balken ausgeblendet (per CSS): dort steht die
+    // Markierungslinie, und die Zahl steht ohnehin groß im Label.
+    rects += '<text class="val" x="' + (x + barW / 2) + '" y="' + Math.max(12, baseline - stack - 4) +
+      '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + series[0].color +
+      '" text-anchor="middle">' + cfg.barLabel(totals[i]) + '</text>';
+    const axis = b.isToday
+      ? '<text x="' + (x + barW / 2) + '" y="111" font-weight="700" fill="' + series[0].color + '">' + analyseAxisTodayLabel + '</text>'
+      : '<text x="' + (x + barW / 2) + '" y="111">' + b.label + '</text>';
+    out += '<g class="bk" data-i="' + i + '">' + rects +
+      '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)" text-anchor="middle">' + axis + '</g></g>';
+  });
+
+  // Scrub-Marker: Punkt auf dem Wert, Linie von dort nach oben — sie endet an
+  // der Balkenoberkante und liegt nie über dem Balken. Wird beim Wischen nur
+  // verschoben, nicht neu gebaut.
+  out += '<g class="sc" style="display:none">' +
+    '<line class="sc-line" x1="0" y1="2" x2="0" y2="0" stroke="oklch(27% 0.006 250)" stroke-width="1.4"/>' +
+    '<circle class="sc-dot" cx="0" cy="0" r="4" fill="oklch(27% 0.006 250)" stroke="white" stroke-width="2"/></g>';
+
+  // Trefferflächen für Tastatur und Screenreader — gewischt wird über den Zeiger.
+  bs.forEach((b, i) => {
+    const hx = Math.max(0, startX + i * (barW + gap) - gap / 2);
+    out += '<rect class="hit" data-i="' + i + '" x="' + hx + '" y="0" width="' + (barW + gap) +
+      '" height="118" fill="transparent" tabindex="0" role="button"><title>' + b.fullLabel + '</title></rect>';
+  });
+  return out;
+}
+
+// Kartengerüst: Überschrift, Legende, Achsenhinweis und die leere SVG. Wird
+// genau einmal gebaut und danach nie wieder angefasst — beim Wechsel der
+// Zoomstufe tauscht nur der Inhalt der SVG und ein paar Textknoten. Ein voller
+// Neuaufbau würde wie ein Seitenaufbau wirken.
+function schlafenCardShell(chartId) {
+  const cfg = SCHLAFEN_CHARTS[chartId];
+  const legend = cfg.series.length < 2 ? '' :
+    '<div class="a-legend">' + cfg.series.map((s) =>
+      '<button type="button" class="lg" data-chart="' + chartId + '" data-series="' + s.key + '">' +
+      '<i style="background:' + s.color + ';"></i>' + s.label + '</button>').join('') + '</div>';
+  return '<div class="a-card" data-card="' + chartId + '">' +
+    '<div class="a-card-value-row">' +
+      '<div><div class="a-card-label">' + cfg.title + '</div><div class="a-card-value"></div></div>' + legend +
     '</div>' +
-    '<div class="a-card">' +
-      '<div class="a-card-value-row"><div><div class="a-card-label">Gesamtschlaf pro Tag</div><div class="a-card-value">Ø ' + schlafen.avgTotalH + ' Std.</div></div>' +
-      '<div class="a-legend"><span><i style="background:var(--schlafen-strong);"></i>Nachts</span><span><i style="background:var(--schlafen-light);"></i>Tagsüber</span></div></div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgStackedBarChart(schlafen.perDay, (d) => d.nightMinutes / 60, (d) => d.napMinutes / d.daysElapsed / 60, '#4B3F9E', '#B7ADEB', schlafen.avgTotalH) + '</svg>' +
-      analyseAxisCaptionHtml() +
+    '<div class="a-chart-wrap"><div class="a-tip" hidden></div>' +
+      '<svg class="a-chart" viewBox="0 0 308 118" data-chart="' + chartId + '"></svg></div>' +
+    '<div class="a-axis-unit" hidden>Kalenderwoche</div>' +
+  '</div>';
+}
+
+const SCHLAFEN_STAT_TILES = [
+  ['total', 'GESAMTSCHLAF'], ['wake', 'AUFWACHEN'],
+  ['waketime', 'AUFWACHZEIT'], ['bedtime', 'EINSCHLAFZEIT']
+];
+
+function schlafenShellHtml() {
+  return '<div class="a-stat-grid">' +
+    SCHLAFEN_STAT_TILES.map((t) =>
+      '<div class="a-stat-tile"><div class="a-stat-num" data-stat="' + t[0] + '" style="color:var(--schlafen-strong);">–</div>' +
+      '<div class="a-stat-cap" data-cap="' + t[1] + '"></div></div>').join('') +
     '</div>' +
-    '<div class="a-card">' +
-      '<div class="a-card-label">Aufwachen pro Nacht</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + ' / Nacht</div>' +
-      '<svg viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.wakeCount, '#4B3F9E', schlafen.avgWake) + '</svg>' +
-      analyseAxisCaptionHtml() +
-    '</div>' +
-    '<div class="a-card">' +
-      '<div class="a-card-label">Schläfchen pro Tag</div><div class="a-card-value" style="margin-bottom:8px;">Ø ' + schlafen.avgNapCount + ' / Tag</div>' +
-      '<svg id="nap-count-svg" viewBox="0 0 308 118" width="100%" height="105">' + svgBarChart(schlafen.perDay, (d) => d.napCount / d.daysElapsed, '#4B3F9E', schlafen.avgNapCount) + '</svg>' +
-      analyseAxisCaptionHtml() +
-    '</div>' +
+    SCHLAFEN_CARD_ORDER.map(schlafenCardShell).join('') +
     '<div class="a-card">' +
       '<div class="a-card-label">Uhrzeit der Schläfchen</div>' +
       '<div class="a-hist-wrap">' +
@@ -4215,8 +4426,216 @@ function renderAnalyseSchlafen(schlafen) {
         '<div id="nap-hist-scroller" class="a-hist-scroller"></div>' +
       '</div>' +
     '</div>' +
-    renderAnalyseInsight(schlafen.insight, 'var(--schlafen-soft)', '#3A306E');
+    '<div class="a-insight" data-schlafen-insight hidden style="background:var(--schlafen-soft); color:#3A306E;">' +
+      ANALYSE_ICON_STAR + '<span></span></div>';
 }
+
+// Kennzahl-Kacheln und Kontextzeile folgen dem markierten Balken. Der
+// Legendenfilter bleibt außen vor — er blendet eine Kategorie im Diagramm aus,
+// ändert aber nicht die Kennzahlen des Tages.
+function updateSchlafenStats() {
+  const a = schlafenAnalysis;
+  const ctx = document.getElementById('analyse-context');
+  if (!a || !ctx) return;
+  const bs = a.perDay;
+  const i = schlafenSelection ? Math.min(schlafenSelection.index, bs.length - 1) : -1;
+  const b = i >= 0 ? bs[i] : null;
+
+  const vals = b
+    ? {
+        total: analyseHhmm(b.nightMinutes / 60 + b.napMinutes / b.daysElapsed / 60),
+        wake: b.hasNight ? analyseDe1(b.wakeCount) + '×' : '–',
+        waketime: b.wakeMin === null ? '–' : minutesToHHMM(b.wakeMin),
+        bedtime: b.bedMin === null ? '–' : minutesToHHMM(b.bedMin)
+      }
+    : {
+        total: analyseHhmm(a.avgNightHExact + a.avgNapHExact),
+        wake: a.avgWakeExact === null ? '–' : analyseDe1(a.avgWakeExact) + '×',
+        waketime: a.avgWaketime,
+        bedtime: a.avgBedtime
+      };
+
+  const host = document.getElementById('analyse-view-schlafen');
+  host.querySelectorAll('.a-stat-num[data-stat]').forEach((el) => { el.textContent = vals[el.dataset.stat]; });
+  // „Ø" nur, wo wirklich gemittelt wird — bei einem einzelnen Tag nicht.
+  const isAvg = !b || b.daysElapsed > 1;
+  host.querySelectorAll('.a-stat-cap[data-cap]').forEach((el) => { el.textContent = (isAvg ? 'Ø ' : '') + el.dataset.cap; });
+
+  ctx.textContent = b ? b.contextLabel
+    : analyseScope.drilledWeek ? analyseWeekRangeText(analyseScope.drilledWeek)
+    : analyseScope.mode === 'weeks' ? 'Letzte ' + ANALYSE_WEEK_COUNT + ' Wochen' : 'Letzte ' + ANALYSE_RANGE_DAYS + ' Tage';
+  // Lila = ein bestimmter Ausschnitt, grau = der laufende Zeitraum.
+  ctx.classList.toggle('sel', !!b || analyseScope.drilledWeek !== null);
+}
+
+// Verschiebt Marker und Label, ohne die Diagramme neu zu zeichnen.
+function applySchlafenSelection() {
+  updateSchlafenStats();
+  Object.keys(schlafenRender).forEach((chartId) => {
+    const svgEl = document.querySelector('#analyse-view-schlafen svg[data-chart="' + chartId + '"]');
+    if (!svgEl) return;
+    const wrap = svgEl.parentElement;
+    const tip = wrap.querySelector('.a-tip');
+    const sc = svgEl.querySelector('.sc');
+    const r = schlafenRender[chartId];
+    const i = schlafenSelection ? Math.min(schlafenSelection.index, r.bs.length - 1) : -1;
+    const active = i >= 0 && schlafenSelection.chartId === chartId;
+
+    // Hervorheben/Verblassen in jedem Diagramm der Ansicht — so bleibt der
+    // gewählte Tag über alle Kennzahlen hinweg ablesbar.
+    svgEl.classList.toggle('has-sel', i >= 0);
+    svgEl.classList.toggle('is-active', active);
+    const groups = svgEl.querySelectorAll('.bk');
+    for (let k = 0; k < groups.length; k++) groups[k].classList.toggle('on', k === i);
+
+    // Linie und Punkt nur dort, wo der Finger liegt.
+    if (!active) { sc.style.display = 'none'; tip.hidden = true; return; }
+    const cx = r.startX + i * (r.barW + r.gap) + r.barW / 2;
+    const cy = r.yOf(r.totals[i]);
+    sc.style.display = '';
+    sc.querySelector('.sc-line').setAttribute('x1', cx);
+    sc.querySelector('.sc-line').setAttribute('x2', cx);
+    sc.querySelector('.sc-line').setAttribute('y2', cy);
+    sc.querySelector('.sc-dot').setAttribute('cx', cx);
+    sc.querySelector('.sc-dot').setAttribute('cy', cy);
+
+    // Label: große Zahl, darunter die Aufteilung. Ohne Datum — das steht schon
+    // hervorgehoben unter dem Balken und in der Kontextzeile.
+    const b = r.bs[i];
+    const sub = r.series.length > 1
+      ? r.series.map((se) => se.label + ' ' + r.cfg.detail(se.value(b))).join(' · ') : '';
+    tip.hidden = false;
+    tip.innerHTML = '<div class="a-tip-v">' + r.cfg.tipValue(r.totals[i]) + '</div>' +
+      (sub ? '<div class="a-tip-s">' + sub + '</div>' : '');
+    // Waagerecht auf den Balken zentriert, aber in die Karte hineingeschoben,
+    // damit es am Rand nicht abgeschnitten wird. Misst live — schlägt die
+    // Messung fehl (verstecktes Tab), bleibt es mittig statt zu zerbrechen.
+    const wrapW = wrap.getBoundingClientRect().width;
+    const tipW = tip.getBoundingClientRect().width;
+    tip.style.left = (wrapW > 0 && tipW > 0)
+      ? Math.round(Math.min(Math.max(cx / 308 * wrapW - tipW / 2, -14), wrapW - tipW + 14)) + 'px'
+      : '';
+  });
+}
+
+function updateSchlafenCard(chartId) {
+  const cfg = SCHLAFEN_CHARTS[chartId];
+  const card = document.querySelector('#analyse-view-schlafen [data-card="' + chartId + '"]');
+  card.querySelector('svg.a-chart').innerHTML = schlafenChartInner(chartId, cfg, schlafenAnalysis);
+
+  const iso = schlafenFilter[chartId];
+  const qual = iso ? ' <span class="qual" style="font-family:\'Work Sans\',sans-serif; font-size:12px; font-weight:600; color:var(--text-muted);">nur ' +
+    cfg.series.find((s) => s.key === iso).label.toLowerCase() + '</span>' : '';
+  card.querySelector('.a-card-value').innerHTML = cfg.headline(schlafenRender[chartId].mean) + qual;
+  card.querySelectorAll('.lg').forEach((btn) => {
+    btn.classList.toggle('solo', iso === btn.dataset.series);
+    btn.classList.toggle('muted', !!iso && iso !== btn.dataset.series);
+  });
+  card.querySelector('.a-axis-unit').hidden = analyseScope.mode !== 'weeks';
+}
+
+// Einstiegspunkt aus loadAnalyse(): Gerüst einmal bauen, danach nur Werte.
+function renderAnalyseSchlafen(schlafen) {
+  const host = document.getElementById('analyse-view-schlafen');
+  schlafenAnalysis = schlafen;
+  if (!schlafenBuilt) {
+    host.innerHTML = schlafenShellHtml();
+    schlafenBuilt = true;
+  }
+  if (schlafenSelection && schlafenSelection.index >= schlafen.perDay.length) schlafenSelection = null;
+  SCHLAFEN_CARD_ORDER.forEach(updateSchlafenCard);
+
+  const insight = host.querySelector('[data-schlafen-insight]');
+  insight.hidden = !schlafen.insight;
+  if (schlafen.insight) insight.querySelector('span').textContent = schlafen.insight;
+  // Der Insight-Kasten bleibt als verstecktes Element stehen, damit das Gerüst
+  // konstant bleibt — dadurch greift .a-card:last-child nicht mehr und die
+  // Histogramm-Karte behielte ihren Abstand nach unten.
+  insight.previousElementSibling.style.marginBottom = schlafen.insight ? '' : '0';
+
+  applySchlafenSelection();
+}
+
+// --- Wischen statt nur Antippen -----------------------------------------
+// Der Balkenindex kommt aus der Zeigerposition, nicht aus einem getroffenen
+// Element — dadurch reißt die Bewegung nie ab und auch die Lücken zwischen
+// den Balken liefern einen sinnvollen Wert.
+function schlafenIndexAt(svgEl, clientX, n) {
+  const r = svgEl.getBoundingClientRect();
+  if (!(r.width > 0)) return 0;
+  const { barW, gap } = analyseBarGeom(n);
+  const vx = (clientX - r.left) / r.width * 308;
+  return Math.max(0, Math.min(n - 1, Math.round((vx - 4 - barW / 2) / (barW + gap))));
+}
+
+// toggle: nur beim Tippen/Tastatur — beim Zurückwischen auf denselben Balken
+// würde es die Auswahl sonst ausschalten.
+function schlafenPick(chartId, i, toggle) {
+  const same = schlafenSelection && schlafenSelection.chartId === chartId && schlafenSelection.index === i;
+  if (toggle && same) schlafenSelection = null;
+  else if (!same) schlafenSelection = { chartId, index: i };
+  else return;
+  applySchlafenSelection();
+}
+
+(function wireSchlafenScrubbing() {
+  const host = document.getElementById('analyse-view-schlafen');
+  let scrub = null;
+
+  host.addEventListener('pointerdown', (e) => {
+    const svgEl = e.target.closest && e.target.closest('svg.a-chart');
+    if (!svgEl) return;
+    const id = svgEl.dataset.chart;
+    if (!schlafenRender[id]) return;
+    const i0 = schlafenIndexAt(svgEl, e.clientX, schlafenRender[id].bs.length);
+    scrub = {
+      id, moved: false, startX: e.clientX, startIndex: i0,
+      wasSelected: !!(schlafenSelection && schlafenSelection.chartId === id && schlafenSelection.index === i0)
+    };
+    schlafenPick(id, i0, false);
+  });
+
+  host.addEventListener('pointermove', (e) => {
+    if (!scrub) return;
+    const svgEl = document.querySelector('#analyse-view-schlafen svg[data-chart="' + scrub.id + '"]');
+    if (!svgEl) return;
+    if (Math.abs(e.clientX - scrub.startX) > 4) scrub.moved = true;
+    schlafenPick(scrub.id, schlafenIndexAt(svgEl, e.clientX, schlafenRender[scrub.id].bs.length), false);
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!scrub) return;
+    // Nach einem Tipp keinen Fokus auf der Trefferfläche liegen lassen —
+    // sonst bleibt der Fokusrahmen des Systems stehen (auf Android orange).
+    const ae = document.activeElement;
+    if (ae && ae.classList && ae.classList.contains('hit') && ae.blur) ae.blur();
+    // Ein Tipp auf den bereits markierten Balken hebt die Markierung auf;
+    // nach einer Wischbewegung bleibt sie stehen.
+    if (!scrub.moved && scrub.wasSelected && schlafenSelection &&
+        schlafenSelection.chartId === scrub.id && schlafenSelection.index === scrub.startIndex) {
+      schlafenSelection = null;
+      applySchlafenSelection();
+    }
+    scrub = null;
+  });
+
+  host.addEventListener('click', (e) => {
+    const lg = e.target.closest && e.target.closest('.lg');
+    if (!lg) return;
+    const c = lg.dataset.chart, k = lg.dataset.series;
+    schlafenFilter[c] = schlafenFilter[c] === k ? null : k;
+    updateSchlafenCard(c);
+    applySchlafenSelection();
+  });
+
+  host.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const hit = e.target.classList && e.target.classList.contains('hit') ? e.target : null;
+    if (!hit) return;
+    e.preventDefault();
+    schlafenPick(hit.closest('svg').dataset.chart, Number(hit.dataset.i), true);
+  });
+})();
 
 const ANALYSE_VIEWS = ['overview', 'fuettern', 'windeln', 'schlafen'];
 function showAnalyseView(view) {
@@ -4230,35 +4649,90 @@ function showAnalyseView(view) {
   // The nap histogram measures a sibling chart's rendered bar width, which
   // reads as 0 while this view was hidden — re-measure now that it's visible.
   if (view === 'schlafen' && lastNapHistogram) initNapHistogram(lastNapHistogram);
+  // Das schwebende Label wird beim Positionieren live vermessen — im
+  // versteckten Tab liefert das 0. Jetzt, wo die Ansicht sichtbar ist,
+  // nochmal setzen, damit es an der richtigen Stelle sitzt.
+  if (view === 'schlafen' && schlafenAnalysis) applySchlafenSelection();
 }
 document.querySelectorAll('.a-seg-btn').forEach((btn) => {
   btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));
 });
 
-document.querySelectorAll('.a-range-chip[data-range]').forEach((chip) => {
+function updateAnalyseScopeChips() {
+  document.querySelectorAll('.a-range-chip[data-scope]').forEach((c) => {
+    c.classList.toggle('active', c.dataset.scope === analyseScope.mode);
+  });
+}
+
+// Die Chips sind ein Zoomstufen-Regler: sie sagen "wie fein", eine markierte
+// Woche sagt "wovon". Ihr Text ändert sich nie, nur die Markierung wandert.
+document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
   chip.addEventListener('click', () => {
-    if (chip.dataset.range === analyseRange) return;
-    analyseRange = chip.dataset.range;
-    document.querySelectorAll('.a-range-chip[data-range]').forEach((c) => {
-      c.classList.toggle('active', c.dataset.range === analyseRange);
-    });
+    const unit = chip.dataset.scope;
+
+    // Tage + markierte Woche = eine Stufe hinein, in genau diese Woche.
+    if (unit === 'days' && analyseScope.mode === 'weeks' && schlafenSelection) {
+      const idx = schlafenSelection.index;
+      const wk = schlafenAnalysis && schlafenAnalysis.perDay[idx];
+      if (wk && wk.weekStart) {
+        let end = new Date(wk.weekStart);
+        end.setDate(end.getDate() + 6);
+        const today = todayStartDate();
+        if (end > today) end = today;
+        analyseScope = {
+          mode: 'days', anchor: end, drilledWeek: new Date(wk.weekStart),
+          returnIndex: idx, returnChart: schlafenSelection.chartId
+        };
+        schlafenSelection = null;
+        updateAnalyseScopeChips();
+        loadAnalyse();
+        return;
+      }
+    }
+
+    // Wochen aus einer aufgezogenen Woche heraus = eine Stufe zurück, mit
+    // derselben Woche noch markiert.
+    if (unit === 'weeks' && analyseScope.drilledWeek !== null) {
+      const back = analyseScope.returnIndex, backChart = analyseScope.returnChart;
+      analyseScope = { mode: 'weeks', anchor: null, drilledWeek: null, returnIndex: null, returnChart: null };
+      schlafenSelection = back === null ? null : { chartId: backChart, index: back };
+      updateAnalyseScopeChips();
+      loadAnalyse();
+      return;
+    }
+
+    // Nochmal auf den aktiven Chip = zurück auf den laufenden Zeitraum. Sonst
+    // käme man aus einer aufgezogenen Woche nicht mehr zu "heute", weil "Tage"
+    // dort ja wieder in dieselbe Woche führen würde.
+    if (unit === analyseScope.mode && analyseScope.drilledWeek === null) return;
+    analyseScope = { mode: unit, anchor: null, drilledWeek: null, returnIndex: null, returnChart: null };
+    schlafenSelection = null;
+    updateAnalyseScopeChips();
     loadAnalyse();
   });
 });
 
 async function loadAnalyse() {
   ANALYSE_VIEWS.forEach((v) => {
+    // Die Schlafen-Ansicht behält ihr Gerüst und ihre alten Werte, bis die
+    // neuen da sind — ein "Lade…" würde sie jedes Mal neu aufbauen lassen und
+    // genau das Flackern erzeugen, das der Umbau beseitigt hat.
+    if (v === 'schlafen' && schlafenBuilt) return;
     document.getElementById('analyse-view-' + v).innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Lade…</div>';
   });
   try {
-    const isWeekRange = analyseRange === '8w';
+    const isWeekRange = analyseScope.mode === 'weeks';
     analyseAxisTodayLabel = isWeekRange ? 'Jetzt' : 'Heute';
     analyseProseTodayLabel = isWeekRange ? 'Diese Woche' : 'Heute';
     analyseRangeLabel = isWeekRange ? '8 Wochen' : 'Woche';
     analyseBucketUnitPhrase = isWeekRange ? 'in einer Woche' : 'an einem Tag';
     analyseShowAxisCaption = isWeekRange;
 
-    const { days, start } = isWeekRange ? buildAnalyseWeekBuckets() : buildAnalyseDayBuckets();
+    // Bewusst keine obere Schranke auf der Firestore-Abfrage: nachgetragene
+    // Einträge haben ein createdAt nach ihrem fachlichen Datum und würden aus
+    // einem zurückliegenden Ausschnitt herausfallen. Gefiltert wird über
+    // analyseBucketByDay(), das kostet nur ein paar überflüssige Dokumente.
+    const { days, start } = isWeekRange ? buildAnalyseWeekBuckets() : buildAnalyseDayBuckets(analyseScope.anchor);
     const [feedings, diapers, nights, naps] = await Promise.all([
       getAnalyseRangeDocs('feedings', start),
       getAnalyseRangeDocs('diaperChanges', start),
@@ -4273,7 +4747,7 @@ async function loadAnalyse() {
     document.getElementById('analyse-view-overview').innerHTML = renderAnalyseOverview(fuettern, windeln, schlafen);
     document.getElementById('analyse-view-fuettern').innerHTML = renderAnalyseFuettern(fuettern);
     document.getElementById('analyse-view-windeln').innerHTML = renderAnalyseWindeln(windeln);
-    document.getElementById('analyse-view-schlafen').innerHTML = renderAnalyseSchlafen(schlafen);
+    renderAnalyseSchlafen(schlafen);
     initNapHistogram(schlafen.napHistogram);
 
     document.querySelectorAll('#analyse-view-overview .a-ov-card').forEach((card) => {
@@ -4281,6 +4755,8 @@ async function loadAnalyse() {
     });
   } catch (error) {
     ANALYSE_VIEWS.forEach((v) => {
+      // Auch das Schlafen-Gerüst wird ersetzt — beim nächsten Laden neu bauen.
+      schlafenBuilt = false;
       document.getElementById('analyse-view-' + v).innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Fehler beim Laden</div>';
     });
   }

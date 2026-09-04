@@ -3907,6 +3907,9 @@ function computeSchlafenAnalysis(days, nightMap, napMap) {
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
       weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
       nightMinutes, napMinutes, napCount: napsToday.length, hasNight: nights.length > 0, wakeCount,
+      // Eigenes Uhrzeit-Histogramm je Bucket, damit die unterste Karte dem
+      // markierten Balken folgen kann, ohne neu zu laden.
+      napHistogram: computeNapHistogram(napsToday),
       // Für die Kennzahl-Kacheln, die dem markierten Balken folgen. null statt 0,
       // damit ein Bucket ohne Nachteintrag als "–" erkennbar bleibt.
       bedMin: nights.length ? analyseAvg(nights.map((n) => parseMinutes(n.bedtime))) : null,
@@ -4048,7 +4051,10 @@ function svgAreaLineChart(perDay, valueFn, color, gradientId, meanValue) {
 // effective ~11.5px on screen. This chart has no such implicit scaling
 // (1 SVG unit = 1 real px), so it has to write the already-scaled value
 // directly to look the same size as its sibling charts.
-function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
+// showCounts: bei einem einzelnen markierten Tag steht über den Balken die
+// Anzahl statt eines Anteils — "33 %" dreimal nebeneinander sagt bei drei
+// Schläfchen nichts, "1" schon.
+function svgHistogram(bins, binStartHour, binEndHour, color, binPx, showCounts) {
   const baseline = 95, maxPx = 78, m = NAP_HIST_MARGIN_X;
   const plotW = 2 * m + bins.length * binPx;
   const x = scaleLinear().domain([0, bins.length]).range([m, m + bins.length * binPx]);
@@ -4063,8 +4069,8 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
     const h = baseline - y(count);
     bars += '<rect x="' + bx + '" y="' + (baseline - h) + '" width="' + w + '" height="' + h + '" rx="4" fill="' + color + '"/>';
     if (count > 0) {
-      const pct = analyseRound(count / totalCount * 100);
-      bars += '<text x="' + (bx + w / 2) + '" y="' + Math.max(12, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="11.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + pct + '%</text>';
+      const label = showCounts ? String(count) : analyseRound(count / totalCount * 100) + '%';
+      bars += '<text x="' + (bx + w / 2) + '" y="' + Math.max(12, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="11.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + label + '</text>';
     }
   });
   let labels = '';
@@ -4092,27 +4098,46 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx) {
 // showAnalyseView() re-runs this once the view is actually visible so the
 // real bar width gets used instead of just falling back forever.
 let lastNapHistogram = null;
-function initNapHistogram(napHistogram) {
+let lastNapOpts = {};
+let lastNapBinPx = 0;
+// opts.keepScroll: beim Wechsel der Markierung bleibt die Scrollposition, wo
+// sie ist — sonst würde das Diagramm beim Wischen über die Balken darüber
+// ständig unter dem Finger wegspringen. opts.showCounts siehe svgHistogram().
+function initNapHistogram(napHistogram, opts) {
+  const o = opts || {};
   lastNapHistogram = napHistogram;
+  lastNapOpts = o;
   const scroller = document.getElementById('nap-hist-scroller');
   if (!scroller) return;
-  const dayBar = document.querySelector('#analyse-view-schlafen svg[data-chart="schlaf-naps"] .bk rect');
-  let binPx = dayBar ? dayBar.getBoundingClientRect().width : 0;
+  // Die gemessene Balkenbreite ändert sich nur, wenn sich das Layout ändert.
+  // Beim Nachziehen einer Markierung den gemerkten Wert nehmen, statt bei
+  // jeder Fingerbewegung ein erzwungenes Layout auszulösen.
+  let binPx = o.keepScroll ? lastNapBinPx : 0;
+  if (!(binPx > 0)) {
+    const dayBar = document.querySelector('#analyse-view-schlafen svg[data-chart="schlaf-naps"] .bk rect');
+    binPx = dayBar ? dayBar.getBoundingClientRect().width : 0;
+  }
   if (!(binPx > 0)) binPx = 30;
+  else lastNapBinPx = binPx;
   const n = napHistogram.length;
-  scroller.innerHTML = svgHistogram(napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E', binPx);
+  const prevScroll = scroller.scrollLeft;
+  scroller.innerHTML = svgHistogram(napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E', binPx, o.showCounts);
 
   const plotW = 2 * NAP_HIST_MARGIN_X + n * binPx;
   const viewportW = scroller.clientWidth;
   const maxScroll = Math.max(0, plotW - viewportW);
-  const maxCount = Math.max(...napHistogram);
-  let peakIdx = Math.floor((n - 1) / 2);
-  if (maxCount > 0) {
-    peakIdx = 0;
-    for (let i = 1; i < n; i++) if (napHistogram[i] > napHistogram[peakIdx]) peakIdx = i;
+  if (o.keepScroll) {
+    scroller.scrollLeft = Math.min(maxScroll, Math.max(0, prevScroll));
+  } else {
+    const maxCount = Math.max(...napHistogram);
+    let peakIdx = Math.floor((n - 1) / 2);
+    if (maxCount > 0) {
+      peakIdx = 0;
+      for (let i = 1; i < n; i++) if (napHistogram[i] > napHistogram[peakIdx]) peakIdx = i;
+    }
+    const peakCenterX = NAP_HIST_MARGIN_X + peakIdx * binPx + binPx / 2;
+    scroller.scrollLeft = Math.min(maxScroll, Math.max(0, peakCenterX - viewportW / 2));
   }
-  const peakCenterX = NAP_HIST_MARGIN_X + peakIdx * binPx + binPx / 2;
-  scroller.scrollLeft = Math.min(maxScroll, Math.max(0, peakCenterX - viewportW / 2));
 
   const wrap = scroller.parentElement;
   const fadeL = wrap.querySelector('.a-hist-fade-l');
@@ -4469,8 +4494,25 @@ function updateSchlafenStats() {
 }
 
 // Verschiebt Marker und Label, ohne die Diagramme neu zu zeichnen.
-function applySchlafenSelection() {
+// Die unterste Karte zeigt die Uhrzeiten des markierten Balkens, ohne
+// Markierung die des ganzen Ausschnitts.
+function updateNapHistogramForSelection(center) {
+  const a = schlafenAnalysis;
+  if (!a) return;
+  const i = schlafenSelection ? Math.min(schlafenSelection.index, a.perDay.length - 1) : -1;
+  const b = i >= 0 ? a.perDay[i] : null;
+  initNapHistogram(b ? b.napHistogram : a.napHistogram, {
+    keepScroll: !center,
+    showCounts: !!b && b.daysElapsed === 1
+  });
+}
+
+// center = vollständiger Neuaufbau (neue Daten oder Tab wird sichtbar): das
+// Histogramm neu vermessen und auf die belebteste Stunde zentrieren. Ohne
+// center wird nur die Markierung nachgezogen, Scrollposition bleibt.
+function applySchlafenSelection(center) {
   updateSchlafenStats();
+  updateNapHistogramForSelection(center);
   Object.keys(schlafenRender).forEach((chartId) => {
     const svgEl = document.querySelector('#analyse-view-schlafen svg[data-chart="' + chartId + '"]');
     if (!svgEl) return;
@@ -4553,7 +4595,7 @@ function renderAnalyseSchlafen(schlafen) {
   // Histogramm-Karte behielte ihren Abstand nach unten.
   insight.previousElementSibling.style.marginBottom = schlafen.insight ? '' : '0';
 
-  applySchlafenSelection();
+  applySchlafenSelection(true);
 }
 
 // --- Wischen statt nur Antippen -----------------------------------------
@@ -4676,11 +4718,12 @@ function showAnalyseView(view) {
   document.getElementById('analyse-body').scrollTop = 0;
   // The nap histogram measures a sibling chart's rendered bar width, which
   // reads as 0 while this view was hidden — re-measure now that it's visible.
-  if (view === 'schlafen' && lastNapHistogram) initNapHistogram(lastNapHistogram);
-  // Das schwebende Label wird beim Positionieren live vermessen — im
-  // versteckten Tab liefert das 0. Jetzt, wo die Ansicht sichtbar ist,
-  // nochmal setzen, damit es an der richtigen Stelle sitzt.
-  if (view === 'schlafen' && schlafenAnalysis) applySchlafenSelection();
+  // Histogramm und Label werden beim Aufbau live vermessen — im versteckten
+  // Tab liefert das 0. Jetzt, wo die Ansicht sichtbar ist, neu vermessen.
+  if (view === 'schlafen' && schlafenAnalysis) {
+    lastNapBinPx = 0;
+    applySchlafenSelection(true);
+  }
 }
 document.querySelectorAll('.a-seg-btn').forEach((btn) => {
   btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));
@@ -4776,7 +4819,6 @@ async function loadAnalyse() {
     document.getElementById('analyse-view-fuettern').innerHTML = renderAnalyseFuettern(fuettern);
     document.getElementById('analyse-view-windeln').innerHTML = renderAnalyseWindeln(windeln);
     renderAnalyseSchlafen(schlafen);
-    initNapHistogram(schlafen.napHistogram);
 
     document.querySelectorAll('#analyse-view-overview .a-ov-card').forEach((card) => {
       card.addEventListener('click', () => showAnalyseView(card.dataset.target));

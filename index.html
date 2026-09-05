@@ -4436,11 +4436,13 @@ const ANALYSE_SECTION_UI = {
   }
 };
 
-// view -> { chartId, index } — der markierte Balken. Global über alle
-// Diagramme eines Bereichs: ein gewählter Tag wird überall hervorgehoben, das
-// Label zeigt nur das Diagramm, auf dem der Finger liegt. Die Bereiche merken
-// sich ihre Markierung getrennt, damit ein Bereichswechsel nichts verwirft.
-const analyseSel = { fuettern: null, windeln: null, schlafen: null };
+// { index } — der markierte Tag, einer für alle Bereiche. Wer in Schlafen den
+// Mittwoch antippt und dann auf Windeln wechselt, sieht dort denselben
+// Mittwoch. Alle Bereiche zählen dieselben Buckets, der Index passt also.
+let analyseSel = null;
+// view -> chartId: welches Diagramm des Bereichs das schwebende Label trägt.
+// Das bleibt Sache des Bereichs — der Finger lag ja nur auf einem davon.
+const analyseActiveChart = { fuettern: null, windeln: null, schlafen: null };
 // chartId -> isolierter series.key (Legendenfilter)
 const analyseFilter = {};
 // Was zum Nachzeichnen einer Auswahl gebraucht wird, ohne das Diagramm neu zu
@@ -4450,7 +4452,16 @@ const analyseData = { fuettern: null, windeln: null, schlafen: null };
 const analyseBuilt = { fuettern: false, windeln: false, schlafen: false };
 
 function analyseClearSelections() {
-  Object.keys(analyseSel).forEach((v) => { analyseSel[v] = null; });
+  analyseSel = null;
+}
+
+// Ohne eigene Wahl trägt das erste Diagramm des Bereichs das Label — sonst
+// bliebe ein aus einem anderen Bereich mitgebrachter Tag dort unbeschriftet.
+function secActiveChart(view) {
+  return analyseActiveChart[view] || ANALYSE_SECTION_UI[view].order[0];
+}
+function secIsPicked(view, chartId, i) {
+  return !!(analyseSel && analyseSel.index === i && secActiveChart(view) === chartId);
 }
 
 function secVisibleSeries(chartId, cfg) {
@@ -4611,9 +4622,9 @@ function secShellHtml(view) {
 // Ausschnitt. Ist in der offenen Ansicht ein Balken markiert, tritt dessen
 // Beschriftung an die Stelle des laufenden Zeitraums.
 function analyseSelectedBucket(view) {
-  const a = analyseData[view], sel = analyseSel[view];
-  if (!a || !sel || !a.perDay.length) return null;
-  return a.perDay[Math.min(sel.index, a.perDay.length - 1)];
+  const a = analyseData[view];
+  if (!a || !analyseSel || !a.perDay.length) return null;
+  return a.perDay[Math.min(analyseSel.index, a.perDay.length - 1)];
 }
 
 function updateAnalyseContext() {
@@ -4664,7 +4675,7 @@ function applySecSelection(view, center) {
   const b = analyseSelectedBucket(view);
   if (sec.extra) sec.extra.update(a, b, center);
 
-  const sel = analyseSel[view];
+  const activeChart = secActiveChart(view);
   sec.order.forEach((chartId) => {
     const r = analyseRender[chartId];
     const svgEl = document.querySelector('#' + sec.hostId + ' svg[data-chart="' + chartId + '"]');
@@ -4672,8 +4683,8 @@ function applySecSelection(view, center) {
     const wrap = svgEl.parentElement;
     const tip = wrap.querySelector('.a-tip');
     const sc = svgEl.querySelector('.sc');
-    const i = sel ? Math.min(sel.index, r.bs.length - 1) : -1;
-    const active = i >= 0 && sel.chartId === chartId;
+    const i = analyseSel ? Math.min(analyseSel.index, r.bs.length - 1) : -1;
+    const active = i >= 0 && chartId === activeChart;
 
     // Hervorheben/Verblassen in jedem Diagramm der Ansicht — so bleibt der
     // gewählte Tag über alle Kennzahlen hinweg ablesbar.
@@ -4744,7 +4755,7 @@ function renderAnalyseSection(view, analysis) {
     host.innerHTML = secShellHtml(view);
     analyseBuilt[view] = true;
   }
-  if (analyseSel[view] && analyseSel[view].index >= analysis.perDay.length) analyseSel[view] = null;
+  if (analyseSel && analyseSel.index >= analysis.perDay.length) analyseSel = null;
   sec.order.forEach((id) => updateSecCard(view, id));
 
   const insight = host.querySelector('[data-insight]');
@@ -4773,10 +4784,9 @@ function secIndexAt(svgEl, clientX) {
 // toggle: nur beim Tippen/Tastatur — beim Zurückwischen auf denselben Balken
 // würde es die Auswahl sonst ausschalten.
 function secPick(view, chartId, i, toggle) {
-  const sel = analyseSel[view];
-  const same = sel && sel.chartId === chartId && sel.index === i;
-  if (toggle && same) analyseSel[view] = null;
-  else if (!same) analyseSel[view] = { chartId, index: i };
+  const same = secIsPicked(view, chartId, i);
+  if (toggle && same) analyseSel = null;
+  else if (!same) { analyseSel = { index: i }; analyseActiveChart[view] = chartId; }
   else return;
   applySecSelection(view);
 }
@@ -4806,11 +4816,10 @@ function secPick(view, chartId, i, toggle) {
     // Mit dem Finger erst, wenn die Richtung feststeht — sonst reicht ein
     // Scrollen über das Diagramm hinweg, um versehentlich etwas zu markieren.
     const mouse = e.pointerType === 'mouse';
-    const sel = analyseSel[view];
     scrub = {
       view, id, startX: e.clientX, startY: e.clientY, startIndex: i0,
       locked: mouse, moved: false,
-      wasSelected: !!(sel && sel.chartId === id && sel.index === i0)
+      wasSelected: secIsPicked(view, id, i0)
     };
     if (mouse) secPick(view, id, i0, false);
   });
@@ -4852,9 +4861,8 @@ function secPick(view, chartId, i, toggle) {
 
     // Ein Tipp auf den bereits markierten Balken hebt die Markierung auf;
     // nach einer Wischbewegung bleibt sie stehen.
-    const sel = analyseSel[s.view];
-    if (!s.moved && s.wasSelected && sel && sel.chartId === s.id && sel.index === s.startIndex) {
-      analyseSel[s.view] = null;
+    if (!s.moved && s.wasSelected && secIsPicked(s.view, s.id, s.startIndex)) {
+      analyseSel = null;
       applySecSelection(s.view);
     }
   });
@@ -4963,12 +4971,11 @@ document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
   chip.addEventListener('click', () => {
     const unit = chip.dataset.scope;
 
-    // Tage + markierte Woche = eine Stufe hinein, in genau diese Woche. Der
-    // Einstieg zählt für die gerade offene Ansicht — jede merkt sich ihre
-    // eigene Markierung, und zurück geht es genau dorthin.
-    const sel = analyseSel[analyseView];
-    if (unit === 'days' && analyseScope.mode === 'weeks' && sel) {
-      const idx = sel.index;
+    // Tage + markierte Woche = eine Stufe hinein, in genau diese Woche. Die
+    // Markierung gilt für alle Bereiche; gemerkt wird nur, wo das Label lag,
+    // damit es beim Zurück dort wieder auftaucht.
+    if (unit === 'days' && analyseScope.mode === 'weeks' && analyseSel) {
+      const idx = analyseSel.index;
       const data = analyseData[analyseView];
       const wk = data && data.perDay[idx];
       if (wk && wk.weekStart) {
@@ -4978,7 +4985,7 @@ document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
         if (end > today) end = today;
         analyseScope = {
           mode: 'days', anchor: end, drilledWeek: new Date(wk.weekStart),
-          returnIndex: idx, returnChart: sel.chartId, returnView: analyseView
+          returnIndex: idx, returnChart: secActiveChart(analyseView), returnView: analyseView
         };
         analyseClearSelections();
         updateAnalyseScopeChips();
@@ -4993,7 +5000,10 @@ document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
       const back = analyseScope.returnIndex, backChart = analyseScope.returnChart, backView = analyseScope.returnView;
       analyseScope = { mode: 'weeks', anchor: null, drilledWeek: null, returnIndex: null, returnChart: null, returnView: null };
       analyseClearSelections();
-      if (back !== null && backView) analyseSel[backView] = { chartId: backChart, index: back };
+      if (back !== null) {
+        analyseSel = { index: back };
+        if (backView) analyseActiveChart[backView] = backChart;
+      }
       updateAnalyseScopeChips();
       loadAnalyse();
       return;

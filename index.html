@@ -5020,15 +5020,15 @@ function updateAnalyseScopeChips() {
   updateAnalyseContext();
 }
 
-// Zurück auf den laufenden Zeitraum. Aus einer aufgezogenen Woche führt das
-// eine Stufe hinaus — sonst bliebe man in genau der Woche stecken, aus der
-// man heraus wollte. Sonst wird nur die Markierung aufgehoben, dafür braucht
-// es kein Nachladen.
+// Zurück auf den laufenden Zeitraum, ohne die Zoomstufe anzufassen: aus einer
+// aufgezogenen Woche landet man bei den letzten 7 Tagen, nicht wieder in der
+// Wochenansicht — dorthin führt der Chip, wenn man das will. Steht nur eine
+// Markierung, wird die aufgehoben; dafür braucht es kein Nachladen.
 function resetAnalyseSelection() {
   const wasDrilled = analyseScope.drilledWeek !== null;
   analyseClearSelections();
   if (wasDrilled) {
-    analyseScope = { mode: 'weeks', anchor: null, drilledWeek: null, returnIndex: null, returnChart: null, returnView: null };
+    analyseScope = { mode: analyseScope.mode, anchor: null, drilledWeek: null, returnIndex: null, returnChart: null, returnView: null };
     updateAnalyseScopeChips();
     loadAnalyse();
     return;

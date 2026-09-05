@@ -4135,7 +4135,9 @@ function initNapHistogram(napHistogram, opts) {
   updateFades();
 }
 
-function svgSparkline(perDay, valueFn, colorLight, colorToday) {
+// selIdx >= 0: der markierte Tag trägt den kräftigen Ton statt „heute" —
+// solange etwas markiert ist, ist das der Tag, um den es geht.
+function svgSparkline(perDay, valueFn, colorLight, colorToday, selIdx) {
   const n = perDay.length, baseline = 22, maxPx = 18, k = 0.3455;
   const band = n < 2 ? null : scaleBand().domain(Array.from({ length: n }, (_, i) => i)).range([5, 55]).paddingInner(k / (1 + k)).paddingOuter(0);
   const barW = band ? band.bandwidth() : 50;
@@ -4145,7 +4147,8 @@ function svgSparkline(perDay, valueFn, colorLight, colorToday) {
     const x = band ? band(i) : 5;
     const v = valueFn(d);
     const h = v > 0 ? Math.max(2, baseline - y(v)) : 0;
-    const color = d.isToday ? colorToday : colorLight;
+    const strong = selIdx >= 0 ? i === selIdx : d.isToday;
+    const color = strong ? colorToday : colorLight;
     return '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + barW + '" height="' + h + '" rx="1.5" fill="' + color + '"/>';
   }).join('');
 }
@@ -4164,46 +4167,88 @@ function svgColorDistribution(buckets) {
 const ANALYSE_ICON_STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/></svg>';
 const ANALYSE_ICON_CHEVRON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 
-function renderAnalyseOverview(fuettern, windeln, schlafen) {
-  const fuetternSpark = svgSparkline(fuettern.perDay, (d) => (d.bottleCount + d.breastCount) / d.daysElapsed, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)');
-  const windelnSpark = svgSparkline(windeln.perDay, (d) => d.total / d.daysElapsed, '#39ABAB', '#39ABAB');
-  const schlafenSpark = svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + d.napMinutes / d.daysElapsed) / 60, '#6A5ACD', '#4B3F9E');
-  const totalWechsel = windeln.perDay.reduce((s, d) => s + d.total, 0);
-  const warnWechsel = windeln.warnCount;
+// Die Übersicht zieht mit der Markierung mit: ohne sie zeigt jede Karte den
+// ganzen Ausschnitt, mit ihr denselben Tag, den auch die Detailseiten zeigen.
+// Sie bleibt die einzige Ansicht ohne eigenes Wischen — hier wird die Karte
+// angetippt, um in den Bereich zu springen, und dafür ist sie zu klein.
+let analyseOverview = null;
 
-  return '' +
-    '<div class="a-ov-card" data-target="fuettern" style="border-left:4px solid var(--fuettern);">' +
-      '<div class="a-ov-top"><div class="a-ov-id">' +
-        '<div class="a-ov-icon" style="background:var(--fuettern-soft); color:var(--fuettern-strong);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg></div>' +
-        '<span class="a-ov-name">Füttern</span></div>' +
-        '<svg viewBox="0 0 60 22" width="60" height="22">' + fuetternSpark + '</svg>' +
-      '</div>' +
-      '<div class="a-ov-primary">Ø ' + fuettern.avgPerDay + ' <span class="unit">Fütterungen / Tag</span></div>' +
-      '<div class="a-ov-secondary">' + fuettern.avgBottleMl + ' ml Ø Trinkmenge · ' + fuettern.avgBreastMin + ' Min. Ø Stillzeit (Brust)</div>' +
-      '<div class="a-ov-bottom" style="color:var(--fuettern-strong);">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
+const ANALYSE_OV_WARN_DOT = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>';
+
+function analyseOvCard(target, name, iconPath, colors, spark, primary, unit, secondary) {
+  return '<div class="a-ov-card" data-target="' + target + '" style="border-left:4px solid ' + colors.bar + ';">' +
+    '<div class="a-ov-top"><div class="a-ov-id">' +
+      '<div class="a-ov-icon" style="background:' + colors.soft + '; color:' + colors.strong + ';">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + iconPath + '</svg></div>' +
+      '<span class="a-ov-name">' + name + '</span></div>' +
+      '<svg viewBox="0 0 60 22" width="60" height="22">' + spark + '</svg>' +
     '</div>' +
-    '<div class="a-ov-card" data-target="windeln" style="border-left:4px solid var(--windeln);">' +
-      '<div class="a-ov-top"><div class="a-ov-id">' +
-        '<div class="a-ov-icon" style="background:var(--windeln-soft); color:var(--windeln);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg></div>' +
-        '<span class="a-ov-name">Windeln</span></div>' +
-        '<svg viewBox="0 0 60 22" width="60" height="22">' + windelnSpark + '</svg>' +
-      '</div>' +
-      '<div class="a-ov-primary">Ø ' + windeln.avgPerDay + ' <span class="unit">Wechsel / Tag</span></div>' +
-      '<div class="a-ov-secondary"><span>' + totalWechsel + ' Wechsel gesamt</span>' +
-        (warnWechsel > 0 ? '<span style="display:inline-flex; align-items:center; gap:3px; color:var(--warn); font-weight:700;"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>' + warnWechsel + '× auffällig</span>' : '') +
-      '</div>' +
-      '<div class="a-ov-bottom" style="color:var(--windeln);">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
-    '</div>' +
-    '<div class="a-ov-card" data-target="schlafen" style="border-left:4px solid var(--schlafen);">' +
-      '<div class="a-ov-top"><div class="a-ov-id">' +
-        '<div class="a-ov-icon" style="background:var(--schlafen-soft); color:var(--schlafen-strong);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg></div>' +
-        '<span class="a-ov-name">Schlafen</span></div>' +
-        '<svg viewBox="0 0 60 22" width="60" height="22">' + schlafenSpark + '</svg>' +
-      '</div>' +
-      '<div class="a-ov-primary">Ø ' + schlafen.avgTotalH + ' <span class="unit">Std. Schlaf gesamt / Tag</span></div>' +
-      '<div class="a-ov-secondary">' + schlafen.avgNightH + ' h nachts · ' + (schlafen.avgWake === null ? '–' : schlafen.avgWake + '×') + ' aufgewacht · ' + schlafen.avgNapH + ' h tagsüber</div>' +
-      '<div class="a-ov-bottom" style="color:var(--schlafen-strong);">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
-    '</div>';
+    '<div class="a-ov-primary">' + primary + ' <span class="unit">' + unit + '</span></div>' +
+    '<div class="a-ov-secondary">' + secondary + '</div>' +
+    '<div class="a-ov-bottom" style="color:' + colors.strong + ';">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
+  '</div>';
+}
+
+function renderAnalyseOverview() {
+  const o = analyseOverview;
+  if (!o) return '';
+  const { fuettern, windeln, schlafen } = o;
+  const n = fuettern.perDay.length;
+  const i = analyseSel && n ? Math.min(analyseSel.index, n - 1) : -1;
+  // Ein einzelner Tag ist exakt, alles andere ein Mittel — dieselbe Regel wie
+  // bei den Kennzahl-Kacheln der Detailseiten.
+  const single = i >= 0 && fuettern.perDay[i].daysElapsed === 1;
+  const pre = single ? '' : 'Ø ';
+  const perDay = single ? '' : ' / Tag';
+
+  const fb = i >= 0 ? fuettern.perDay[i] : null;
+  const fCount = fb ? (fb.bottleCount + fb.breastCount) / fb.daysElapsed : fuettern.avgPerDayExact;
+  const fMl = fb ? fb.bottleMl / fb.daysElapsed : fuettern.avgBottleMlExact;
+  const fMin = fb ? fb.breastMin / fb.daysElapsed : fuettern.avgBreastMinExact;
+
+  const wb = i >= 0 ? windeln.perDay[i] : null;
+  const wCount = wb ? wb.total / wb.daysElapsed : windeln.avgPerDayExact;
+  const wWarn = wb ? wb.warnCount : windeln.warnCount;
+  const wSecond = wb && single
+    ? wb.small + ' klein · ' + wb.big + ' groß'
+    : (wb ? wb.total : windeln.perDay.reduce((s, d) => s + d.total, 0)) + ' Wechsel gesamt';
+
+  const sb = i >= 0 ? schlafen.perDay[i] : null;
+  const sNight = sb ? sb.nightMinutes / 60 : schlafen.avgNightHExact;
+  const sNap = sb ? sb.napMinutes / sb.daysElapsed / 60 : schlafen.avgNapHExact;
+  const sWake = sb ? (sb.hasNight ? sb.wakeCount : null) : schlafen.avgWakeExact;
+
+  return analyseOvCard('fuettern', 'Füttern',
+      '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
+      { bar: 'var(--fuettern)', soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)' },
+      svgSparkline(fuettern.perDay, (d) => (d.bottleCount + d.breastCount) / d.daysElapsed, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)', i),
+      pre + analyseCount(fCount, single), 'Fütterungen' + perDay,
+      analyseRound(fMl) + ' ml ' + pre + 'Trinkmenge · ' + analyseRound(fMin) + ' Min. ' + pre + 'Stillzeit (Brust)') +
+
+    analyseOvCard('windeln', 'Windeln',
+      '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
+      { bar: 'var(--windeln)', soft: 'var(--windeln-soft)', strong: 'var(--windeln)' },
+      svgSparkline(windeln.perDay, (d) => d.total / d.daysElapsed, '#8FD4D4', '#39ABAB', i),
+      pre + analyseCount(wCount, single), 'Wechsel' + perDay,
+      '<span>' + wSecond + '</span>' + (wWarn > 0
+        ? '<span style="display:inline-flex; align-items:center; gap:3px; color:var(--warn); font-weight:700;">' +
+          ANALYSE_OV_WARN_DOT + wWarn + '× auffällig</span>' : '')) +
+
+    analyseOvCard('schlafen', 'Schlafen',
+      '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
+      { bar: 'var(--schlafen)', soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)' },
+      svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + d.napMinutes / d.daysElapsed) / 60, '#B7ADEB', '#4B3F9E', i),
+      pre + analyseHhmm(sNight + sNap), 'Std. Schlaf gesamt' + perDay,
+      analyseHhmm(sNight) + ' nachts · ' + (sWake === null ? '–' : analyseDe1(sWake) + '×') +
+        ' aufgewacht · ' + analyseHhmm(sNap) + ' tagsüber');
+}
+
+// Neu gezeichnet wird nur, wenn die Übersicht auch zu sehen ist — beim Wischen
+// in einer Detailansicht wäre jede Fingerbewegung sonst drei überflüssige
+// innerHTML-Schreibvorgänge auf einer versteckten Ansicht.
+function updateAnalyseOverview() {
+  const host = document.getElementById('analyse-view-overview');
+  if (host) host.innerHTML = renderAnalyseOverview();
 }
 
 // ===== Interaktive Diagramme ============================================
@@ -4627,7 +4672,7 @@ function secShellHtml(view) {
 // Ausschnitt. Ist in der offenen Ansicht ein Balken markiert, tritt dessen
 // Beschriftung an die Stelle des laufenden Zeitraums.
 function analyseSelectedBucket(view) {
-  const a = analyseData[view];
+  const a = view === 'overview' ? analyseData.schlafen : analyseData[view];
   if (!a || !analyseSel || !a.perDay.length) return null;
   return a.perDay[Math.min(analyseSel.index, a.perDay.length - 1)];
 }
@@ -4873,6 +4918,11 @@ function secPick(view, chartId, i, toggle) {
   });
 
   host.addEventListener('click', (e) => {
+    // Übersichtskarten hängen an der Delegation, nicht an eigenen Listenern —
+    // sie werden bei jeder Änderung der Markierung neu gezeichnet.
+    const card = e.target.closest && e.target.closest('.a-ov-card');
+    if (card) { showAnalyseView(card.dataset.target); return; }
+
     const lg = e.target.closest && e.target.closest('.lg');
     if (!lg || !ANALYSE_SECTION_UI[analyseView]) return;
     const c = lg.dataset.chart, k = lg.dataset.series;
@@ -4934,6 +4984,7 @@ function showAnalyseView(view) {
   // im Rest der App nicht.
   screen.style.setProperty('--sec-deep', sec.deep);
 
+  if (view === 'overview') updateAnalyseOverview();
   updateAnalyseContext();
   document.getElementById('analyse-body').scrollTop = 0;
   // Diagramme und Zusatzkarten vermessen sich beim Aufbau live — im
@@ -5044,14 +5095,12 @@ async function loadAnalyse() {
     const windeln = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days));
     const schlafen = computeSchlafenAnalysis(days, analyseBucketByDay(nights, days), analyseBucketByDay(naps, days));
 
-    document.getElementById('analyse-view-overview').innerHTML = renderAnalyseOverview(fuettern, windeln, schlafen);
+    analyseOverview = { fuettern, windeln, schlafen };
+    updateAnalyseOverview();
     renderAnalyseSection('fuettern', fuettern);
     renderAnalyseSection('windeln', windeln);
     renderAnalyseSection('schlafen', schlafen);
 
-    document.querySelectorAll('#analyse-view-overview .a-ov-card').forEach((card) => {
-      card.addEventListener('click', () => showAnalyseView(card.dataset.target));
-    });
   } catch (error) {
     ANALYSE_VIEWS.forEach((v) => {
       // Auch die Gerüste werden ersetzt — beim nächsten Laden neu bauen.

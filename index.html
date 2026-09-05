@@ -29,11 +29,15 @@
   .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
   .quick-row { margin-top: -17px; }
 
-  #screen-analyse .a-seg { display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 3px; margin-top: 14px; }
-  #screen-analyse .a-seg-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 2px; border-radius: 12px; font-weight: 600; font-size: 10.5px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
-  #screen-analyse .a-seg-btn.active { background: white; color: var(--fuettern-strong); box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08); }
+  /* Der Switcher steht nur in den Detailansichten, mit dem Zurück-Knopf in
+     derselben Zeile — so kostet er gegenüber der Übersicht nur eine Zeile. */
+  #screen-analyse .a-sw-row { display: flex; align-items: center; gap: 9px; margin-top: 14px; }
+  #screen-analyse .a-back { width: 38px; height: 38px; flex-shrink: 0; border-radius: 13px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; }
+  #screen-analyse .a-seg { flex: 1; display: flex; background: var(--surface-alt); border-radius: 14px; padding: 4px; gap: 3px; }
+  #screen-analyse .a-seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 8px 2px; border-radius: 11px; font-weight: 600; font-size: 12px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
+  #screen-analyse .a-seg-btn.active { background: white; color: var(--sec-strong); box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08); }
   #screen-analyse .a-range-chip { padding: 7px 13px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid transparent; background: var(--surface-alt); color: var(--text-muted); cursor: pointer; }
-  #screen-analyse .a-range-chip.active { background: var(--fuettern-soft); color: var(--fuettern-strong); border-color: var(--fuettern); cursor: pointer; }
+  #screen-analyse .a-range-chip.active { background: var(--sec-soft); color: var(--sec-strong); border-color: var(--sec); cursor: pointer; }
   #screen-analyse .a-range-chip.disabled { opacity: 0.5; cursor: default; }
   #screen-analyse .a-axis-unit { text-align: right; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-top: 2px; }
   #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
@@ -76,11 +80,11 @@
   #screen-analyse .a-hist-chev-r { right: -15px; }
 
   /* --- Interaktive Diagramme (Schlafen) --------------------------------- */
-  /* Kontextzeile unter den Einheiten-Chips: sagt, welcher Ausschnitt gerade
-     gezeigt wird. Lila, sobald das ein bestimmter ist (markierter Balken oder
-     aufgezogene Woche), grau beim laufenden Zeitraum. */
-  #screen-analyse .a-context { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 12px; min-height: 17px; }
-  #screen-analyse .a-context.sel { color: var(--schlafen-strong); }
+  /* Kontextzeile direkt unter den Einheiten-Chips: sagt, welcher Ausschnitt
+     gerade gezeigt wird. In der Bereichsfarbe, sobald das ein bestimmter ist
+     (markierter Balken oder aufgezogene Woche), grau beim laufenden Zeitraum. */
+  #screen-analyse .a-context { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 10px; min-height: 17px; }
+  #screen-analyse .a-context.sel { color: var(--sec-strong); }
 
   #screen-analyse .a-chart-wrap { position: relative; }
   #screen-analyse .a-chart { display: block; width: 100%; height: 105px; touch-action: pan-y; cursor: pointer; }
@@ -921,13 +925,14 @@
     --ok: oklch(58% 0.11 150); --warn: oklch(58% 0.17 25); --warn-soft: oklch(93% 0.035 25);
     --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
     --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
+    --sec: var(--border); --sec-soft: var(--neutral-soft); --sec-strong: var(--neutral-strong);
     height: 100vh; max-width: 480px; margin: 0 auto;
     color: var(--text); display: none; flex-direction: column;
   ">
     <div style="flex-shrink: 0; padding: 32px 24px 0;">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
+          <div id="analyse-head-icon" style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="20" x2="19" y2="20"/>
               <rect x="6" y="12" width="3.4" height="8" rx="1"/>
@@ -936,30 +941,11 @@
             </svg>
           </div>
           <div>
-            <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Analyse</div>
+            <div id="analyse-head-title" style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Analyse</div>
             <div style="font-size: 13px; color: var(--text-muted);">Verlauf &amp; Trends</div>
           </div>
         </div>
         <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
-      </div>
-
-      <div class="a-seg">
-        <button class="a-seg-btn active" data-view="overview">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>
-          Übersicht
-        </button>
-        <button class="a-seg-btn" data-view="fuettern">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
-          Füttern
-        </button>
-        <button class="a-seg-btn" data-view="windeln">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>
-          Windeln
-        </button>
-        <button class="a-seg-btn" data-view="schlafen">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
-          Schlafen
-        </button>
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 16px;">
@@ -969,6 +955,26 @@
       </div>
 
       <div id="analyse-context" class="a-context"></div>
+
+      <div id="analyse-switcher" class="a-sw-row" style="display: none;">
+        <button id="analyse-back" class="a-back" aria-label="Zurück zur Übersicht">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"/></svg>
+        </button>
+        <div class="a-seg">
+          <button class="a-seg-btn" data-view="fuettern">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+            Füttern
+          </button>
+          <button class="a-seg-btn" data-view="windeln">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>
+            Windeln
+          </button>
+          <button class="a-seg-btn" data-view="schlafen">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+            Schlafen
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="analyse-body" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 16px 24px 16px; display: flex; flex-direction: column; gap: 14px;">
@@ -1135,7 +1141,13 @@ function showScreen(target) {
   if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); loadFuetternEntries(true); refreshFuetternAmountChips(); }
 }
 document.querySelectorAll('.tab-btn').forEach((btn) => {
-  btn.addEventListener('click', () => showScreen(btn.dataset.target));
+  btn.addEventListener('click', () => {
+    showScreen(btn.dataset.target);
+    // Der Analyse-Tab führt immer auf die Übersicht — sie ist die Einstiegs-
+    // ebene, die Detailbereiche liegen darunter. Die Verknüpfungen aus „Heute"
+    // springen weiterhin direkt in ihren Bereich (siehe .quick-btn).
+    if (btn.dataset.target === 'analyse') showAnalyseView('overview');
+  });
 });
 
 document.querySelectorAll('.quick-btn').forEach((btn) => {
@@ -4455,13 +4467,31 @@ function schlafenShellHtml() {
       ANALYSE_ICON_STAR + '<span></span></div>';
 }
 
+// Die Zeitraum-Zeile steht direkt unter den Chips und gehört damit zum
+// Zeitraum, nicht zu einem Bereich: sie zeigt in jeder Ansicht denselben
+// Ausschnitt. Nur die Schlafen-Ansicht kann einen einzelnen Balken markieren —
+// dann tritt dessen Beschriftung an die Stelle des laufenden Zeitraums.
+function updateAnalyseContext() {
+  const ctx = document.getElementById('analyse-context');
+  if (!ctx) return;
+  const a = schlafenAnalysis;
+  const b = analyseView === 'schlafen' && a && schlafenSelection
+    ? a.perDay[Math.min(schlafenSelection.index, a.perDay.length - 1)]
+    : null;
+
+  ctx.textContent = b ? b.contextLabel
+    : analyseScope.drilledWeek ? analyseWeekRangeText(analyseScope.drilledWeek)
+    : analyseScope.mode === 'weeks' ? 'Letzte ' + ANALYSE_WEEK_COUNT + ' Wochen' : 'Letzte ' + ANALYSE_RANGE_DAYS + ' Tage';
+  // Farbig = ein bestimmter Ausschnitt, grau = der laufende Zeitraum.
+  ctx.classList.toggle('sel', !!b || analyseScope.drilledWeek !== null);
+}
+
 // Kennzahl-Kacheln und Kontextzeile folgen dem markierten Balken. Der
 // Legendenfilter bleibt außen vor — er blendet eine Kategorie im Diagramm aus,
 // ändert aber nicht die Kennzahlen des Tages.
 function updateSchlafenStats() {
   const a = schlafenAnalysis;
-  const ctx = document.getElementById('analyse-context');
-  if (!a || !ctx) return;
+  if (!a) return;
   const bs = a.perDay;
   const i = schlafenSelection ? Math.min(schlafenSelection.index, bs.length - 1) : -1;
   const b = i >= 0 ? bs[i] : null;
@@ -4486,11 +4516,7 @@ function updateSchlafenStats() {
   const isAvg = !b || b.daysElapsed > 1;
   host.querySelectorAll('.a-stat-cap[data-cap]').forEach((el) => { el.textContent = (isAvg ? 'Ø ' : '') + el.dataset.cap; });
 
-  ctx.textContent = b ? b.contextLabel
-    : analyseScope.drilledWeek ? analyseWeekRangeText(analyseScope.drilledWeek)
-    : analyseScope.mode === 'weeks' ? 'Letzte ' + ANALYSE_WEEK_COUNT + ' Wochen' : 'Letzte ' + ANALYSE_RANGE_DAYS + ' Tage';
-  // Lila = ein bestimmter Ausschnitt, grau = der laufende Zeitraum.
-  ctx.classList.toggle('sel', !!b || analyseScope.drilledWeek !== null);
+  updateAnalyseContext();
 }
 
 // Verschiebt Marker und Label, ohne die Diagramme neu zu zeichnen.
@@ -4708,13 +4734,58 @@ function schlafenPick(chartId, i, toggle) {
 })();
 
 const ANALYSE_VIEWS = ['overview', 'fuettern', 'windeln', 'schlafen'];
+
+// Kopfzeile und Akzentfarbe je Ansicht. Die Übersicht bleibt neutral, jeder
+// Detailbereich färbt Kopf-Icon, aktiven Chip und aktives Segment in seiner
+// eigenen Farbe — dadurch bleibt nach dem Wechsel sofort sichtbar, wo man ist.
+const ANALYSE_SECTIONS = {
+  overview: {
+    title: 'Analyse',
+    sec: 'var(--border)', soft: 'var(--neutral-soft)', strong: 'var(--neutral-strong)',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="19" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.3" y="7" width="3.4" height="13" rx="1"/><rect x="14.6" y="10" width="3.4" height="10" rx="1"/></svg>'
+  },
+  fuettern: {
+    title: 'Füttern',
+    sec: 'var(--fuettern)', soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>'
+  },
+  windeln: {
+    title: 'Windeln',
+    sec: 'var(--windeln)', soft: 'var(--windeln-soft)', strong: 'var(--windeln)',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>'
+  },
+  schlafen: {
+    title: 'Schlafen',
+    sec: 'var(--schlafen)', soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>'
+  }
+};
+let analyseView = 'overview';
+
 function showAnalyseView(view) {
+  analyseView = view;
   ANALYSE_VIEWS.forEach((v) => {
     document.getElementById('analyse-view-' + v).style.display = v === view ? 'flex' : 'none';
   });
   document.querySelectorAll('.a-seg-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.view === view);
   });
+
+  const sec = ANALYSE_SECTIONS[view];
+  const screen = document.getElementById('screen-analyse');
+  screen.style.setProperty('--sec', sec.sec);
+  screen.style.setProperty('--sec-soft', sec.soft);
+  screen.style.setProperty('--sec-strong', sec.strong);
+  const headIcon = document.getElementById('analyse-head-icon');
+  headIcon.innerHTML = sec.icon;
+  headIcon.style.background = sec.soft;
+  headIcon.style.color = sec.strong;
+  document.getElementById('analyse-head-title').textContent = sec.title;
+  // Der Switcher gehört zu den Detailseiten — die Übersicht ist die Ebene
+  // darüber und braucht ihn nicht.
+  document.getElementById('analyse-switcher').style.display = view === 'overview' ? 'none' : 'flex';
+
+  updateAnalyseContext();
   document.getElementById('analyse-body').scrollTop = 0;
   // The nap histogram measures a sibling chart's rendered bar width, which
   // reads as 0 while this view was hidden — re-measure now that it's visible.
@@ -4728,11 +4799,15 @@ function showAnalyseView(view) {
 document.querySelectorAll('.a-seg-btn').forEach((btn) => {
   btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));
 });
+document.getElementById('analyse-back').addEventListener('click', () => showAnalyseView('overview'));
 
 function updateAnalyseScopeChips() {
   document.querySelectorAll('.a-range-chip[data-scope]').forEach((c) => {
     c.classList.toggle('active', c.dataset.scope === analyseScope.mode);
   });
+  // Die Zeile darunter benennt denselben Zeitraum — sie darf nicht bis zum
+  // Ende des Nachladens auf dem alten Text stehen bleiben.
+  updateAnalyseContext();
 }
 
 // Die Chips sind ein Zoomstufen-Regler: sie sagen "wie fein", eine markierte

@@ -36,10 +36,13 @@
   #screen-analyse .a-seg { flex: 1; display: flex; background: var(--surface-alt); border-radius: 14px; padding: 4px; gap: 3px; }
   #screen-analyse .a-seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 9px 2px; border-radius: 11px; font-weight: 600; font-size: 11.5px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
   #screen-analyse .a-seg-btn.active { background: var(--btn); color: white; }
-  #screen-analyse .a-range-chip { padding: 7px 13px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid transparent; background: var(--surface-alt); color: var(--text-muted); cursor: pointer; }
+  /* Wie die Klein/Groß-Karten in „Windel wechseln": beide Zustände tragen
+     einen sichtbaren Rahmen, der gewählte zusätzlich Füllung und dunkle
+     Schrift. Vorher unterschied sie nur die Textfarbe — zu wenig. */
+  #screen-analyse .a-range-chip { padding: 7px 13px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; }
   /* Bewusst nicht in der Bereichsfarbe: der Kopfbereich bleibt in jeder
      Ansicht gleich, damit der Bereichswechsel ruhig wirkt. */
-  #screen-analyse .a-range-chip.active { background: var(--neutral-soft); color: var(--neutral-strong); border-color: var(--border); cursor: pointer; }
+  #screen-analyse .a-range-chip.active { background: var(--neutral-soft); color: var(--neutral-strong); border-color: var(--neutral-strong); font-weight: 700; cursor: pointer; }
   #screen-analyse .a-range-chip.disabled { opacity: 0.5; cursor: default; }
   #screen-analyse .a-axis-unit { text-align: right; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-top: 2px; }
   #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
@@ -86,12 +89,15 @@
 
   /* --- Interaktive Diagramme (Schlafen) --------------------------------- */
   /* Kontextzeile direkt unter den Einheiten-Chips: sagt, welcher Ausschnitt
-     gerade gezeigt wird. In der Bereichsfarbe, sobald das ein bestimmter ist
-     (markierter Balken oder aufgezogene Woche), grau beim laufenden Zeitraum. */
-  #screen-analyse .a-context { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 10px; min-height: 17px; }
-  /* Neutral wie auf der Übersicht: die Zeile gehört zum Kopfbereich, und der
-     bleibt in jeder Ansicht gleich. */
+     gerade gezeigt wird. So groß wie die Kartenüberschrift der Übersicht — sie
+     benennt, worauf sich alles darunter bezieht. Neutral gefärbt, nicht in der
+     Bereichsfarbe: die Zeile gehört zum Kopfbereich, und der bleibt gleich. */
+  #screen-analyse .a-context { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 700; color: var(--text-muted); margin-top: 10px; min-height: 26px; }
   #screen-analyse .a-context.sel { color: var(--neutral-strong); }
+  /* Nur sichtbar, wenn es etwas zurückzusetzen gibt — ein markierter Balken
+     oder eine aufgezogene Woche. Sonst führte der Knopf ins Leere. */
+  #screen-analyse .a-ctx-reset { display: none; width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; border: none; padding: 0; background: var(--surface-alt); color: var(--text-muted); align-items: center; justify-content: center; cursor: pointer; }
+  #screen-analyse .a-context.sel .a-ctx-reset { display: inline-flex; }
 
   #screen-analyse .a-chart-wrap { position: relative; }
   #screen-analyse .a-chart { display: block; width: 100%; height: 105px; touch-action: pan-y; cursor: pointer; }
@@ -967,7 +973,12 @@
         <div class="a-range-chip disabled" title="Verfügbar sobald genug Daten da sind">Monate</div>
       </div>
 
-      <div id="analyse-context" class="a-context"></div>
+      <div id="analyse-context" class="a-context">
+        <span data-ctx-text></span>
+        <button id="analyse-reset" class="a-ctx-reset" aria-label="Zeitraum zurücksetzen" title="Zeitraum zurücksetzen">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
 
       <div class="a-sw-row">
         <div class="a-seg">
@@ -4682,7 +4693,7 @@ function updateAnalyseContext() {
   if (!ctx) return;
   const b = analyseSelectedBucket(analyseView);
 
-  ctx.textContent = b ? b.contextLabel
+  ctx.querySelector('[data-ctx-text]').textContent = b ? b.contextLabel
     : analyseScope.drilledWeek ? analyseWeekRangeText(analyseScope.drilledWeek)
     : analyseScope.mode === 'weeks' ? 'Letzte ' + ANALYSE_WEEK_COUNT + ' Wochen' : 'Letzte ' + ANALYSE_RANGE_DAYS + ' Tage';
   // Farbig = ein bestimmter Ausschnitt, grau = der laufende Zeitraum.
@@ -5008,6 +5019,25 @@ function updateAnalyseScopeChips() {
   // Ende des Nachladens auf dem alten Text stehen bleiben.
   updateAnalyseContext();
 }
+
+// Zurück auf den laufenden Zeitraum. Aus einer aufgezogenen Woche führt das
+// eine Stufe hinaus — sonst bliebe man in genau der Woche stecken, aus der
+// man heraus wollte. Sonst wird nur die Markierung aufgehoben, dafür braucht
+// es kein Nachladen.
+function resetAnalyseSelection() {
+  const wasDrilled = analyseScope.drilledWeek !== null;
+  analyseClearSelections();
+  if (wasDrilled) {
+    analyseScope = { mode: 'weeks', anchor: null, drilledWeek: null, returnIndex: null, returnChart: null, returnView: null };
+    updateAnalyseScopeChips();
+    loadAnalyse();
+    return;
+  }
+  if (ANALYSE_SECTION_UI[analyseView]) applySecSelection(analyseView);
+  else updateAnalyseOverview();
+  updateAnalyseContext();
+}
+document.getElementById('analyse-reset').addEventListener('click', resetAnalyseSelection);
 
 // Die Chips sind ein Zoomstufen-Regler: sie sagen "wie fein", eine markierte
 // Woche sagt "wovon". Ihr Text ändert sich nie, nur die Markierung wandert.

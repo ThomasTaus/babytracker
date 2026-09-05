@@ -29,15 +29,17 @@
   .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
   .quick-row { margin-top: -17px; }
 
-  /* Der Switcher steht nur in den Detailansichten, mit dem Zurück-Knopf in
-     derselben Zeile — so kostet er gegenüber der Übersicht nur eine Zeile. */
-  #screen-analyse .a-sw-row { display: flex; align-items: center; gap: 9px; margin-top: 14px; }
-  #screen-analyse .a-back { width: 38px; height: 38px; flex-shrink: 0; border-radius: 13px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; }
+  /* Der Switcher steht dauerhaft im Kopf und führt auch zurück zur Übersicht.
+     Der gewählte Bereich ist in seiner eigenen Farbe gefüllt — dieselbe Sprache
+     wie der Nachts/Tagsüber-Umschalter im Schlafen-Bereich. */
+  #screen-analyse .a-sw-row { display: flex; align-items: center; margin-top: 14px; }
   #screen-analyse .a-seg { flex: 1; display: flex; background: var(--surface-alt); border-radius: 14px; padding: 4px; gap: 3px; }
-  #screen-analyse .a-seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 8px 2px; border-radius: 11px; font-weight: 600; font-size: 12px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
-  #screen-analyse .a-seg-btn.active { background: white; color: var(--sec-strong); box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08); }
+  #screen-analyse .a-seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 9px 2px; border-radius: 11px; font-weight: 600; font-size: 11.5px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
+  #screen-analyse .a-seg-btn.active { background: var(--btn); color: white; }
   #screen-analyse .a-range-chip { padding: 7px 13px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid transparent; background: var(--surface-alt); color: var(--text-muted); cursor: pointer; }
-  #screen-analyse .a-range-chip.active { background: var(--sec-soft); color: var(--sec-strong); border-color: var(--sec); cursor: pointer; }
+  /* Bewusst nicht in der Bereichsfarbe: der Kopfbereich bleibt in jeder
+     Ansicht gleich, damit der Bereichswechsel ruhig wirkt. */
+  #screen-analyse .a-range-chip.active { background: var(--neutral-soft); color: var(--neutral-strong); border-color: var(--border); cursor: pointer; }
   #screen-analyse .a-range-chip.disabled { opacity: 0.5; cursor: default; }
   #screen-analyse .a-axis-unit { text-align: right; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-top: 2px; }
   #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
@@ -934,14 +936,14 @@
     --ok: oklch(58% 0.11 150); --warn: oklch(58% 0.17 25); --warn-soft: oklch(93% 0.035 25);
     --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
     --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
-    --sec: var(--border); --sec-soft: var(--neutral-soft); --sec-strong: var(--neutral-strong); --sec-deep: var(--neutral-strong);
+    --sec-soft: var(--neutral-soft); --sec-strong: var(--neutral-strong); --sec-deep: var(--neutral-strong);
     height: 100vh; max-width: 480px; margin: 0 auto;
     color: var(--text); display: none; flex-direction: column;
   ">
     <div style="flex-shrink: 0; padding: 32px 24px 0;">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
-          <div id="analyse-head-icon" style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
+          <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="20" x2="19" y2="20"/>
               <rect x="6" y="12" width="3.4" height="8" rx="1"/>
@@ -950,7 +952,7 @@
             </svg>
           </div>
           <div>
-            <div id="analyse-head-title" style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Analyse</div>
+            <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Analyse</div>
             <div style="font-size: 13px; color: var(--text-muted);">Verlauf &amp; Trends</div>
           </div>
         </div>
@@ -965,20 +967,21 @@
 
       <div id="analyse-context" class="a-context"></div>
 
-      <div id="analyse-switcher" class="a-sw-row" style="display: none;">
-        <button id="analyse-back" class="a-back" aria-label="Zurück zur Übersicht">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"/></svg>
-        </button>
+      <div class="a-sw-row">
         <div class="a-seg">
-          <button class="a-seg-btn" data-view="fuettern">
+          <button class="a-seg-btn active" data-view="overview" style="--btn: var(--neutral-strong);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>
+            Übersicht
+          </button>
+          <button class="a-seg-btn" data-view="fuettern" style="--btn: var(--fuettern-strong);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
             Füttern
           </button>
-          <button class="a-seg-btn" data-view="windeln">
+          <button class="a-seg-btn" data-view="windeln" style="--btn: #1F6B6B;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>
             Windeln
           </button>
-          <button class="a-seg-btn" data-view="schlafen">
+          <button class="a-seg-btn" data-view="schlafen" style="--btn: var(--schlafen-strong);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
             Schlafen
           </button>
@@ -4887,29 +4890,22 @@ function secPick(view, chartId, i, toggle) {
 
 const ANALYSE_VIEWS = ['overview', 'fuettern', 'windeln', 'schlafen'];
 
-// Kopfzeile und Akzentfarbe je Ansicht. Die Übersicht bleibt neutral, jeder
-// Detailbereich färbt Kopf-Icon, aktiven Chip und aktives Segment in seiner
-// eigenen Farbe — dadurch bleibt nach dem Wechsel sofort sichtbar, wo man ist.
+// Akzentfarbe je Ansicht, gültig ab der Kennzahl-Zeile abwärts: Diagramme,
+// schwebendes Label, Legendenfilter und die Zeitraum-Zeile bei Markierung.
+// Die Übersicht bleibt neutral. Die Füllfarbe des Switchers steht dagegen am
+// Knopf selbst (--btn), denn dort trägt jeder Eintrag seine eigene Farbe.
 const ANALYSE_SECTIONS = {
   overview: {
-    title: 'Analyse',
-    sec: 'var(--border)', soft: 'var(--neutral-soft)', strong: 'var(--neutral-strong)', deep: 'var(--neutral-strong)',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="19" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.3" y="7" width="3.4" height="13" rx="1"/><rect x="14.6" y="10" width="3.4" height="10" rx="1"/></svg>'
+    soft: 'var(--neutral-soft)', strong: 'var(--neutral-strong)', deep: 'var(--neutral-strong)'
   },
   fuettern: {
-    title: 'Füttern',
-    sec: 'var(--fuettern)', soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', deep: 'var(--fuettern-strong)',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>'
+    soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', deep: 'var(--fuettern-strong)'
   },
   windeln: {
-    title: 'Windeln',
-    sec: 'var(--windeln)', soft: 'var(--windeln-soft)', strong: 'var(--windeln)', deep: '#1F6B6B',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>'
+    soft: 'var(--windeln-soft)', strong: 'var(--windeln)', deep: '#1F6B6B'
   },
   schlafen: {
-    title: 'Schlafen',
-    sec: 'var(--schlafen)', soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', deep: 'var(--schlafen-strong)',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>'
+    soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', deep: 'var(--schlafen-strong)'
   }
 };
 let analyseView = 'overview';
@@ -4923,22 +4919,16 @@ function showAnalyseView(view) {
     btn.classList.toggle('active', btn.dataset.view === view);
   });
 
+  // Nur der Inhalt unterhalb des Kopfes trägt die Bereichsfarbe — Überschrift
+  // und Zeitraum-Chips bleiben in jeder Ansicht gleich, damit der
+  // Bereichswechsel ruhig wirkt.
   const sec = ANALYSE_SECTIONS[view];
   const screen = document.getElementById('screen-analyse');
-  screen.style.setProperty('--sec', sec.sec);
   screen.style.setProperty('--sec-soft', sec.soft);
   screen.style.setProperty('--sec-strong', sec.strong);
   // Das schwebende Label trägt weiße Schrift und braucht darum einen dunkleren
   // Ton als der Akzent, der nur auf hellem Grund steht.
   screen.style.setProperty('--sec-deep', sec.deep);
-  const headIcon = document.getElementById('analyse-head-icon');
-  headIcon.innerHTML = sec.icon;
-  headIcon.style.background = sec.soft;
-  headIcon.style.color = sec.strong;
-  document.getElementById('analyse-head-title').textContent = sec.title;
-  // Der Switcher gehört zu den Detailseiten — die Übersicht ist die Ebene
-  // darüber und braucht ihn nicht.
-  document.getElementById('analyse-switcher').style.display = view === 'overview' ? 'none' : 'flex';
 
   updateAnalyseContext();
   document.getElementById('analyse-body').scrollTop = 0;
@@ -4954,7 +4944,6 @@ function showAnalyseView(view) {
 document.querySelectorAll('.a-seg-btn').forEach((btn) => {
   btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));
 });
-document.getElementById('analyse-back').addEventListener('click', () => showAnalyseView('overview'));
 
 function updateAnalyseScopeChips() {
   document.querySelectorAll('.a-range-chip[data-scope]').forEach((c) => {

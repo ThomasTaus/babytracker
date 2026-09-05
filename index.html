@@ -89,7 +89,9 @@
      gerade gezeigt wird. In der Bereichsfarbe, sobald das ein bestimmter ist
      (markierter Balken oder aufgezogene Woche), grau beim laufenden Zeitraum. */
   #screen-analyse .a-context { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 10px; min-height: 17px; }
-  #screen-analyse .a-context.sel { color: var(--sec-strong); }
+  /* Neutral wie auf der Übersicht: die Zeile gehört zum Kopfbereich, und der
+     bleibt in jeder Ansicht gleich. */
+  #screen-analyse .a-context.sel { color: var(--neutral-strong); }
 
   #screen-analyse .a-chart-wrap { position: relative; }
   #screen-analyse .a-chart { display: block; width: 100%; height: 105px; touch-action: pan-y; cursor: pointer; }
@@ -930,7 +932,7 @@
   <!-- Analyse -->
   <div id="screen-analyse" style="
     --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250); --fuettern-soft: oklch(93% 0.025 250); --fuettern-breast: oklch(80% 0.05 250);
-    --windeln: #39ABAB; --windeln-light: #8FD4D4; --windeln-soft: #DFF2F2;
+    --windeln: #39ABAB; --windeln-light: #8FD4D4; --windeln-soft: #DFF2F2; --windeln-deep: #1A5570;
     --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9; --schlafen-light: #B7ADEB;
     --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
     --ok: oklch(58% 0.11 150); --warn: oklch(58% 0.17 25); --warn-soft: oklch(93% 0.035 25);
@@ -977,7 +979,7 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
             Füttern
           </button>
-          <button class="a-seg-btn" data-view="windeln" style="--btn: #1F6B6B;">
+          <button class="a-seg-btn" data-view="windeln" style="--btn: var(--windeln-deep);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>
             Windeln
           </button>
@@ -4405,7 +4407,7 @@ const ANALYSE_SECTION_UI = {
         host.innerHTML = windelnColorHtml(b ? b.colorStats : a.colorStats, !!b && b.daysElapsed === 1);
       }
     },
-    insight: { bg: 'var(--windeln-soft)', fg: '#1F6B6B' }
+    insight: { bg: 'var(--windeln-soft)', fg: 'var(--windeln-deep)' }
   },
   schlafen: {
     hostId: 'analyse-view-schlafen',
@@ -4902,7 +4904,7 @@ const ANALYSE_SECTIONS = {
     soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', deep: 'var(--fuettern-strong)'
   },
   windeln: {
-    soft: 'var(--windeln-soft)', strong: 'var(--windeln)', deep: '#1F6B6B'
+    soft: 'var(--windeln-soft)', strong: 'var(--windeln)', deep: 'var(--windeln-deep)'
   },
   schlafen: {
     soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', deep: 'var(--schlafen-strong)'

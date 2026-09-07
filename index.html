@@ -43,7 +43,6 @@
   /* Bewusst nicht in der Bereichsfarbe: der Kopfbereich bleibt in jeder
      Ansicht gleich, damit der Bereichswechsel ruhig wirkt. */
   #screen-analyse .a-range-chip.active { background: var(--neutral-soft); color: var(--neutral-strong); border-color: var(--neutral-strong); font-weight: 700; cursor: pointer; }
-  #screen-analyse .a-range-chip.disabled { opacity: 0.5; cursor: default; }
   #screen-analyse .a-axis-unit { text-align: right; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-top: 2px; }
   #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
   #screen-analyse .a-card:last-child { margin-bottom: 0; }
@@ -970,7 +969,7 @@
       <div style="display: flex; gap: 8px; margin-top: 16px;">
         <div class="a-range-chip active" data-scope="days">Tage</div>
         <div class="a-range-chip" data-scope="weeks">Wochen</div>
-        <div class="a-range-chip disabled" title="Verfügbar sobald genug Daten da sind">Monate</div>
+        <div class="a-range-chip" data-scope="months">Monate</div>
       </div>
 
       <div id="analyse-context" class="a-context">
@@ -3834,25 +3833,54 @@ function initTimelineScroll() {
 // --- Analyse ---
 const ANALYSE_RANGE_DAYS = 7;
 const ANALYSE_WEEK_COUNT = 8;
+const ANALYSE_MONTH_COUNT = 6;
 const ANALYSE_WEEKDAY_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const ANALYSE_WEEKDAY_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-const ANALYSE_MONTH_SHORT = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'];
+const ANALYSE_MONTH_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 const ANALYSE_MONTH_FULL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
+// Die drei Chips von fein nach grob. Ein Schritt nach links zoomt in den
+// markierten Balken hinein, einer nach rechts wieder heraus.
+const ANALYSE_ZOOM_ORDER = ['days', 'weeks', 'months'];
+
+// Zeitausschnitt der Analyse. Die Chips oben sind ein Zoomstufen-Regler, kein
+// reiner Zeitraum-Umschalter: sie sagen "wie fein", ein markierter Balken sagt
+// "wovon". `parent` ist der Balken, in den zuletzt hineingezoomt wurde — ohne
+// ihn ließe sich ein zurückliegender Ausschnitt gar nicht darstellen. Er hält
+// zugleich den Weg dorthin fest (`returnIndex`/`returnChart`/`returnView`),
+// damit der gröbere Chip mit derselben Markierung zurückführt, und über `up`
+// die Stufe darüber: Monat → Woche → Tag lässt sich so wieder aufrollen.
+let analyseScope = { mode: 'days', parent: null };
 // Range-dependent labels/phrasing, set at the top of loadAnalyse() for whichever
 // range is currently selected, and read by the chart/insight builders below —
 // avoids threading a "range" parameter through every function signature.
-// Zeitausschnitt der Analyse. Die Chips oben sind ein Zoomstufen-Regler, kein
-// reiner Zeitraum-Umschalter: sie sagen "wie fein", eine markierte Woche sagt
-// "wovon". `anchor` ist der letzte Tag des Tages-Ausschnitts (null = heute) —
-// nur damit lässt sich überhaupt eine zurückliegende Woche darstellen.
-// `drilledWeek`/`returnIndex`/`returnChart` merken sich den Weg dorthin, damit
-// "Wochen" wieder mit derselben Woche markiert zurückführt.
-let analyseScope = { mode: 'days', anchor: null, drilledWeek: null, returnIndex: null, returnChart: null, returnView: null };
 let analyseAxisTodayLabel = 'Heute';
 let analyseProseTodayLabel = 'Heute';
-let analyseRangeLabel = 'Woche';
+let analyseRangePhrase = 'der letzten Woche';
 let analyseBucketUnitPhrase = 'an einem Tag';
+
+// Die rohen Buckets des laufenden Ausschnitts. perDay der drei Bereiche wird
+// daraus gebaut und teilt sich deren Reihenfolge — zum Hineinzoomen braucht es
+// aber den Bucket selbst (weekStart/monthStart), unabhängig vom offenen
+// Bereich. Die Übersicht hat gar keinen eigenen Datensatz.
+let analyseBuckets = [];
+
+// Wortwahl je Zoomstufe: wie der laufende Balken an der Achse und im Fließtext
+// heißt, und was unter den Chips als Zeitraum steht.
+const ANALYSE_ZOOM_UI = {
+  days: {
+    axisToday: 'Heute', proseToday: 'Heute', bucketPhrase: 'an einem Tag',
+    rangePhrase: 'der letzten Woche', rangeText: 'Letzte ' + ANALYSE_RANGE_DAYS + ' Tage'
+  },
+  weeks: {
+    axisToday: 'Jetzt', proseToday: 'Diese Woche', bucketPhrase: 'in einer Woche',
+    rangePhrase: 'der letzten ' + ANALYSE_WEEK_COUNT + ' Wochen', rangeText: 'Letzte ' + ANALYSE_WEEK_COUNT + ' Wochen'
+  },
+  months: {
+    axisToday: 'Jetzt', proseToday: 'Dieser Monat', bucketPhrase: 'in einem Monat',
+    rangePhrase: 'der letzten ' + ANALYSE_MONTH_COUNT + ' Monate', rangeText: 'Letzte ' + ANALYSE_MONTH_COUNT + ' Monate'
+  }
+};
 
 function analyseAvg(arr) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0; }
 function analyseRound(n) { return Math.round(n); }
@@ -3910,26 +3938,31 @@ function mondayOf(d) {
   return date;
 }
 
-// 8 real calendar weeks (Mon-Sun), most recent one truncated to today if it's
-// still in progress — daysElapsed tracks how many days actually belong to that
-// truncated week, so per-day averages stay comparable to the full weeks.
-function buildAnalyseWeekBuckets() {
+// Echte Kalenderwochen (Mo–So). Ohne `range` sind es die letzten 8, die
+// laufende auf heute gekürzt; steckt der Ausschnitt in einem Monat, sind es
+// dessen Wochen, an den Monatsrändern gekürzt. daysElapsed hält fest, wie
+// viele Tage wirklich zu einer Woche zählen — dadurch bleiben die Tagesmittel
+// über volle und angeschnittene Wochen hinweg vergleichbar.
+function buildAnalyseWeekBuckets(range) {
   const today = todayStartDate();
-  const thisMonday = mondayOf(today);
-  const start = new Date(thisMonday);
-  start.setDate(start.getDate() - (ANALYSE_WEEK_COUNT - 1) * 7);
+  const todayKey = isoDate(today);
+  const first = mondayOf(range ? range.start : today);
+  if (!range) first.setDate(first.getDate() - (ANALYSE_WEEK_COUNT - 1) * 7);
+  const from = range ? range.start : first;
+  const until = range ? range.end : today;
   const days = [];
-  for (let w = 0; w < ANALYSE_WEEK_COUNT; w++) {
-    const wStart = new Date(start);
-    wStart.setDate(wStart.getDate() + w * 7);
-    const isCurrent = w === ANALYSE_WEEK_COUNT - 1;
+  for (let wStart = new Date(first); wStart <= until; wStart.setDate(wStart.getDate() + 7)) {
     const dayKeys = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(wStart);
       d.setDate(d.getDate() + i);
-      if (d > today) break;
+      if (d > today || d > until) break;
+      if (d < from) continue;
       dayKeys.push(isoDate(d));
     }
+    // Eine Woche ganz außerhalb des Ausschnitts — etwa der Rest des laufenden
+    // Monats — hat keinen einzigen Tag und damit auch keinen Wert.
+    if (!dayKeys.length) continue;
     const weekNum = isoWeekNumber(wStart);
     days.push({
       dayKeys,
@@ -3937,7 +3970,36 @@ function buildAnalyseWeekBuckets() {
       label: String(weekNum),
       fullLabel: 'Kalenderwoche ' + weekNum,
       contextLabel: 'Kalenderwoche ' + weekNum,
-      isToday: isCurrent,
+      isToday: dayKeys.indexOf(todayKey) !== -1,
+      daysElapsed: dayKeys.length
+    });
+  }
+  return { days, start: days.length ? new Date(days[0].weekStart) : first };
+}
+
+// Die letzten 6 Kalendermonate, der laufende auf heute gekürzt — dieselbe
+// Logik wie bei den Wochen, eine Stufe gröber.
+function buildAnalyseMonthBuckets() {
+  const today = todayStartDate();
+  const todayKey = isoDate(today);
+  const start = new Date(today.getFullYear(), today.getMonth() - (ANALYSE_MONTH_COUNT - 1), 1);
+  const days = [];
+  for (let m = 0; m < ANALYSE_MONTH_COUNT; m++) {
+    const mStart = new Date(start.getFullYear(), start.getMonth() + m, 1);
+    const dayKeys = [];
+    for (let d = new Date(mStart); d.getMonth() === mStart.getMonth(); d.setDate(d.getDate() + 1)) {
+      if (d > today) break;
+      dayKeys.push(isoDate(d));
+    }
+    days.push({
+      dayKeys,
+      monthStart: new Date(mStart),
+      label: ANALYSE_MONTH_SHORT[mStart.getMonth()],
+      fullLabel: ANALYSE_MONTH_FULL[mStart.getMonth()],
+      // Der Zeitraum-Zeile darf man das Jahr zumuten: über sechs Monate hinweg
+      // kann der Ausschnitt in zwei Jahren liegen.
+      contextLabel: ANALYSE_MONTH_FULL[mStart.getMonth()] + ' ' + mStart.getFullYear(),
+      isToday: dayKeys.indexOf(todayKey) !== -1,
       daysElapsed: dayKeys.length
     });
   }
@@ -4054,7 +4116,7 @@ function computeFuetternAnalysis(days, feedMap) {
     avgBreastCountExact: totalBreast / totalDays,
     avgBottleMlExact: totalMl / totalDays,
     avgBreastMinExact: totalBreastMin / totalDays,
-    insight: outlier ? (outlierDayLabel(outlier.day) + ' deutlich mehr Fläschchen als sonst — größter Tageswert der letzten ' + analyseRangeLabel + '.') : null
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' deutlich mehr Fläschchen als sonst — größter Tageswert ' + analyseRangePhrase + '.') : null
   };
 }
 
@@ -4108,7 +4170,7 @@ function computeWindelnAnalysis(days, diaperMap) {
     avgPerDayExact: totalCount / totalDays,
     avgSmallExact: perDay.reduce((s, d) => s + d.small, 0) / totalDays,
     avgBigExact: perDay.reduce((s, d) => s + d.big, 0) / totalDays,
-    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + outlier.day.big + ' großen Wechseln — der meiste ' + analyseBucketUnitPhrase + ' der letzten ' + analyseRangeLabel + '.') : null
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + outlier.day.big + ' großen Wechseln — der meiste ' + analyseBucketUnitPhrase + ' ' + analyseRangePhrase + '.') : null
   };
 }
 
@@ -4192,7 +4254,7 @@ function computeSchlafenAnalysis(days, nightMap, napMap) {
   return {
     perDay, avgNightH, avgNapH, avgTotalH, avgWake, avgNapCount, avgBedtime, avgWaketime, napHistogram,
     avgNightHExact, avgNapHExact, avgWakeExact, avgNapCountExact,
-    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + analyseRound(outlier.value) + '× Aufwachen — die meisten Unterbrechungen der letzten ' + analyseRangeLabel + '.') : null
+    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + analyseRound(outlier.value) + '× Aufwachen — die meisten Unterbrechungen ' + analyseRangePhrase + '.') : null
   };
 }
 
@@ -4474,6 +4536,16 @@ function analyseDe1(n) {
 // genau. Über mehrere Tage wird gemittelt, da gehört die Nachkommastelle hin.
 function analyseCount(value, single) {
   return single ? String(analyseRound(value)) : analyseDe1(value);
+}
+// Der Ausschnitt, in den hineingezoomt wurde: einmal als Überschrift für die
+// Zeitraum-Zeile, einmal als Einschub für die Insight-Sätze.
+function analyseParentTitle(p) {
+  return p.unit === 'week' ? analyseWeekRangeText(p.start)
+    : ANALYSE_MONTH_FULL[p.start.getMonth()] + ' ' + p.start.getFullYear();
+}
+function analyseParentPhrase(p) {
+  return p.unit === 'week' ? 'in KW ' + isoWeekNumber(p.start)
+    : 'im ' + ANALYSE_MONTH_FULL[p.start.getMonth()];
 }
 function analyseWeekRangeText(weekStart) {
   const end = new Date(weekStart);
@@ -4888,10 +4960,10 @@ function updateAnalyseContext() {
   const b = analyseSelectedBucket(analyseView);
 
   ctx.querySelector('[data-ctx-text]').textContent = b ? b.contextLabel
-    : analyseScope.drilledWeek ? analyseWeekRangeText(analyseScope.drilledWeek)
-    : analyseScope.mode === 'weeks' ? 'Letzte ' + ANALYSE_WEEK_COUNT + ' Wochen' : 'Letzte ' + ANALYSE_RANGE_DAYS + ' Tage';
+    : analyseScope.parent ? analyseParentTitle(analyseScope.parent)
+    : ANALYSE_ZOOM_UI[analyseScope.mode].rangeText;
   // Farbig = ein bestimmter Ausschnitt, grau = der laufende Zeitraum.
-  ctx.classList.toggle('sel', !!b || analyseScope.drilledWeek !== null);
+  ctx.classList.toggle('sel', !!b || analyseScope.parent !== null);
 }
 
 // Kennzahl-Kacheln und Kontextzeile folgen dem markierten Balken. Der
@@ -5219,10 +5291,10 @@ function updateAnalyseScopeChips() {
 // Wochenansicht — dorthin führt der Chip, wenn man das will. Steht nur eine
 // Markierung, wird die aufgehoben; dafür braucht es kein Nachladen.
 function resetAnalyseSelection() {
-  const wasDrilled = analyseScope.drilledWeek !== null;
+  const wasDrilled = analyseScope.parent !== null;
   analyseClearSelections();
   if (wasDrilled) {
-    analyseScope = { mode: analyseScope.mode, anchor: null, drilledWeek: null, returnIndex: null, returnChart: null, returnView: null };
+    analyseScope = { mode: analyseScope.mode, parent: null };
     updateAnalyseScopeChips();
     loadAnalyse();
     return;
@@ -5233,27 +5305,48 @@ function resetAnalyseSelection() {
 }
 document.getElementById('analyse-reset').addEventListener('click', resetAnalyseSelection);
 
-// Die Chips sind ein Zoomstufen-Regler: sie sagen "wie fein", eine markierte
-// Woche sagt "wovon". Ihr Text ändert sich nie, nur die Markierung wandert.
+// Wo die Markierung gerade sitzt — beim Herauszoomen wird genau das wieder
+// hergestellt. Die Übersicht trägt kein einzelnes Diagramm, dort bleibt nur
+// der Index übrig; er reicht, weil alle Bereiche dieselben Buckets zählen.
+function analyseReturnMarker(index) {
+  const inSection = !!ANALYSE_SECTION_UI[analyseView];
+  return {
+    returnIndex: index,
+    returnChart: inSection ? secActiveChart(analyseView) : null,
+    returnView: inSection ? analyseView : null
+  };
+}
+
+// Die Chips sind ein Zoomstufen-Regler: sie sagen "wie fein", ein markierter
+// Balken sagt "wovon". Ihr Text ändert sich nie, nur die Markierung wandert.
 document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
   chip.addEventListener('click', () => {
     const unit = chip.dataset.scope;
+    const from = ANALYSE_ZOOM_ORDER.indexOf(analyseScope.mode);
+    const to = ANALYSE_ZOOM_ORDER.indexOf(unit);
 
-    // Tage + markierte Woche = eine Stufe hinein, in genau diese Woche. Die
+    // Eine Stufe feiner + markierter Balken = hinein, in genau diesen Balken:
+    // aus einem Monat werden seine Wochen, aus einer Woche ihre Tage. Die
     // Markierung gilt für alle Bereiche; gemerkt wird nur, wo das Label lag,
     // damit es beim Zurück dort wieder auftaucht.
-    if (unit === 'days' && analyseScope.mode === 'weeks' && analyseSel) {
-      const idx = analyseSel.index;
-      const data = analyseData[analyseView];
-      const wk = data && data.perDay[idx];
-      if (wk && wk.weekStart) {
-        let end = new Date(wk.weekStart);
-        end.setDate(end.getDate() + 6);
+    if (to === from - 1 && analyseSel && analyseBuckets.length) {
+      const idx = Math.min(analyseSel.index, analyseBuckets.length - 1);
+      const b = analyseBuckets[idx];
+      const bStart = b.monthStart || b.weekStart;
+      if (bStart) {
         const today = todayStartDate();
+        let end = b.monthStart
+          ? new Date(bStart.getFullYear(), bStart.getMonth() + 1, 0)
+          : new Date(bStart.getTime());
+        if (b.weekStart) end.setDate(end.getDate() + 6);
         if (end > today) end = today;
         analyseScope = {
-          mode: 'days', anchor: end, drilledWeek: new Date(wk.weekStart),
-          returnIndex: idx, returnChart: secActiveChart(analyseView), returnView: analyseView
+          mode: unit,
+          parent: Object.assign({
+            unit: b.monthStart ? 'month' : 'week',
+            start: new Date(bStart.getTime()), end,
+            up: analyseScope.parent
+          }, analyseReturnMarker(idx))
         };
         analyseClearSelections();
         updateAnalyseScopeChips();
@@ -5262,15 +5355,20 @@ document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
       }
     }
 
-    // Wochen aus einer aufgezogenen Woche heraus = eine Stufe zurück, mit
-    // derselben Woche noch markiert.
-    if (unit === 'weeks' && analyseScope.drilledWeek !== null) {
-      const back = analyseScope.returnIndex, backChart = analyseScope.returnChart, backView = analyseScope.returnView;
-      analyseScope = { mode: 'weeks', anchor: null, drilledWeek: null, returnIndex: null, returnChart: null, returnView: null };
+    // Gröber, während der Ausschnitt aufgezogen ist = wieder heraus, mit dem
+    // Balken von damals noch markiert. Zwei Stufen auf einmal (Tage → Monate)
+    // rollen beide auf, markiert bleibt der Balken der Zielstufe.
+    if (to > from && analyseScope.parent) {
+      let scope = analyseScope, back = null;
+      while (scope.parent && ANALYSE_ZOOM_ORDER.indexOf(scope.mode) < to) {
+        back = scope.parent;
+        scope = { mode: ANALYSE_ZOOM_ORDER[ANALYSE_ZOOM_ORDER.indexOf(scope.mode) + 1], parent: scope.parent.up };
+      }
+      analyseScope = scope;
       analyseClearSelections();
-      if (back !== null) {
-        analyseSel = { index: back };
-        if (backView) analyseActiveChart[backView] = backChart;
+      if (back && back.returnIndex !== null) {
+        analyseSel = { index: back.returnIndex };
+        if (back.returnView) analyseActiveChart[back.returnView] = back.returnChart;
       }
       updateAnalyseScopeChips();
       loadAnalyse();
@@ -5278,10 +5376,10 @@ document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
     }
 
     // Nochmal auf den aktiven Chip = zurück auf den laufenden Zeitraum. Sonst
-    // käme man aus einer aufgezogenen Woche nicht mehr zu "heute", weil "Tage"
-    // dort ja wieder in dieselbe Woche führen würde.
-    if (unit === analyseScope.mode && analyseScope.drilledWeek === null) return;
-    analyseScope = { mode: unit, anchor: null, drilledWeek: null, returnIndex: null, returnChart: null, returnView: null };
+    // käme man aus einem aufgezogenen Ausschnitt nicht mehr zu "heute", weil
+    // die feinere Stufe ja wieder dorthin zurückführen würde.
+    if (unit === analyseScope.mode && analyseScope.parent === null) return;
+    analyseScope = { mode: unit, parent: null };
     analyseClearSelections();
     updateAnalyseScopeChips();
     loadAnalyse();
@@ -5297,17 +5395,22 @@ async function loadAnalyse() {
     document.getElementById('analyse-view-' + v).innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Lade…</div>';
   });
   try {
-    const isWeekRange = analyseScope.mode === 'weeks';
-    analyseAxisTodayLabel = isWeekRange ? 'Jetzt' : 'Heute';
-    analyseProseTodayLabel = isWeekRange ? 'Diese Woche' : 'Heute';
-    analyseRangeLabel = isWeekRange ? '8 Wochen' : 'Woche';
-    analyseBucketUnitPhrase = isWeekRange ? 'in einer Woche' : 'an einem Tag';
+    const zoom = ANALYSE_ZOOM_UI[analyseScope.mode];
+    analyseAxisTodayLabel = zoom.axisToday;
+    analyseProseTodayLabel = zoom.proseToday;
+    analyseBucketUnitPhrase = zoom.bucketPhrase;
+    // Steckt der Ausschnitt in einer Woche oder einem Monat, benennen die
+    // Insight-Sätze genau die — "der letzten 8 Wochen" wäre dort schlicht falsch.
+    analyseRangePhrase = analyseScope.parent ? analyseParentPhrase(analyseScope.parent) : zoom.rangePhrase;
 
     // Bewusst keine obere Schranke auf der Firestore-Abfrage: nachgetragene
     // Einträge haben ein createdAt nach ihrem fachlichen Datum und würden aus
     // einem zurückliegenden Ausschnitt herausfallen. Gefiltert wird über
     // analyseBucketByDay(), das kostet nur ein paar überflüssige Dokumente.
-    const { days, start } = isWeekRange ? buildAnalyseWeekBuckets() : buildAnalyseDayBuckets(analyseScope.anchor);
+    const { days, start } = analyseScope.mode === 'months' ? buildAnalyseMonthBuckets()
+      : analyseScope.mode === 'weeks' ? buildAnalyseWeekBuckets(analyseScope.parent)
+      : buildAnalyseDayBuckets(analyseScope.parent ? analyseScope.parent.end : null);
+    analyseBuckets = days;
     const [feedings, diapers, nights, naps] = await Promise.all([
       getAnalyseRangeDocs('feedings', start),
       getAnalyseRangeDocs('diaperChanges', start),

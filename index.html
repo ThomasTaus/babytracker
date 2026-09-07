@@ -1417,10 +1417,10 @@ fuetternSaveBtn.addEventListener('click', async () => {
   };
   fuetternSaveBtn.disabled = true;
   try {
-    await addDoc(collection(db, 'feedings'), entry);
+    const ref = await addDoc(collection(db, 'feedings'), entry);
     fuetternSaveBtn.textContent = 'Gespeichert ✓';
     setTimeout(() => { fuetternSaveBtn.textContent = 'Eintrag speichern'; fuetternSaveBtn.disabled = false; }, 1400);
-    loadFuetternEntries(true);
+    addFuetternEntryToHistory({ id: ref.id, ...entry });
     refreshFuetternAmountChips();
   } catch (error) {
     fuetternSaveBtn.textContent = 'Fehler beim Speichern';
@@ -1478,7 +1478,7 @@ breastSaveBtn.addEventListener('click', async () => {
   if (minutes <= 0) return;
   breastSaveBtn.disabled = true;
   try {
-    await addDoc(collection(db, 'feedings'), {
+    const entry = {
       type: 'breast',
       amount: null,
       minutes,
@@ -1490,10 +1490,11 @@ breastSaveBtn.addEventListener('click', async () => {
       source: 'manual',
       createdBy: currentUser.email,
       createdAt: serverTimestamp()
-    });
+    };
+    const ref = await addDoc(collection(db, 'feedings'), entry);
     breastSaveBtn.textContent = 'Gespeichert ✓';
     setTimeout(() => { breastSaveBtn.textContent = 'Eintrag speichern'; breastSaveBtn.disabled = false; }, 1400);
-    loadFuetternEntries(true);
+    addFuetternEntryToHistory({ id: ref.id, ...entry });
   } catch (error) {
     breastSaveBtn.textContent = 'Fehler beim Speichern';
     breastSaveBtn.disabled = false;
@@ -1573,7 +1574,7 @@ breastTimerToggleBtn.addEventListener('click', async () => {
   try {
     if (!openFeedingDocId) {
       const startedAt = new Date();
-      const ref = await addDoc(collection(db, 'feedings'), {
+      const entry = {
         type: 'breast',
         amount: null,
         minutes: null,
@@ -1585,11 +1586,13 @@ breastTimerToggleBtn.addEventListener('click', async () => {
         source: 'timer',
         createdBy: currentUser.email,
         createdAt: serverTimestamp()
-      });
+      };
+      const ref = await addDoc(collection(db, 'feedings'), entry);
       openFeedingDocId = ref.id;
       openFeedingStartedAt = startedAt.getTime();
       feedingTimerInterval = setInterval(renderBreastTimerDisplay, 1000);
       renderBreastTimerDisplay();
+      addFuetternEntryToHistory({ id: ref.id, ...entry });
     } else {
       const open = await findOpenFeeding();
       const targetId = open ? open.id : openFeedingDocId;
@@ -1606,7 +1609,11 @@ breastTimerToggleBtn.addEventListener('click', async () => {
       openFeedingDocId = null;
       openFeedingStartedAt = null;
       renderBreastTimerDisplay();
-      loadFuetternEntries(true);
+      // Die "Läuft…"-Zeile steht schon in der Liste (beim Start eingefügt bzw.
+      // beim Laden mitgekommen) — nur sie austauschen statt alles neu zu holen.
+      const base = open || { type: 'breast', amount: null, date: isoDate(startedAt), time: formatTime(startedAt), startTime: startedAt.toISOString(), source: 'timer' };
+      const updated = { ...base, id: targetId, endTime: endedAt.toISOString(), durationMinutes, minutes: durationMinutes };
+      if (!replaceHistoryRow(document.getElementById('fuettern-entries-list'), targetId, fuetternEntryRow(updated))) loadFuetternEntries(true);
     }
   } catch (error) {
     breastTimerSublabel.textContent = 'Fehler: ' + error.message;
@@ -1740,12 +1747,11 @@ async function handleFuetternUpdate(triggerBtn) {
     exitFuetternEdit(false);
     fuetternJustUpdatedId = updatedId;
     if (entry.type === 'bottle') refreshFuetternAmountChips();
-    await loadFuetternEntries(true);
+    updateFuetternHistoryEntry({ id: updatedId, ...entry });
     fuetternScrollEl.scrollTop = fuetternListScrollTop;
     setTimeout(() => {
       fuetternJustUpdatedId = null;
-      const oldRow = document.querySelector('#fuettern-entries-list [data-entry-id="' + updatedId + '"]');
-      if (oldRow) oldRow.replaceWith(fuetternEntryRow({ id: updatedId, ...entry }));
+      replaceHistoryRow(document.getElementById('fuettern-entries-list'), updatedId, fuetternEntryRow({ id: updatedId, ...entry }));
     }, 1800);
   } catch (error) {
     triggerBtn.textContent = 'Fehler beim Speichern';
@@ -1811,7 +1817,7 @@ function fuetternEntryRow(entry) {
     delBtn.disabled = true;
     try {
       await deleteDoc(doc(db, 'feedings', entry.id));
-      loadFuetternEntries(true);
+      removeHistoryRow(document.getElementById('fuettern-entries-list'), entry.id);
       if (entry.type === 'bottle') refreshFuetternAmountChips();
     } catch (error) {
       delBtn.disabled = false;
@@ -1829,20 +1835,36 @@ function appendFuetternEntries(docs) {
     const ts = entryBusinessTimestamp(entry);
     const dayKey = ts ? isoDate(ts) : 'unbekannt';
     if (dayKey !== fuetternEntriesLastDayKey) {
-      const header = document.createElement('div');
-      header.textContent = ts ? dayLabel(ts, now) : 'Unbekanntes Datum';
-      header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;';
-      list.appendChild(header);
+      list.appendChild(historyHeaderEl(dayKey, ts ? dayLabel(ts, now) : 'Unbekanntes Datum'));
       fuetternEntriesLastDayKey = dayKey;
     }
-    list.appendChild(fuetternEntryRow(entry));
+    const row = fuetternEntryRow(entry);
+    row.dataset.dayKey = dayKey;
+    row.dataset.sort = String(ts ? ts.getTime() : 0);
+    list.appendChild(row);
   });
-  if (list.children.length === 0) {
-    const empty = document.createElement('div');
-    empty.textContent = 'Noch keine Einträge.';
-    empty.style.cssText = 'font-size:13px; color:var(--text-muted); padding:8px 14px;';
-    list.appendChild(empty);
+  if (list.children.length === 0) list.appendChild(historyEmptyEl());
+}
+
+// Einen frisch gespeicherten Eintrag direkt in die schon gerenderte Historie
+// einsetzen, statt sie komplett neu von Firestore zu holen. Nur wenn er
+// hinter das Ende der geladenen Seiten fiele (stark rückdatiert), bleibt der
+// reguläre Reload.
+function addFuetternEntryToHistory(entry) {
+  const list = document.getElementById('fuettern-entries-list');
+  const ts = entryBusinessTimestamp(entry);
+  if (!ts || !insertHistoryRow(list, fuetternEntryRow(entry), isoDate(ts), dayLabel(ts, new Date()), ts.getTime(), fuetternEntriesAllLoaded)) {
+    loadFuetternEntries(true);
+    return;
   }
+  fuetternEntriesLastDayKey = historyLastDayKey(list);
+}
+
+// Nach dem Bearbeiten kann sich Datum/Uhrzeit geändert haben — also die alte
+// Zeile entfernen und die neue an ihrer neuen Position einsetzen.
+function updateFuetternHistoryEntry(entry) {
+  removeHistoryRow(document.getElementById('fuettern-entries-list'), entry.id);
+  addFuetternEntryToHistory(entry);
 }
 
 async function loadFuetternEntries(reset) {
@@ -2072,10 +2094,10 @@ windelnSaveBtn.addEventListener('click', async () => {
   };
   windelnSaveBtn.disabled = true;
   try {
-    await addDoc(collection(db, 'diaperChanges'), entry);
+    const ref = await addDoc(collection(db, 'diaperChanges'), entry);
     windelnSaveBtn.textContent = 'Gespeichert ✓';
     setTimeout(() => { windelnSaveBtn.textContent = 'Eintrag speichern'; windelnSaveBtn.disabled = false; }, 1400);
-    loadWindelnEntries(true);
+    addWindelnEntryToHistory({ id: ref.id, ...entry });
   } catch (error) {
     windelnSaveBtn.textContent = 'Fehler beim Speichern';
     windelnSaveBtn.disabled = false;
@@ -2095,20 +2117,18 @@ windelnUpdateBtn.addEventListener('click', async () => {
   windelnUpdateBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'diaperChanges', updatedId), entry);
-    // loadWindelnEntries clears the list before refilling it, which resets
-    // scrollTop to 0 in the meantime — restore it only after each (re)load
-    // has actually repopulated the list, not right when the view swaps back.
     exitWindelnEdit(false);
     windelnJustUpdatedId = updatedId;
-    await loadWindelnEntries(true);
+    // Nur die eine Zeile neu setzen (Datum/Uhrzeit können sich geändert
+    // haben, deshalb entfernen + neu einsortieren) — die Liste bleibt sonst
+    // stehen, also auch die Scrollposition.
+    updateWindelnHistoryEntry({ id: updatedId, ...entry });
     windelnScrollEl.scrollTop = windelnListScrollTop;
-    // Swap just this one row back to normal instead of reloading the whole
-    // list from Firestore again — a full reload would blank and rebuild
-    // every row just to change one badge back into two icons.
+    // Swap just this one row back to normal — a full reload would blank and
+    // rebuild every row just to change one badge back into two icons.
     setTimeout(() => {
       windelnJustUpdatedId = null;
-      const oldRow = document.querySelector('#windeln-entries-list [data-entry-id="' + updatedId + '"]');
-      if (oldRow) oldRow.replaceWith(windelnEntryRow({ id: updatedId, ...entry }));
+      replaceHistoryRow(document.getElementById('windeln-entries-list'), updatedId, windelnEntryRow({ id: updatedId, ...entry }));
     }, 1800);
   } catch (error) {
     windelnUpdateBtn.textContent = 'Fehler beim Speichern';
@@ -2130,6 +2150,98 @@ function dayLabel(d, now) {
   yesterday.setDate(yesterday.getDate() - 1);
   if (isoDate(d) === isoDate(yesterday)) return 'Gestern';
   return fmtDayDate(d);
+}
+
+// --- Historie: gemeinsame Bausteine für alle drei Rubriken ---
+// Eine Historie-Liste ist eine flache Folge aus Tages-Überschriften und
+// Eintragszeilen. Damit ein frisch gespeicherter Eintrag ohne kompletten
+// Reload an seiner chronologischen Stelle landen kann, tragen beide ihren
+// Tag (data-day-key), die Zeilen zusätzlich ihren Sortierwert (data-sort).
+function historyHeaderEl(dayKey, text) {
+  const header = document.createElement('div');
+  header.dataset.dayKey = dayKey;
+  header.textContent = text;
+  header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;';
+  return header;
+}
+
+function historyEmptyEl() {
+  const empty = document.createElement('div');
+  empty.dataset.empty = '1';
+  empty.textContent = 'Noch keine Einträge.';
+  empty.style.cssText = 'font-size:13px; color:var(--text-muted); padding:8px 14px;';
+  return empty;
+}
+
+// Sortierung ist zweistufig: erst der Tag, dann innerhalb des Tages der
+// Zeitpunkt — beides absteigend. Zweistufig, weil bei Nächten beides
+// auseinanderfällt: eine Bettzeit nach Mitternacht gehört noch zum Abend
+// davor, liegt als Zeitpunkt aber schon am Folgetag (siehe
+// schlafenBusinessTimestamp).
+function historyComesBefore(dayKeyA, sortA, dayKeyB, sortB) {
+  if (dayKeyA !== dayKeyB) return dayKeyA > dayKeyB;
+  return sortA > sortB;
+}
+
+// Der Tag der letzten Überschrift in der Liste — also der Stand, den
+// appendXEntries beim nächsten "Weitere laden" fortschreibt.
+function historyLastDayKey(list) {
+  let key = null;
+  Array.from(list.children).forEach((el) => { if (!el.dataset.entryId && el.dataset.dayKey) key = el.dataset.dayKey; });
+  return key;
+}
+
+// Setzt eine Zeile an ihre chronologische Position in die schon gerenderte
+// Liste, statt sie komplett neu zu laden. false = der Eintrag gehört hinter
+// das Ende der bereits geladenen Seiten; dort darf er nicht angehängt werden
+// (er stünde über älteren, noch nicht geladenen Einträgen) — der Aufrufer
+// lädt dann regulär neu.
+function insertHistoryRow(list, row, dayKey, headerText, sortValue, allLoaded) {
+  const anchor = Array.from(list.children).find((el) => {
+    if (!el.dataset.dayKey) return false;
+    return el.dataset.entryId
+      ? historyComesBefore(dayKey, sortValue, el.dataset.dayKey, Number(el.dataset.sort))
+      : dayKey > el.dataset.dayKey;
+  });
+  if (!anchor && !allLoaded) return false;
+
+  const empty = list.querySelector('[data-empty]');
+  if (empty) empty.remove();
+  row.dataset.dayKey = dayKey;
+  row.dataset.sort = String(sortValue);
+  const needsHeader = !Array.from(list.children).some((el) => !el.dataset.entryId && el.dataset.dayKey === dayKey);
+  if (anchor) {
+    if (needsHeader) list.insertBefore(historyHeaderEl(dayKey, headerText), anchor);
+    list.insertBefore(row, anchor);
+  } else {
+    if (needsHeader) list.appendChild(historyHeaderEl(dayKey, headerText));
+    list.appendChild(row);
+  }
+  return true;
+}
+
+// Eine schon gerenderte Zeile durch ihre aktualisierte Fassung ersetzen
+// (Badge nach dem Bearbeiten, gestoppter Timer): Tag und Position bleiben
+// dabei gleich, also reicht der Austausch statt eines Reloads.
+function replaceHistoryRow(list, id, row) {
+  const old = list.querySelector('[data-entry-id="' + id + '"]');
+  if (!old) return false;
+  row.dataset.dayKey = old.dataset.dayKey;
+  row.dataset.sort = old.dataset.sort;
+  old.replaceWith(row);
+  return true;
+}
+
+// Zeile entfernen, ohne eine leere Tagesgruppe stehen zu lassen.
+function removeHistoryRow(list, id) {
+  const row = list.querySelector('[data-entry-id="' + id + '"]');
+  if (!row) return false;
+  const prev = row.previousElementSibling;
+  const next = row.nextElementSibling;
+  if (prev && !prev.dataset.entryId && (!next || !next.dataset.entryId)) prev.remove();
+  row.remove();
+  if (list.children.length === 0) list.appendChild(historyEmptyEl());
+  return true;
 }
 
 function windelnEntryRow(entry) {
@@ -2192,7 +2304,7 @@ function windelnEntryRow(entry) {
     delBtn.disabled = true;
     try {
       await deleteDoc(doc(db, 'diaperChanges', entry.id));
-      loadWindelnEntries(true);
+      removeHistoryRow(document.getElementById('windeln-entries-list'), entry.id);
     } catch (error) {
       delBtn.disabled = false;
     }
@@ -2209,20 +2321,31 @@ function appendWindelnEntries(docs) {
     const ts = entryBusinessTimestamp(entry);
     const dayKey = ts ? isoDate(ts) : 'unbekannt';
     if (dayKey !== windelnEntriesLastDayKey) {
-      const header = document.createElement('div');
-      header.textContent = ts ? dayLabel(ts, now) : 'Unbekanntes Datum';
-      header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;';
-      list.appendChild(header);
+      list.appendChild(historyHeaderEl(dayKey, ts ? dayLabel(ts, now) : 'Unbekanntes Datum'));
       windelnEntriesLastDayKey = dayKey;
     }
-    list.appendChild(windelnEntryRow(entry));
+    const row = windelnEntryRow(entry);
+    row.dataset.dayKey = dayKey;
+    row.dataset.sort = String(ts ? ts.getTime() : 0);
+    list.appendChild(row);
   });
-  if (list.children.length === 0) {
-    const empty = document.createElement('div');
-    empty.textContent = 'Noch keine Einträge.';
-    empty.style.cssText = 'font-size:13px; color:var(--text-muted); padding:8px 14px;';
-    list.appendChild(empty);
+  if (list.children.length === 0) list.appendChild(historyEmptyEl());
+}
+
+// Wie addFuetternEntryToHistory, siehe dort.
+function addWindelnEntryToHistory(entry) {
+  const list = document.getElementById('windeln-entries-list');
+  const ts = entryBusinessTimestamp(entry);
+  if (!ts || !insertHistoryRow(list, windelnEntryRow(entry), isoDate(ts), dayLabel(ts, new Date()), ts.getTime(), windelnEntriesAllLoaded)) {
+    loadWindelnEntries(true);
+    return;
   }
+  windelnEntriesLastDayKey = historyLastDayKey(list);
+}
+
+function updateWindelnHistoryEntry(entry) {
+  removeHistoryRow(document.getElementById('windeln-entries-list'), entry.id);
+  addWindelnEntryToHistory(entry);
 }
 
 async function loadWindelnEntries(reset) {
@@ -2763,11 +2886,13 @@ nightSaveBtn.addEventListener('click', async () => {
 
   if (isComplete && nightUnlocked) {
     await finish(async () => {
-      await updateDoc(doc(db, 'nightWakeups', viewedNightEntry.id), {
+      const changes = {
         bedtime: nightBedtimeInput.value,
         wakeTime: nightWaketimeInput.value,
         wakeCount
-      });
+      };
+      await updateDoc(doc(db, 'nightWakeups', viewedNightEntry.id), changes);
+      updateSchlafenHistoryEntry({ ...viewedNightEntry, ...changes, _type: 'night' });
       nightUnlocked = false;
     });
     return;
@@ -2776,12 +2901,17 @@ nightSaveBtn.addEventListener('click', async () => {
   if (isOpen) {
     if (!nightWaketimeInput.value) return;
     await finish(async () => {
-      await updateDoc(doc(db, 'nightWakeups', viewedNightEntry.id), {
+      const changes = {
         nightEnd: isoDate(new Date()),
         bedtime: nightBedtimeInput.value,
         wakeTime: nightWaketimeInput.value,
         wakeCount
-      });
+      };
+      await updateDoc(doc(db, 'nightWakeups', viewedNightEntry.id), changes);
+      // Die Nacht wechselt von "Läuft…" auf ihre echten Zeiten und kann dabei
+      // auch die Position wechseln (Bettzeit nach Mitternacht) — deshalb neu
+      // einsortieren statt nur austauschen.
+      updateSchlafenHistoryEntry({ ...viewedNightEntry, ...changes, _type: 'night' });
       openNightDocId = null;
       openNightData = null;
     });
@@ -2828,6 +2958,7 @@ nightSaveBtn.addEventListener('click', async () => {
   await finish(async () => {
     const ref = await addDoc(collection(db, 'nightWakeups'), entry);
     if (startOnly) { openNightDocId = ref.id; openNightData = entry; }
+    addSchlafenEntryToHistory({ id: ref.id, _type: 'night', ...entry });
   });
 });
 
@@ -2965,7 +3096,7 @@ napSaveBtn.addEventListener('click', async () => {
   if (minutes <= 0) return;
   napSaveBtn.disabled = true;
   try {
-    await addDoc(collection(db, 'naps'), {
+    const entry = {
       date: napDateInput.value,
       startTime: napStartInput.value,
       endTime: napEndInput.value,
@@ -2973,7 +3104,9 @@ napSaveBtn.addEventListener('click', async () => {
       source: 'manual',
       createdBy: currentUser.email,
       createdAt: serverTimestamp()
-    });
+    };
+    const ref = await addDoc(collection(db, 'naps'), entry);
+    addSchlafenEntryToHistory({ id: ref.id, _type: 'nap', ...entry });
     napSaveBtn.textContent = 'Gespeichert ✓';
     setTimeout(() => { napSaveBtn.textContent = 'Eintrag speichern'; napSaveBtn.disabled = false; }, 1400);
   } catch (error) {
@@ -3068,18 +3201,20 @@ timerToggleBtn.addEventListener('click', async () => {
   try {
     if (!openNapDocId) {
       const startedAt = new Date();
-      const ref = await addDoc(collection(db, 'naps'), {
+      const entry = {
         startTime: startedAt.toISOString(),
         endTime: null,
         durationMinutes: null,
         source: 'timer',
         createdBy: currentUser.email,
         createdAt: serverTimestamp()
-      });
+      };
+      const ref = await addDoc(collection(db, 'naps'), entry);
       openNapDocId = ref.id;
       openNapStartedAt = startedAt.getTime();
       timerInterval = setInterval(renderTimerDisplay, 1000);
       renderTimerDisplay();
+      addSchlafenEntryToHistory({ id: ref.id, _type: 'nap', ...entry });
     } else {
       // Vor dem Stop nochmal frisch nachsehen, welches Dokument offen ist —
       // die lokale ID könnte veraltet sein, falls die App zwischenzeitlich neu geladen wurde.
@@ -3097,6 +3232,10 @@ timerToggleBtn.addEventListener('click', async () => {
       openNapDocId = null;
       openNapStartedAt = null;
       renderTimerDisplay();
+      // Nur die "Läuft…"-Zeile austauschen — Startzeit und Tag bleiben gleich.
+      const base = open || { startTime: startedAt.toISOString(), source: 'timer' };
+      const updated = { ...base, id: targetId, _type: 'nap', endTime: endedAt.toISOString(), durationMinutes };
+      if (!replaceHistoryRow(document.getElementById('schlafen-entries-list'), targetId, schlafenEntryRow(updated))) loadSchlafenEntries(true);
     }
   } catch (error) {
     timerSublabel.textContent = 'Fehler: ' + error.message;
@@ -3117,13 +3256,56 @@ const schlafenSources = {
   nightWakeups: { lastSnap: null, allLoaded: false, type: 'night' }
 };
 
+// Ab wann eine Bettzeit als "nach Mitternacht" gilt: alles vor 12:00 gehört
+// zum Morgen des Aufwach-Tages, nicht zum Abend davor.
+const NIGHT_BEDTIME_MORNING_CUTOFF = 12 * 60;
+
 // Nächte tragen kein `time`, sondern `bedtime` (Startzeitpunkt des Schlafs) —
 // entryBusinessTimestamp (für feedings/diaperChanges) passt hier nicht,
 // daher eine eigene Variante speziell für die zwei Schlafen-Formen.
+//
+// Eine Nacht spannt sich von `nightStart` (Abend) bis `nightEnd` (Morgen).
+// Ist man erst nach Mitternacht ins Bett gegangen (z. B. 00:15), liegt der
+// Zeitpunkt kalendarisch schon auf `nightEnd` — ohne diese Verschiebung wäre
+// er um 24 Stunden zu früh und die Nacht sortierte an den Anfang statt ans
+// Ende ihres Tages. Nur verschieben, wenn die Nacht wirklich zwei Kalendertage
+// umfasst: eine offene Nacht (nightEnd null) wurde live angelegt, dort ist
+// nightStart bereits der richtige Tag, und bei nightEnd === nightStart gäbe
+// es keinen Folgetag, auf den zu verschieben wäre.
 function schlafenBusinessTimestamp(entry) {
-  if (entry._type === 'night') return timeOnDate(new Date(entry.nightStart + 'T00:00:00'), entry.bedtime);
+  if (entry._type === 'night') {
+    const base = new Date(entry.nightStart + 'T00:00:00');
+    const bedMin = entry.bedtime ? parseMinutes(entry.bedtime) : null;
+    if (entry.nightEnd && entry.nightEnd !== entry.nightStart && bedMin !== null && bedMin < NIGHT_BEDTIME_MORNING_CUTOFF) {
+      base.setDate(base.getDate() + 1);
+    }
+    return timeOnDate(base, entry.bedtime);
+  }
   if (entry.source === 'timer') return new Date(entry.startTime);
   return entry.date ? timeOnDate(new Date(entry.date + 'T00:00:00'), entry.startTime) : null;
+}
+
+// Der Tag, unter dem ein Eintrag in der Historie einsortiert wird. Bei
+// Nächten immer der Abend, an dem sie begann (`nightStart`) — auch wenn die
+// Bettzeit schon nach Mitternacht lag und der Zeitpunkt oben deshalb auf den
+// Folgetag zeigt. Genau diese Trennung von Tag und Zeitpunkt macht, dass eine
+// Nacht als spätestes Ereignis ihres Tages ganz oben in der Gruppe steht.
+function schlafenDayDate(entry) {
+  if (entry._type === 'night') return entry.nightStart ? new Date(entry.nightStart + 'T00:00:00') : null;
+  const ts = schlafenBusinessTimestamp(entry);
+  return ts ? new Date(isoDate(ts) + 'T00:00:00') : null;
+}
+
+function schlafenDayKey(entry) {
+  const d = schlafenDayDate(entry);
+  return d ? isoDate(d) : 'unbekannt';
+}
+
+// Absteigend, zweistufig (Tag, dann Zeitpunkt) — siehe historyComesBefore.
+function compareSchlafenDesc(a, b) {
+  const ka = schlafenDayKey(a), kb = schlafenDayKey(b);
+  if (ka !== kb) return ka < kb ? 1 : -1;
+  return (schlafenBusinessTimestamp(b)?.getTime() || 0) - (schlafenBusinessTimestamp(a)?.getTime() || 0);
 }
 
 function schlafenEndTimeLabel(entry) {
@@ -3172,7 +3354,7 @@ async function refillSchlafenBuffer() {
     if (!schlafenSources.nightWakeups.allLoaded) fetches.push(fetchSchlafenChunk('nightWakeups'));
     const chunks = await Promise.all(fetches);
     chunks.forEach((docs) => schlafenBuffer.push(...docs));
-    schlafenBuffer.sort((a, b) => (schlafenBusinessTimestamp(b)?.getTime() || 0) - (schlafenBusinessTimestamp(a)?.getTime() || 0));
+    schlafenBuffer.sort(compareSchlafenDesc);
   }
 }
 
@@ -3245,7 +3427,7 @@ function schlafenEntryRow(entry) {
     delBtn.disabled = true;
     try {
       await deleteDoc(doc(db, entry._type === 'night' ? 'nightWakeups' : 'naps', entry.id));
-      loadSchlafenEntries(true);
+      removeHistoryRow(document.getElementById('schlafen-entries-list'), entry.id);
     } catch (error) {
       delBtn.disabled = false;
     }
@@ -3255,35 +3437,48 @@ function schlafenEntryRow(entry) {
   return row;
 }
 
-// Tagesgruppe muss von derselben Zeitbasis abgeleitet werden wie die
-// Sortierung (schlafenBusinessTimestamp, also die Startzeit) — nicht von
-// analyseBusinessDateKey (das Nächte über `nightEnd`, den Aufwach-Morgen,
-// gruppiert). Sonst landet eine Nacht mit Bettzeit am Vorabend im
-// nightEnd-Tag, aber mit einem Sortierwert vom Vortag — dort sortiert sie
-// dann fälschlich ganz nach unten statt (als spätester Eintrag des Abends,
-// an dem sie begann) nach oben. Gleiches Prinzip wie bei Windeln/Füttern,
-// die dayKey ebenfalls direkt aus dem Anzeige-Zeitstempel ableiten.
+// Die Tagesgruppe kommt aus schlafenDayDate, nicht aus analyseBusinessDateKey
+// (das Nächte über `nightEnd`, den Aufwach-Morgen, gruppiert): eine Nacht
+// gehört zu dem Abend, an dem sie begann. Innerhalb des Tages sortiert sie
+// nach ihrem echten Zeitpunkt — dadurch steht sie als spätestes Ereignis
+// immer oben, auch wenn die Bettzeit schon nach Mitternacht lag.
 function appendSchlafenEntries(docs) {
   const list = document.getElementById('schlafen-entries-list');
   const now = new Date();
   docs.forEach((entry) => {
     const ts = schlafenBusinessTimestamp(entry);
-    const dayKey = ts ? isoDate(ts) : 'unbekannt';
+    const dayDate = schlafenDayDate(entry);
+    const dayKey = dayDate ? isoDate(dayDate) : 'unbekannt';
     if (dayKey !== schlafenEntriesLastDayKey) {
-      const header = document.createElement('div');
-      header.textContent = ts ? dayLabel(ts, now) : 'Unbekanntes Datum';
-      header.style.cssText = 'font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;';
-      list.appendChild(header);
+      list.appendChild(historyHeaderEl(dayKey, dayDate ? dayLabel(dayDate, now) : 'Unbekanntes Datum'));
       schlafenEntriesLastDayKey = dayKey;
     }
-    list.appendChild(schlafenEntryRow(entry));
+    const row = schlafenEntryRow(entry);
+    row.dataset.dayKey = dayKey;
+    row.dataset.sort = String(ts ? ts.getTime() : 0);
+    list.appendChild(row);
   });
-  if (list.children.length === 0) {
-    const empty = document.createElement('div');
-    empty.textContent = 'Noch keine Einträge.';
-    empty.style.cssText = 'font-size:13px; color:var(--text-muted); padding:8px 14px;';
-    list.appendChild(empty);
+  if (list.children.length === 0) list.appendChild(historyEmptyEl());
+}
+
+// Wie addFuetternEntryToHistory, siehe dort. Zusätzlich muss hier der
+// k-way-Merge-Puffer leer sein, damit "alles geladen" wirklich heißt, dass
+// nichts Älteres mehr nachkommt.
+function addSchlafenEntryToHistory(entry) {
+  const list = document.getElementById('schlafen-entries-list');
+  const ts = schlafenBusinessTimestamp(entry);
+  const dayDate = schlafenDayDate(entry);
+  const allLoaded = schlafenSources.naps.allLoaded && schlafenSources.nightWakeups.allLoaded && schlafenBuffer.length === 0;
+  if (!ts || !dayDate || !insertHistoryRow(list, schlafenEntryRow(entry), isoDate(dayDate), dayLabel(dayDate, new Date()), ts.getTime(), allLoaded)) {
+    loadSchlafenEntries(true);
+    return;
   }
+  schlafenEntriesLastDayKey = historyLastDayKey(list);
+}
+
+function updateSchlafenHistoryEntry(entry) {
+  removeHistoryRow(document.getElementById('schlafen-entries-list'), entry.id);
+  addSchlafenEntryToHistory(entry);
 }
 
 async function loadSchlafenEntries(reset) {
@@ -3335,12 +3530,11 @@ nightUpdateBtn.addEventListener('click', async () => {
     await updateDoc(doc(db, 'nightWakeups', updatedId), entry);
     exitSchlafenEdit(false);
     schlafenJustUpdatedId = updatedId;
-    await loadSchlafenEntries(true);
+    updateSchlafenHistoryEntry({ id: updatedId, _type: 'night', ...entry });
     schlafenScrollEl.scrollTop = schlafenListScrollTop;
     setTimeout(() => {
       schlafenJustUpdatedId = null;
-      const oldRow = document.querySelector('#schlafen-entries-list [data-entry-id="' + updatedId + '"]');
-      if (oldRow) oldRow.replaceWith(schlafenEntryRow({ id: updatedId, _type: 'night', ...entry }));
+      replaceHistoryRow(document.getElementById('schlafen-entries-list'), updatedId, schlafenEntryRow({ id: updatedId, _type: 'night', ...entry }));
     }, 1800);
   } catch (error) {
     nightUpdateBtn.textContent = 'Fehler beim Speichern';
@@ -3367,12 +3561,11 @@ napUpdateBtn.addEventListener('click', async () => {
     await updateDoc(doc(db, 'naps', updatedId), entry);
     exitSchlafenEdit(false);
     schlafenJustUpdatedId = updatedId;
-    await loadSchlafenEntries(true);
+    updateSchlafenHistoryEntry({ id: updatedId, _type: 'nap', ...entry });
     schlafenScrollEl.scrollTop = schlafenListScrollTop;
     setTimeout(() => {
       schlafenJustUpdatedId = null;
-      const oldRow = document.querySelector('#schlafen-entries-list [data-entry-id="' + updatedId + '"]');
-      if (oldRow) oldRow.replaceWith(schlafenEntryRow({ id: updatedId, _type: 'nap', ...entry }));
+      replaceHistoryRow(document.getElementById('schlafen-entries-list'), updatedId, schlafenEntryRow({ id: updatedId, _type: 'nap', ...entry }));
     }, 1800);
   } catch (error) {
     napUpdateBtn.textContent = 'Fehler beim Speichern';

@@ -61,9 +61,8 @@
   /* display:flex ist spezifischer als das [hidden] des Browsers — ohne diese
      Zeile bliebe der leere Kasten stehen, wenn es nichts zu melden gibt. */
   #screen-analyse .a-insight[hidden] { display: none; }
-  #screen-analyse .a-color-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; }
-  #screen-analyse .a-color-legend span { display: flex; align-items: center; font-size: 11px; color: var(--text-muted); font-weight: 600; }
-  #screen-analyse .a-color-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+  #screen-analyse .a-color-legend { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 8px; }
+  #screen-analyse .a-color-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
   #screen-analyse .a-ov-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; cursor: pointer; transition: box-shadow .15s ease, transform .15s ease; }
   #screen-analyse .a-ov-card:last-child { margin-bottom: 0; }
   #screen-analyse .a-ov-card:hover { box-shadow: 0 4px 16px oklch(0% 0 0 / 0.08); transform: translateY(-1px); }
@@ -133,6 +132,20 @@
   #screen-analyse .a-legend button.solo { background: var(--sec-soft); color: var(--sec-strong); }
   #screen-analyse .a-legend button.muted { opacity: 0.38; }
   #screen-analyse .a-legend button.muted i { background: transparent !important; box-shadow: inset 0 0 0 1.5px currentColor; }
+
+  /* Dieselbe Sprache eine Karte tiefer: die Farblegende filtert die Verteilung
+     und damit auch das Diagramm darüber. Runde Punkte statt Quadrate — das
+     unterscheidet Farben von Kategorien. */
+  #screen-analyse .a-color-legend button {
+    display: inline-flex; align-items: center; gap: 5px; border: none; cursor: pointer;
+    background: transparent; border-radius: 8px; padding: 4px 7px;
+    font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap;
+    font-family: 'Work Sans', sans-serif; transition: background .14s ease, opacity .14s ease;
+  }
+  #screen-analyse .a-color-legend button i { transition: box-shadow .14s ease; }
+  #screen-analyse .a-color-legend button.solo { background: var(--sec-soft); color: var(--sec-strong); }
+  #screen-analyse .a-color-legend button.muted { opacity: 0.38; }
+  #screen-analyse .a-color-legend button.muted i { background: transparent !important; box-shadow: inset 0 0 0 1.5px currentColor; }
 
   /* Angetippte Bedienelemente bleiben sonst fokussiert — Android zeichnet
      darum einen bleibenden orangen Rahmen. Tastaturfokus bleibt sichtbar. */
@@ -4132,6 +4145,25 @@ function analyseColorStats(docs) {
   return { counts, total };
 }
 
+// Eimer der Verteilung: die vier unauffälligen Farben einzeln, alle
+// auffälligen zusammen — dieselbe Aufteilung, die auch die Kennzahl
+// „Auffällig" zählt.
+const COLOR_BUCKETS = OK_COLORS.map((c) => ({ id: c.id, label: c.label, hex: c.hex }))
+  .concat([{ id: 'warn', label: 'Auffällig', hex: '#C0392B' }]);
+
+function colorBucketCount(stats, id) {
+  if (!stats) return 0;
+  return id === 'warn'
+    ? WARN_COLORS.reduce((s, c) => s + (stats.counts[c.id] || 0), 0)
+    : (stats.counts[id] || 0);
+}
+
+function analyseColorAvgExact(stats, totalDays) {
+  const out = {};
+  COLOR_BUCKETS.forEach((b) => { out[b.id] = colorBucketCount(stats, b.id) / totalDays; });
+  return out;
+}
+
 function computeWindelnAnalysis(days, diaperMap) {
   const perDay = days.map((d, i) => {
     const docs = diaperMap[i];
@@ -4160,13 +4192,15 @@ function computeWindelnAnalysis(days, diaperMap) {
   const warnPct = totalCount > 0 ? analyseRound(warnCount / totalCount * 100) : 0;
 
   const outlier = findAnalyseOutlierDay(perDay, (d) => d.big / d.daysElapsed);
+  const colorStats = analyseColorStats(allDocs);
 
   return {
     perDay,
     avgPerDay: analyseRound(totalCount / totalDays),
     avgIntervalH,
     warnCount, warnPct,
-    colorStats: analyseColorStats(allDocs),
+    colorStats,
+    colorAvgExact: analyseColorAvgExact(colorStats, totalDays),
     avgPerDayExact: totalCount / totalDays,
     avgSmallExact: perDay.reduce((s, d) => s + d.small, 0) / totalDays,
     avgBigExact: perDay.reduce((s, d) => s + d.big, 0) / totalDays,
@@ -4420,15 +4454,20 @@ function svgSparkline(perDay, valueFn, colorLight, colorToday, selIdx) {
   }).join('');
 }
 
-function svgColorDistribution(buckets) {
+// sel = eine Farbe steht allein. Sie bleibt dann an ihrer Stelle und in ihrer
+// Breite stehen, der Rest wird zum Gleis — so bleibt der Anteil ablesbar,
+// statt auf die volle Breite gestreckt zu werden.
+function svgColorDistribution(buckets, sel) {
   let x = 0;
-  return buckets.map((b, i) => {
+  const segs = buckets.map((b, i) => {
     const w = b.pct / 100 * 300;
-    const roundAttr = (i === 0 || i === buckets.length - 1) ? ' rx="4"' : '';
-    const rect = '<rect x="' + x + '" y="0" width="' + w + '" height="16"' + roundAttr + ' fill="' + b.hex + '"/>';
+    const roundAttr = sel ? ' rx="4"' : ((i === 0 || i === buckets.length - 1) ? ' rx="4"' : '');
+    const rect = (sel && b.id !== sel) ? ''
+      : '<rect x="' + x + '" y="0" width="' + w + '" height="16"' + roundAttr + ' fill="' + b.hex + '"/>';
     x += w;
     return rect;
   }).join('');
+  return (sel ? '<rect x="0" y="0" width="300" height="16" rx="4" fill="var(--surface-alt)"/>' : '') + segs;
 }
 
 const ANALYSE_ICON_STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/></svg>';
@@ -4684,14 +4723,27 @@ function schlafenStatValues(a, b) {
 // Ausschnitt, mit ihr nur den gewählten Tag.
 function windelnColorHtml(stats, showCounts) {
   if (!stats || !stats.total) return '<div style="font-size:12.5px; color:var(--text-muted);">Keine Farbdaten</div>';
-  const buckets = OK_COLORS.map((c) => ({ label: c.label, hex: c.hex, n: stats.counts[c.id] || 0 }));
-  buckets.push({ label: 'Auffällig', hex: '#C0392B', n: WARN_COLORS.reduce((s, c) => s + (stats.counts[c.id] || 0), 0) });
-  const shown = buckets.filter((x) => x.n > 0);
+  const sel = analyseColorFilter;
+  const buckets = COLOR_BUCKETS.map((b) => ({ id: b.id, label: b.label, hex: b.hex, n: colorBucketCount(stats, b.id) }));
+  // Die gewählte Farbe bleibt in der Legende, auch wenn der markierte Tag
+  // keine davon hat — sonst gäbe es dort keinen Weg zurück.
+  const shown = buckets.filter((x) => x.n > 0 || x.id === sel);
   return '<svg viewBox="0 0 300 16" width="100%" height="16" style="margin-top:6px;">' +
-      svgColorDistribution(shown.map((x) => ({ hex: x.hex, pct: x.n / stats.total * 100 }))) + '</svg>' +
-    '<div class="a-color-legend">' + shown.map((x) => '<span><i style="background:' + x.hex + ';"></i>' +
-      x.label + ' ' + (showCounts ? x.n + '×' : analyseRound(x.n / stats.total * 100) + '%') + '</span>').join('') +
+      svgColorDistribution(shown.map((x) => ({ hex: x.hex, pct: x.n / stats.total * 100, id: x.id })), sel) + '</svg>' +
+    '<div class="a-color-legend">' + shown.map((x) =>
+      '<button type="button" class="clg' + (sel === x.id ? ' solo' : (sel ? ' muted' : '')) +
+      '" data-color="' + x.id + '"><i style="background:' + x.hex + ';"></i>' +
+      x.label + ' ' + (showCounts ? x.n + '×' : analyseRound(x.n / stats.total * 100) + '%') + '</button>').join('') +
     '</div>';
+}
+
+// Zeile unter der Überschrift: worauf sich die Leiste bezieht. Sie steht in
+// beiden Zuständen, damit die Karte beim Filtern nicht in der Höhe springt.
+function windelnColorCountText(stats) {
+  const total = stats.total;
+  if (!analyseColorFilter) return total === 1 ? '1 großer Wechsel mit Farbe' : total + ' große Wechsel mit Farbe';
+  return colorBucketCount(stats, analyseColorFilter) + ' von ' + total +
+    (total === 1 ? ' großen Wechsel' : ' großen Wechseln');
 }
 
 const ANALYSE_SECTION_UI = {
@@ -4722,11 +4774,20 @@ const ANALYSE_SECTION_UI = {
     ],
     stats: windelnStatValues,
     extra: {
-      shell: () => '<div class="a-card"><div class="a-card-label">Farbverteilung</div><div data-color-body></div></div>',
+      shell: () => '<div class="a-card">' +
+        '<div class="a-card-value-row"><div>' +
+          '<div class="a-card-label">Farbverteilung</div>' +
+          '<div class="a-card-value" data-color-count></div>' +
+        '</div></div>' +
+        '<div data-color-body></div></div>',
       update: (a, b) => {
         const host = document.querySelector('#analyse-view-windeln [data-color-body]');
         if (!host) return;
-        host.innerHTML = windelnColorHtml(b ? b.colorStats : a.colorStats, !!b && b.daysElapsed === 1);
+        const stats = b ? b.colorStats : a.colorStats;
+        host.innerHTML = windelnColorHtml(stats, !!b && b.daysElapsed === 1);
+        document.querySelector('#analyse-view-windeln [data-color-count]').innerHTML =
+          stats && stats.total ? '<span style="font-family:\'Work Sans\',sans-serif; font-size:12px; font-weight:600; ' +
+            'color:var(--text-muted);">' + windelnColorCountText(stats) + '</span>' : '';
       }
     },
     insight: { bg: 'var(--windeln-soft)', fg: 'var(--windeln-ink)' }
@@ -4772,6 +4833,9 @@ let analyseSel = null;
 const analyseActiveChart = { fuettern: null, windeln: null, schlafen: null };
 // chartId -> isolierter series.key (Legendenfilter)
 const analyseFilter = {};
+// Der Farbeimer der Windeln-Verteilung, der gerade allein gilt. Er ersetzt den
+// Klein/Groß-Filter, solange er steht: Farbe tragen nur große Wechsel.
+let analyseColorFilter = null;
 // Was zum Nachzeichnen einer Auswahl gebraucht wird, ohne das Diagramm neu zu
 // bauen: beim Wischen werden nur Linie, Punkt und Label bewegt.
 const analyseRender = {};
@@ -4791,7 +4855,25 @@ function secIsPicked(view, chartId, i) {
   return !!(analyseSel && analyseSel.index === i && secActiveChart(view) === chartId);
 }
 
+// Der Farbfilter macht aus dem Wechsel-Diagramm eine einzelne Reihe: die
+// großen Wechsel dieser Farbe, gezeichnet im Farbton selbst.
+function windelnColorSeries() {
+  const b = analyseColorFilter && COLOR_BUCKETS.find((x) => x.id === analyseColorFilter);
+  if (!b) return null;
+  return {
+    key: 'color', label: b.label, color: b.hex,
+    value: (d) => colorBucketCount(d.colorStats, b.id) / d.daysElapsed,
+    mean: (a) => (a.colorAvgExact && a.colorAvgExact[b.id]) || 0
+  };
+}
+
 function secVisibleSeries(chartId, cfg) {
+  // Nur das Wechsel-Diagramm kennt Farben — und der Farbfilter schlägt dort
+  // den Klein/Groß-Filter, weil Farbe nur an großen Wechseln hängt.
+  if (chartId === 'wi-wechsel') {
+    const cs = windelnColorSeries();
+    if (cs) return [cs];
+  }
   const iso = analyseFilter[chartId];
   return iso ? cfg.series.filter((s) => s.key === iso) : cfg.series;
 }
@@ -5063,12 +5145,15 @@ function updateSecCard(view, chartId) {
   card.querySelector('svg.a-chart').innerHTML = secChartInner(chartId, cfg, analyseData[view]);
 
   const iso = analyseFilter[chartId];
-  const qual = iso ? ' <span class="qual" style="font-family:\'Work Sans\',sans-serif; font-size:12px; font-weight:600; color:var(--text-muted);">nur ' +
-    cfg.series.find((s) => s.key === iso).label.toLowerCase() + '</span>' : '';
+  const cs = chartId === 'wi-wechsel' ? windelnColorSeries() : null;
+  const qualLabel = cs ? cs.label : (iso ? cfg.series.find((s) => s.key === iso).label : null);
+  const qual = qualLabel ? ' <span class="qual" style="font-family:\'Work Sans\',sans-serif; font-size:12px; font-weight:600; color:var(--text-muted);">nur ' +
+    qualLabel.toLowerCase() + '</span>' : '';
   card.querySelector('.a-card-value').innerHTML = cfg.headline(analyseRender[chartId].mean) + qual;
+  // Klein/Groß tritt zurück, solange eine Farbe gewählt ist.
   card.querySelectorAll('.lg').forEach((btn) => {
-    btn.classList.toggle('solo', iso === btn.dataset.series);
-    btn.classList.toggle('muted', !!iso && iso !== btn.dataset.series);
+    btn.classList.toggle('solo', !cs && iso === btn.dataset.series);
+    btn.classList.toggle('muted', !!cs || (!!iso && iso !== btn.dataset.series));
   });
   card.querySelector('.a-axis-unit').hidden = analyseScope.mode !== 'weeks';
 }
@@ -5083,6 +5168,11 @@ function renderAnalyseSection(view, analysis) {
     analyseBuilt[view] = true;
   }
   if (analyseSel && analyseSel.index >= analysis.perDay.length) analyseSel = null;
+  // Eine Farbe, die es im neuen Ausschnitt nicht gibt, verschwindet aus der
+  // Legende — der Filter bliebe ohne Weg zurück stehen.
+  if (view === 'windeln' && analyseColorFilter && !colorBucketCount(analysis.colorStats, analyseColorFilter)) {
+    analyseColorFilter = null;
+  }
   sec.order.forEach((id) => updateSecCard(view, id));
 
   const insight = host.querySelector('[data-insight]');
@@ -5200,10 +5290,23 @@ function secPick(view, chartId, i, toggle) {
     const card = e.target.closest && e.target.closest('.a-ov-card');
     if (card) { showAnalyseView(card.dataset.target); return; }
 
+    // Farbfilter der Verteilungskarte: er steuert auch das Diagramm darüber.
+    const clg = e.target.closest && e.target.closest('.clg');
+    if (clg) {
+      analyseColorFilter = analyseColorFilter === clg.dataset.color ? null : clg.dataset.color;
+      if (analyseColorFilter) analyseFilter['wi-wechsel'] = null;
+      updateSecCard('windeln', 'wi-wechsel');
+      applySecSelection('windeln');
+      return;
+    }
+
     const lg = e.target.closest && e.target.closest('.lg');
     if (!lg || !ANALYSE_SECTION_UI[analyseView]) return;
     const c = lg.dataset.chart, k = lg.dataset.series;
-    analyseFilter[c] = analyseFilter[c] === k ? null : k;
+    // Ein Tipp auf Klein oder Groß löst die Farbwahl und isoliert stattdessen
+    // die angetippte Kategorie.
+    if (analyseColorFilter && c === 'wi-wechsel') { analyseColorFilter = null; analyseFilter[c] = k; }
+    else analyseFilter[c] = analyseFilter[c] === k ? null : k;
     updateSecCard(analyseView, c);
     applySecSelection(analyseView);
   });

@@ -5508,20 +5508,9 @@ function secShareInner(chartId, cfg, analysis) {
     out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cx, lead.color) + '</g>';
   });
 
-  // Die Ø-Linie liegt wie überall hinter den Säulen — bei durchgehend vollen
-  // Säulen bliebe davon nichts übrig. In den Lücken wird dasselbe Stück
-  // deshalb noch einmal darübergelegt.
-  if (mean !== null) {
-    const yMean = y(mean);
-    for (let i = 0; i <= bs.length; i++) {
-      const x1 = i === 0 ? 4 : startX + (i - 1) * step + barW;
-      const x2 = i === bs.length ? 304 : startX + i * step;
-      if (x2 <= x1) continue;
-      out += '<line x1="' + x1 + '" y1="' + yMean + '" x2="' + x2 + '" y2="' + yMean +
-        '" stroke="' + lead.color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>';
-    }
-  }
-
+  // Die Ø-Linie steht schon oben, hinter den Säulen: in den Lücken zwischen
+  // ihnen ist sie sichtbar, das reicht. Ein zweiter Strich obendrauf hätte
+  // eine eigene Strichphase — beide übereinander sähen durchgezogen aus.
   return out + SEC_MARKER + secHitRects(bs, cxOf, step);
 }
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -28,6 +28,30 @@
 
   .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
   .quick-row { margin-top: -17px; }
+
+  /* Brust: Links/Rechts. Der Seitenwechsel im Timer ist bewusst ein kleiner
+     Schieberegler und kein dritter Segment-Umschalter — Fläschchen/Brust und
+     Manuell/Timer sehen sonst gleich aus und die Seite geht darin unter. */
+  #screen-fuettern .bt-scol { min-width: 84px; text-align: center; cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; }
+  #screen-fuettern .bt-lbl-on { font-size: 13px; font-weight: 700; color: var(--text); }
+  #screen-fuettern .bt-lbl-off { font-size: 13px; font-weight: 400; color: var(--text-muted); }
+  #screen-fuettern .bt-time-on { font-family: 'Fredoka', sans-serif; font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--text); font-variant-numeric: tabular-nums; }
+  #screen-fuettern .bt-time-off { font-family: 'Fredoka', sans-serif; font-size: 18px; font-weight: 400; line-height: 1.3; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  #screen-fuettern .bt-stat { height: 16px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px; font-size: 11px; font-weight: 600; }
+  #screen-fuettern .bt-track { position: relative; width: 64px; height: 34px; border-radius: 999px; background: var(--surface-alt); flex-shrink: 0; border: none; padding: 0; cursor: pointer; }
+  #screen-fuettern .bt-knob { position: absolute; top: 3px; left: 3px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-strong); transition: left .18s ease; }
+  /* Zahl mit Unterstrich = antippbar. Segmente und das Feld für ein neues
+     Segment sehen deshalb absichtlich gleich aus. */
+  #screen-fuettern .bt-numfield { display: inline-flex; align-items: baseline; gap: 4px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px; }
+  #screen-fuettern .bt-numfield input { width: 26px; text-align: right; font-family: inherit; font-size: 16px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; -moz-appearance: textfield; }
+  #screen-fuettern .bt-numfield input::-webkit-outer-spin-button,
+  #screen-fuettern .bt-numfield input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  #screen-fuettern .bt-numfield .u { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  #screen-fuettern .bt-chip { width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-strong); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: none; font-family: inherit; cursor: pointer; }
+  #screen-fuettern .bt-chip.bt-chip-empty { background: var(--surface-alt); color: var(--text-muted); }
+  #screen-fuettern .bt-stp { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  #screen-fuettern .bt-del { width: 28px; height: 28px; border-radius: 9px; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  #screen-fuettern .bt-add { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer; }
 
   /* Der Switcher steht dauerhaft im Kopf und führt auch zurück zur Übersicht.
      Der gewählte Bereich ist in seiner eigenen Farbe gefüllt — dieselbe Sprache
@@ -455,24 +479,14 @@
         </div>
 
         <div id="breast-manual-panel" style="display: flex; flex-direction: column; gap: 14px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
-              <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
-            </svg>
-            <div style="min-width: 0; flex: 1;">
-              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Datum</div>
-              <input id="breast-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
-            </div>
-          </div>
-          <div style="height: 1px; background: var(--border);"></div>
           <div style="display: flex; gap: 14px;">
-            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1.45; min-width: 0;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
-                <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
+                <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
               </svg>
               <div style="min-width: 0; flex: 1;">
-                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Start</div>
-                <input id="breast-start" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Datum</div>
+                <input id="breast-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
@@ -480,25 +494,46 @@
                 <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
               </svg>
               <div style="min-width: 0; flex: 1;">
-                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende</div>
-                <input id="breast-end" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Beginn</div>
+                <input id="breast-start" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
               </div>
             </div>
           </div>
           <div id="breast-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+
           <div style="height: 1px; background: var(--border);"></div>
-          <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">Dauer</div>
-          <div style="display: flex; align-items: center; justify-content: center; gap: 22px; padding: 2px 0; margin-top: -8px;">
-            <button id="breast-dur-dec" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-            <div style="text-align: center; min-width: 90px;">
-              <div id="breast-dur-display" style="font-size: 18px; font-weight: 600; line-height: 1;">–</div>
+
+          <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Segmente</div>
+          <div id="breast-segments" style="display: flex; flex-direction: column; gap: 10px;"></div>
+          <div id="breast-segments-empty" style="display: none; font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 2px 0 4px;">Noch kein Segment. Dauer eintragen und Seite wählen.</div>
+
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 78px; display: flex; justify-content: center;">
+              <span class="bt-numfield">
+                <input id="breast-new-min" type="number" inputmode="numeric" min="1" max="120" step="1" value="5">
+                <span class="u">Min</span>
+              </span>
             </div>
-            <button id="breast-dur-inc" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <button id="breast-add-left" class="bt-add">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Links
+            </button>
+            <button id="breast-add-right" class="bt-add">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Rechts
             </button>
           </div>
+
+          <div style="height: 1px; background: var(--border);"></div>
+
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Gesamt</div>
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+              <span id="breast-total-sides" style="font-size: 12.5px; font-weight: 400; color: var(--text-muted);"></span>
+              <span id="breast-total" style="font-size: 18px; font-weight: 600;">–</span>
+            </div>
+          </div>
+
           <button id="breast-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
           <div id="fuettern-breast-edit-actions" style="display: none; gap: 10px;">
             <button id="fuettern-breast-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
@@ -506,15 +541,30 @@
           </div>
         </div>
 
-        <div id="breast-timer-panel" style="display: none; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0;">
-          <div id="breast-timer-display" style="font-family: 'Fredoka', sans-serif; font-size: 32px; font-weight: 600; letter-spacing: 0.02em;">00:00:00</div>
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <div id="breast-timer-panel" style="display: none; flex-direction: column; align-items: center; gap: 12px; padding: 4px 0;">
+          <div id="breast-timer-display" style="font-family: 'Fredoka', sans-serif; font-size: 32px; font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums;">00:00:00</div>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: -4px;">
             <div id="breast-timer-sublabel" style="font-size: 12px; color: var(--text-muted);">Bereit zum Start</div>
             <button id="breast-timer-refresh-btn" title="Status aktualisieren" style="border:none; background:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex; align-items:center;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5"/></svg>
             </button>
           </div>
-          <button id="breast-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Start</button>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 18px; width: 100%; padding: 6px 0;">
+            <button id="breast-side-left" class="bt-scol" type="button">
+              <div id="breast-left-label" class="bt-lbl-on">Links</div>
+              <div id="breast-left-time" class="bt-time-on">00:00</div>
+              <div id="breast-left-stat" class="bt-stat"></div>
+            </button>
+            <button id="breast-track" class="bt-track" type="button" aria-label="Seite wechseln">
+              <div id="breast-knob" class="bt-knob"></div>
+            </button>
+            <button id="breast-side-right" class="bt-scol" type="button">
+              <div id="breast-right-label" class="bt-lbl-off">Rechts</div>
+              <div id="breast-right-time" class="bt-time-off">00:00</div>
+              <div id="breast-right-stat" class="bt-stat"></div>
+            </button>
+          </div>
+          <button id="breast-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); margin-top:4px;">Start</button>
         </div>
       </div>
 
@@ -1221,11 +1271,15 @@ function setupPastOnlyDateTime(dateInput, timeInput, nowBtn, errorEl) {
   }
   dateInput.addEventListener('change', clamp);
   timeInput.addEventListener('change', clamp);
-  nowBtn.addEventListener('click', () => {
-    dateInput.value = today();
-    timeInput.value = formatTime(new Date());
-    clamp();
-  });
+  // Der Jetzt-Knopf ist optional — die Brust-Karte hat keinen, dort ist der
+  // Beginn schon auf "vor 15 Minuten" vorbelegt.
+  if (nowBtn) {
+    nowBtn.addEventListener('click', () => {
+      dateInput.value = today();
+      timeInput.value = formatTime(new Date());
+      clamp();
+    });
+  }
   clamp();
   return function isValid() {
     if (!dateInput.value || !timeInput.value) return false;
@@ -1266,11 +1320,14 @@ const breastManualPanel = document.getElementById('breast-manual-panel');
 const breastTimerPanel = document.getElementById('breast-timer-panel');
 const breastDateInput = document.getElementById('breast-date');
 const breastStartInput = document.getElementById('breast-start');
-const breastEndInput = document.getElementById('breast-end');
 const breastTimeError = document.getElementById('breast-time-error');
-const breastDurDisplay = document.getElementById('breast-dur-display');
-const breastDurDecBtn = document.getElementById('breast-dur-dec');
-const breastDurIncBtn = document.getElementById('breast-dur-inc');
+const breastSegmentsEl = document.getElementById('breast-segments');
+const breastSegmentsEmptyEl = document.getElementById('breast-segments-empty');
+const breastNewMinInput = document.getElementById('breast-new-min');
+const breastAddLeftBtn = document.getElementById('breast-add-left');
+const breastAddRightBtn = document.getElementById('breast-add-right');
+const breastTotalEl = document.getElementById('breast-total');
+const breastTotalSidesEl = document.getElementById('breast-total-sides');
 const breastSaveBtn = document.getElementById('breast-save');
 const fuetternBreastEditActions = document.getElementById('fuettern-breast-edit-actions');
 const fuetternBreastUpdateBtn = document.getElementById('fuettern-breast-update');
@@ -1279,6 +1336,16 @@ const breastTimerDisplay = document.getElementById('breast-timer-display');
 const breastTimerSublabel = document.getElementById('breast-timer-sublabel');
 const breastTimerToggleBtn = document.getElementById('breast-timer-toggle-btn');
 const breastTimerRefreshBtn = document.getElementById('breast-timer-refresh-btn');
+const breastTrackEl = document.getElementById('breast-track');
+const breastKnob = document.getElementById('breast-knob');
+const breastSideLeftEl = document.getElementById('breast-side-left');
+const breastSideRightEl = document.getElementById('breast-side-right');
+const breastLeftLabelEl = document.getElementById('breast-left-label');
+const breastRightLabelEl = document.getElementById('breast-right-label');
+const breastLeftTimeEl = document.getElementById('breast-left-time');
+const breastRightTimeEl = document.getElementById('breast-right-time');
+const breastLeftStatEl = document.getElementById('breast-left-stat');
+const breastRightStatEl = document.getElementById('breast-right-stat');
 
 let feedType = 'bottle';
 let editingFeedingId = null;
@@ -1440,73 +1507,221 @@ fuetternSaveBtn.addEventListener('click', async () => {
   }
 });
 
-// Brust-Dauer wird aus Start/Ende berechnet, per Stepper in 5-Minuten-Schritten
-// feinjustierbar (kürzere Schritte als bei Schlafen, da Stillzeiten typischerweise
-// nur 5–25 Minuten dauern) — sonst exakt das Muster von stepNapDuration.
-function renderBreastDuration() {
-  const minutes = Math.max(0, parseMinutes(breastEndInput.value) - parseMinutes(breastStartInput.value));
-  breastDurDisplay.textContent = minutes > 0 ? Math.floor(minutes / 60) + ':' + String(minutes % 60).padStart(2, '0') : '–';
-  breastSaveBtn.style.background = minutes > 0 ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
-  return minutes;
+// Brust manuell: eine Fütterung besteht aus Segmenten, jedes mit Seite und
+// Dauer. Beginn + Summe der Segmente ergeben das Ende, deshalb gibt es kein
+// eigenes Ende-Feld mehr. `segments` hält die Reihenfolge der Wechsel fest,
+// `leftMinutes`/`rightMinutes` die Summen je Seite — Heute und Analyse lesen
+// weiterhin nur `minutes`, das bleibt die Gesamtdauer.
+let breastSegments = [];
+const BREAST_SEG_STEP = 5;
+
+function breastSideLetter(side) {
+  return side === 'left' ? 'L' : side === 'right' ? 'R' : '–';
 }
-function stepBreastDuration(deltaMin) {
-  const startMin = parseMinutes(breastStartInput.value);
-  const currentMin = Math.max(0, parseMinutes(breastEndInput.value) - startMin);
-  const nextMin = Math.max(0, Math.min(23 * 60 + 45, currentMin + deltaMin));
-  const endMin = (startMin + nextMin) % 1440;
-  breastEndInput.value = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
-  breastEndInput.dispatchEvent(new Event('change', { bubbles: true }));
-  renderBreastDuration();
+
+function breastSideMinutes(segments, side) {
+  return segments.reduce((sum, s) => sum + (s.side === side ? s.minutes : 0), 0);
 }
-function wireBreastDurStepper(btn, deltaMin) {
-  let holdTimeout = null;
-  let holdInterval = null;
-  const stop = () => { clearTimeout(holdTimeout); clearInterval(holdInterval); holdTimeout = null; holdInterval = null; };
-  btn.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    stepBreastDuration(deltaMin);
-    holdTimeout = setTimeout(() => { holdInterval = setInterval(() => stepBreastDuration(deltaMin), 150); }, 450);
+
+function breastTotalMinutes() {
+  return breastSegments.reduce((sum, s) => sum + s.minutes, 0);
+}
+
+// Ende als "HH:MM" aus Beginn plus Gesamtdauer. Über Mitternacht hinaus wird
+// gerechnet wie beim Nachtschlaf: der Zeitstring wandert in den nächsten Tag,
+// das Datum des Eintrags bleibt der Beginn-Tag.
+function breastEndTimeString() {
+  const endMin = (parseMinutes(breastStartInput.value) + breastTotalMinutes()) % 1440;
+  return String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+}
+
+function breastStepIcon(kind) {
+  return kind === 'minus'
+    ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+    : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+}
+
+function breastSegmentRow(seg, index) {
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; align-items:center; gap:10px;';
+
+  // Antippen dreht die Seite um — so lässt sich ein Fehlgriff korrigieren und
+  // ein Alt-Eintrag ohne Seitenangabe nachträglich zuordnen.
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'bt-chip' + (seg.side ? '' : ' bt-chip-empty');
+  chip.textContent = breastSideLetter(seg.side);
+  chip.setAttribute('aria-label', 'Seite wechseln');
+  chip.addEventListener('click', () => {
+    seg.side = seg.side === 'left' ? 'right' : 'left';
+    renderBreastSegments();
   });
-  btn.addEventListener('pointerup', stop);
-  btn.addEventListener('pointerleave', stop);
-  btn.addEventListener('pointercancel', stop);
+  row.appendChild(chip);
+
+  const spacerLeft = document.createElement('div');
+  spacerLeft.style.flex = '1';
+  row.appendChild(spacerLeft);
+
+  const dec = document.createElement('button');
+  dec.type = 'button';
+  dec.className = 'bt-stp';
+  dec.innerHTML = breastStepIcon('minus');
+  dec.addEventListener('click', () => {
+    seg.minutes = Math.max(1, seg.minutes - BREAST_SEG_STEP);
+    renderBreastSegments();
+  });
+  row.appendChild(dec);
+
+  const field = document.createElement('span');
+  field.className = 'bt-numfield';
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.inputMode = 'numeric';
+  input.min = '1';
+  input.max = '120';
+  input.step = '1';
+  input.value = String(seg.minutes);
+  input.addEventListener('input', () => {
+    const v = Math.round(Number(input.value));
+    seg.minutes = Number.isFinite(v) && v > 0 ? Math.min(120, v) : 0;
+    renderBreastTotals();
+  });
+  input.addEventListener('blur', () => {
+    if (seg.minutes < 1) seg.minutes = 1;
+    renderBreastSegments();
+  });
+  field.appendChild(input);
+  const unit = document.createElement('span');
+  unit.className = 'u';
+  unit.textContent = 'Min';
+  field.appendChild(unit);
+  row.appendChild(field);
+
+  const inc = document.createElement('button');
+  inc.type = 'button';
+  inc.className = 'bt-stp';
+  inc.innerHTML = breastStepIcon('plus');
+  inc.addEventListener('click', () => {
+    seg.minutes = Math.min(120, seg.minutes + BREAST_SEG_STEP);
+    renderBreastSegments();
+  });
+  row.appendChild(inc);
+
+  const spacerRight = document.createElement('div');
+  spacerRight.style.flex = '1';
+  row.appendChild(spacerRight);
+
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'bt-del';
+  del.setAttribute('aria-label', 'Segment entfernen');
+  del.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+  del.addEventListener('click', () => {
+    breastSegments.splice(index, 1);
+    renderBreastSegments();
+  });
+  row.appendChild(del);
+
+  return row;
 }
-wireBreastDurStepper(breastDurDecBtn, -5);
-wireBreastDurStepper(breastDurIncBtn, 5);
+
+// Nur die abgeleiteten Zahlen auffrischen — beim Tippen im Minutenfeld darf
+// die Liste nicht neu gebaut werden, sonst verliert das Feld den Fokus.
+function renderBreastTotals() {
+  const total = breastTotalMinutes();
+  const left = breastSideMinutes(breastSegments, 'left');
+  const right = breastSideMinutes(breastSegments, 'right');
+  breastTotalEl.textContent = total > 0 ? total + ' Min' : '–';
+  breastTotalSidesEl.textContent = total > 0 && (left || right) ? 'L ' + left + ' · R ' + right : '';
+  breastSaveBtn.style.background = total > 0 ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+  fuetternBreastUpdateBtn.style.background = total > 0 ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+}
+
+function renderBreastSegments() {
+  breastSegmentsEl.innerHTML = '';
+  breastSegments.forEach((seg, i) => breastSegmentsEl.appendChild(breastSegmentRow(seg, i)));
+  breastSegmentsEmptyEl.style.display = breastSegments.length ? 'none' : 'block';
+  renderBreastTotals();
+}
+
+function addBreastSegment(side) {
+  const v = Math.round(Number(breastNewMinInput.value));
+  const minutes = Number.isFinite(v) && v > 0 ? Math.min(120, v) : BREAST_SEG_STEP;
+  breastNewMinInput.value = String(minutes);
+  breastSegments.push({ side, minutes });
+  renderBreastSegments();
+}
+breastAddLeftBtn.addEventListener('click', () => addBreastSegment('left'));
+breastAddRightBtn.addEventListener('click', () => addBreastSegment('right'));
+
+// Beginn steht auf "vor 15 Minuten", fällt das aber auf den Vortag, bleibt es
+// bei 00:00 — das Datumsfeld daneben zeigt ja weiterhin heute.
+function breastDefaultStartTime() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0);
+  return formatTime(new Date(Math.max(midnight.getTime(), now.getTime() - 15 * 60000)));
+}
+
+function resetBreastSegments() {
+  breastSegments = [];
+  breastNewMinInput.value = String(BREAST_SEG_STEP);
+  renderBreastSegments();
+}
 
 breastDateInput.value = isoDate(new Date());
-const breastDefaultNow = new Date();
-const breastTodayMidnight = new Date(breastDefaultNow); breastTodayMidnight.setHours(0, 0, 0, 0);
-breastStartInput.value = formatTime(new Date(Math.max(breastTodayMidnight.getTime(), breastDefaultNow.getTime() - 15 * 60000)));
-breastEndInput.value = formatTime(breastDefaultNow);
-breastStartInput.addEventListener('input', renderBreastDuration);
-breastEndInput.addEventListener('input', renderBreastDuration);
-renderBreastDuration();
-const breastTimeIsValid = setupPastOnlyDateTimeRange(breastDateInput, breastStartInput, breastEndInput, breastTimeError);
+breastStartInput.value = breastDefaultStartTime();
+const breastTimeIsValid = setupPastOnlyDateTime(breastDateInput, breastStartInput, null, breastTimeError);
+renderBreastSegments();
+
+// Der Beginn darf nicht in der Zukunft liegen (das prüft breastTimeIsValid)
+// und das errechnete Ende ebenso wenig — sonst ließe sich über eine lange
+// Dauer doch eine Fütterung in die Zukunft schreiben.
+function breastEntryIsValid() {
+  if (!breastTimeIsValid()) {
+    breastTimeError.textContent = 'Zeitpunkt liegt in der Zukunft.';
+    return false;
+  }
+  if (breastTotalMinutes() <= 0) return false;
+  const begin = timeOnDate(new Date(breastDateInput.value + 'T00:00:00'), breastStartInput.value);
+  if (begin.getTime() + breastTotalMinutes() * 60000 > Date.now()) {
+    breastTimeError.textContent = 'Ende liegt in der Zukunft.';
+    breastTimeError.style.display = 'block';
+    return false;
+  }
+  return true;
+}
+
+// Baut den Firestore-Eintrag aus den Segmenten. `minutes` bleibt die
+// Gesamtdauer und damit rückwärtskompatibel zu Heute/Analyse/Historie.
+function breastEntryFromForm() {
+  const minutes = breastTotalMinutes();
+  return {
+    type: 'breast',
+    amount: null,
+    minutes,
+    durationMinutes: minutes,
+    leftMinutes: breastSideMinutes(breastSegments, 'left'),
+    rightMinutes: breastSideMinutes(breastSegments, 'right'),
+    segments: breastSegments.map((s) => ({ side: s.side, minutes: s.minutes })),
+    date: breastDateInput.value,
+    time: breastStartInput.value,
+    startTime: breastStartInput.value,
+    endTime: breastEndTimeString(),
+    source: 'manual'
+  };
+}
 
 breastSaveBtn.addEventListener('click', async () => {
-  if (!currentUser || !breastTimeIsValid()) return;
-  const minutes = renderBreastDuration();
-  if (minutes <= 0) return;
+  if (!currentUser || !breastEntryIsValid()) return;
   breastSaveBtn.disabled = true;
   try {
-    const entry = {
-      type: 'breast',
-      amount: null,
-      minutes,
-      durationMinutes: minutes,
-      date: breastDateInput.value,
-      time: breastStartInput.value,
-      startTime: breastStartInput.value,
-      endTime: breastEndInput.value,
-      source: 'manual',
-      createdBy: currentUser.email,
-      createdAt: serverTimestamp()
-    };
+    const entry = { ...breastEntryFromForm(), createdBy: currentUser.email, createdAt: serverTimestamp() };
     const ref = await addDoc(collection(db, 'feedings'), entry);
     breastSaveBtn.textContent = 'Gespeichert ✓';
     setTimeout(() => { breastSaveBtn.textContent = 'Eintrag speichern'; breastSaveBtn.disabled = false; }, 1400);
     addFuetternEntryToHistory({ id: ref.id, ...entry });
+    resetBreastSegments();
   } catch (error) {
     breastSaveBtn.textContent = 'Fehler beim Speichern';
     breastSaveBtn.disabled = false;
@@ -1515,10 +1730,17 @@ breastSaveBtn.addEventListener('click', async () => {
 
 // --- Brust-Timer: robust gegen Schließen der App, Zustand lebt in Firestore
 // (identisches Muster zum Schlafen-Timer, eigene Variablen/IDs, selbe Collection
-// wie die manuellen Brust-Einträge — 'feedings', unterschieden über type). ---
+// wie die manuellen Brust-Einträge — 'feedings', unterschieden über type).
+// Neu: die laufende Seite und die schon gesammelten Sekunden je Seite stehen
+// mit im offenen Dokument, damit ein Seitenwechsel auch dann überlebt, wenn
+// die App zwischendurch geschlossen wird. ---
 let openFeedingDocId = null;
 let openFeedingStartedAt = null;
 let feedingTimerInterval = null;
+let breastTimerSide = 'left';
+let breastTimerLeftSec = 0;
+let breastTimerRightSec = 0;
+let breastTimerSideSince = null;
 
 async function findOpenFeeding() {
   const q = query(collection(db, 'feedings'), where('type', '==', 'breast'), where('endTime', '==', null));
@@ -1528,22 +1750,124 @@ async function findOpenFeeding() {
   return { id: d.id, ...d.data() };
 }
 
+// Sekunden je Seite inklusive der gerade laufenden Strecke.
+function breastTimerSeconds() {
+  let left = breastTimerLeftSec;
+  let right = breastTimerRightSec;
+  if (openFeedingDocId && breastTimerSideSince) {
+    const running = Math.max(0, Math.floor((Date.now() - breastTimerSideSince) / 1000));
+    if (breastTimerSide === 'left') left += running; else right += running;
+  }
+  return { left, right };
+}
+
+function formatClock(sec) {
+  return String(Math.floor(sec / 3600)).padStart(2, '0') + ':' +
+    String(Math.floor((sec % 3600) / 60)).padStart(2, '0') + ':' +
+    String(sec % 60).padStart(2, '0');
+}
+function formatSideClock(sec) {
+  return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+}
+
+const BREAST_RUN_MARK = '<svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>';
+const BREAST_PAUSE_MARK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color: var(--text-muted);"><rect x="6.5" y="5" width="4" height="14" rx="1.3"/><rect x="13.5" y="5" width="4" height="14" rx="1.3"/></svg>';
+
 function renderBreastTimerDisplay() {
-  if (!openFeedingStartedAt) {
-    breastTimerDisplay.textContent = '00:00:00';
+  const running = !!openFeedingDocId;
+  const sec = breastTimerSeconds();
+  const leftIsSide = breastTimerSide === 'left';
+
+  breastTimerDisplay.textContent = formatClock(sec.left + sec.right);
+  breastLeftTimeEl.textContent = formatSideClock(sec.left);
+  breastRightTimeEl.textContent = formatSideClock(sec.right);
+
+  breastLeftLabelEl.className = leftIsSide ? 'bt-lbl-on' : 'bt-lbl-off';
+  breastRightLabelEl.className = leftIsSide ? 'bt-lbl-off' : 'bt-lbl-on';
+  breastLeftTimeEl.className = leftIsSide ? 'bt-time-on' : 'bt-time-off';
+  breastRightTimeEl.className = leftIsSide ? 'bt-time-off' : 'bt-time-on';
+  breastKnob.style.left = leftIsSide ? '3px' : '33px';
+
+  const runMark = '<span style="display:flex; align-items:center; gap:5px; color:var(--accent-strong);">' + BREAST_RUN_MARK + 'läuft</span>';
+  breastLeftStatEl.innerHTML = !running ? '' : leftIsSide ? runMark : BREAST_PAUSE_MARK;
+  breastRightStatEl.innerHTML = !running ? '' : leftIsSide ? BREAST_PAUSE_MARK : runMark;
+
+  if (running) {
+    breastTimerSublabel.textContent = 'Stillt seit ' + formatTime(new Date(openFeedingStartedAt));
+    breastTimerToggleBtn.textContent = 'Stop';
+    breastTimerToggleBtn.style.background = 'var(--stop)';
+  } else {
     breastTimerSublabel.textContent = 'Bereit zum Start';
     breastTimerToggleBtn.textContent = 'Start';
     breastTimerToggleBtn.style.background = 'var(--accent-strong)';
+  }
+}
+
+// Seitenwechsel: die laufende Strecke wird der bisherigen Seite gutgeschrieben,
+// danach läuft die andere. Bei laufendem Timer wandert der Stand sofort nach
+// Firestore, damit ein Schließen der App nichts verliert. Vor dem Start wählt
+// derselbe Griff nur die Seite vor, mit der begonnen wird.
+async function setBreastTimerSide(side) {
+  if (breastTimerSide === side) return;
+  if (!openFeedingDocId) {
+    breastTimerSide = side;
+    renderBreastTimerDisplay();
     return;
   }
-  const elapsed = Math.floor((Date.now() - openFeedingStartedAt) / 1000);
-  const hh = String(Math.floor(elapsed / 3600)).padStart(2, '0');
-  const mm = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
-  const ss = String(elapsed % 60).padStart(2, '0');
-  breastTimerDisplay.textContent = hh + ':' + mm + ':' + ss;
-  breastTimerSublabel.textContent = 'Stillt seit ' + formatTime(new Date(openFeedingStartedAt));
-  breastTimerToggleBtn.textContent = 'Stop';
-  breastTimerToggleBtn.style.background = 'var(--stop)';
+  const sec = breastTimerSeconds();
+  breastTimerLeftSec = sec.left;
+  breastTimerRightSec = sec.right;
+  breastTimerSide = side;
+  breastTimerSideSince = Date.now();
+  renderBreastTimerDisplay();
+  try {
+    await updateDoc(doc(db, 'feedings', openFeedingDocId), {
+      side: breastTimerSide,
+      leftSeconds: breastTimerLeftSec,
+      rightSeconds: breastTimerRightSec,
+      sideSince: new Date(breastTimerSideSince).toISOString()
+    });
+  } catch (error) {
+    breastTimerSublabel.textContent = 'Wechsel nicht gespeichert';
+  }
+}
+breastTrackEl.addEventListener('click', () => setBreastTimerSide(breastTimerSide === 'left' ? 'right' : 'left'));
+breastSideLeftEl.addEventListener('click', () => setBreastTimerSide('left'));
+breastSideRightEl.addEventListener('click', () => setBreastTimerSide('right'));
+renderBreastTimerDisplay();
+
+// Vorgewählte Seite: die, mit der in den letzten 10 abgeschlossenen
+// Brust-Fütterungen am häufigsten begonnen wurde. Ohne Daten oder bei
+// Gleichstand bleibt es links.
+async function computeBreastStartSide() {
+  try {
+    const snap = await getDocs(query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(40)));
+    const recent = snap.docs
+      .map((d) => d.data())
+      .filter((f) => f.type === 'breast' && f.endTime !== null)
+      .slice(0, 10);
+    let left = 0;
+    let right = 0;
+    recent.forEach((f) => {
+      let side = Array.isArray(f.segments) && f.segments.length ? f.segments[0].side : null;
+      if (!side) {
+        const l = Number(f.leftMinutes) || 0;
+        const r = Number(f.rightMinutes) || 0;
+        side = l > r ? 'left' : r > l ? 'right' : null;
+      }
+      if (side === 'left') left++;
+      else if (side === 'right') right++;
+    });
+    return right > left ? 'right' : 'left';
+  } catch (error) {
+    return 'left';
+  }
+}
+
+async function applyBreastStartSide() {
+  if (openFeedingDocId) return;
+  breastTimerSide = await computeBreastStartSide();
+  renderBreastTimerDisplay();
 }
 
 async function syncFeedingState() {
@@ -1551,11 +1875,18 @@ async function syncFeedingState() {
   if (open) {
     openFeedingDocId = open.id;
     openFeedingStartedAt = new Date(open.startTime).getTime();
+    breastTimerSide = open.side === 'right' ? 'right' : 'left';
+    breastTimerLeftSec = Number(open.leftSeconds) || 0;
+    breastTimerRightSec = Number(open.rightSeconds) || 0;
+    breastTimerSideSince = open.sideSince ? new Date(open.sideSince).getTime() : openFeedingStartedAt;
     if (!feedingTimerInterval) feedingTimerInterval = setInterval(renderBreastTimerDisplay, 1000);
   } else {
     if (feedingTimerInterval) { clearInterval(feedingTimerInterval); feedingTimerInterval = null; }
     openFeedingDocId = null;
     openFeedingStartedAt = null;
+    breastTimerLeftSec = 0;
+    breastTimerRightSec = 0;
+    breastTimerSideSince = null;
   }
   renderBreastTimerDisplay();
   return open;
@@ -1567,6 +1898,8 @@ async function resumeOpenFeedingIfAny() {
     setFeedType('breast');
     setBreastMode('timer');
     showScreen('fuettern');
+  } else {
+    applyBreastStartSide();
   }
 }
 
@@ -1580,6 +1913,13 @@ breastTimerRefreshBtn.addEventListener('click', async () => {
   breastTimerRefreshBtn.disabled = false;
 });
 
+// Sekunden je Seite in Minuten, ohne dass die Summe von `minutes` abweicht:
+// links wird gerundet, rechts bekommt den Rest.
+function breastSideMinutesFromSeconds(leftSec, rightSec, totalMinutes) {
+  const left = Math.max(0, Math.min(totalMinutes, Math.round(leftSec / 60)));
+  return { leftMinutes: left, rightMinutes: totalMinutes - left };
+}
+
 breastTimerToggleBtn.addEventListener('click', async () => {
   if (!currentUser) return;
   breastTimerToggleBtn.disabled = true;
@@ -1591,40 +1931,68 @@ breastTimerToggleBtn.addEventListener('click', async () => {
         amount: null,
         minutes: null,
         durationMinutes: null,
+        leftMinutes: null,
+        rightMinutes: null,
         date: isoDate(startedAt),
         time: formatTime(startedAt),
         startTime: startedAt.toISOString(),
         endTime: null,
         source: 'timer',
+        side: breastTimerSide,
+        leftSeconds: 0,
+        rightSeconds: 0,
+        sideSince: startedAt.toISOString(),
         createdBy: currentUser.email,
         createdAt: serverTimestamp()
       };
       const ref = await addDoc(collection(db, 'feedings'), entry);
       openFeedingDocId = ref.id;
       openFeedingStartedAt = startedAt.getTime();
+      breastTimerLeftSec = 0;
+      breastTimerRightSec = 0;
+      breastTimerSideSince = startedAt.getTime();
       feedingTimerInterval = setInterval(renderBreastTimerDisplay, 1000);
       renderBreastTimerDisplay();
       addFuetternEntryToHistory({ id: ref.id, ...entry });
     } else {
+      // Der Stand aus Firestore gewinnt: ein zweites Gerät kann inzwischen die
+      // Seite gewechselt haben, seine Sekunden stehen dann im Dokument.
       const open = await findOpenFeeding();
       const targetId = open ? open.id : openFeedingDocId;
       const startedAt = open ? new Date(open.startTime) : new Date(openFeedingStartedAt);
+      if (open) {
+        breastTimerSide = open.side === 'right' ? 'right' : 'left';
+        breastTimerLeftSec = Number(open.leftSeconds) || 0;
+        breastTimerRightSec = Number(open.rightSeconds) || 0;
+        breastTimerSideSince = open.sideSince ? new Date(open.sideSince).getTime() : startedAt.getTime();
+      }
       const endedAt = new Date();
+      const sec = breastTimerSeconds();
       const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
+      const split = breastSideMinutesFromSeconds(sec.left, sec.right, durationMinutes);
       await updateDoc(doc(db, 'feedings', targetId), {
         endTime: endedAt.toISOString(),
         durationMinutes,
-        minutes: durationMinutes
+        minutes: durationMinutes,
+        leftMinutes: split.leftMinutes,
+        rightMinutes: split.rightMinutes,
+        leftSeconds: sec.left,
+        rightSeconds: sec.right,
+        sideSince: null
       });
       clearInterval(feedingTimerInterval);
       feedingTimerInterval = null;
       openFeedingDocId = null;
       openFeedingStartedAt = null;
+      breastTimerLeftSec = 0;
+      breastTimerRightSec = 0;
+      breastTimerSideSince = null;
       renderBreastTimerDisplay();
+      applyBreastStartSide();
       // Die "Läuft…"-Zeile steht schon in der Liste (beim Start eingefügt bzw.
       // beim Laden mitgekommen) — nur sie austauschen statt alles neu zu holen.
       const base = open || { type: 'breast', amount: null, date: isoDate(startedAt), time: formatTime(startedAt), startTime: startedAt.toISOString(), source: 'timer' };
-      const updated = { ...base, id: targetId, endTime: endedAt.toISOString(), durationMinutes, minutes: durationMinutes };
+      const updated = { ...base, id: targetId, endTime: endedAt.toISOString(), durationMinutes, minutes: durationMinutes, leftMinutes: split.leftMinutes, rightMinutes: split.rightMinutes };
       if (!replaceHistoryRow(document.getElementById('fuettern-entries-list'), targetId, fuetternEntryRow(updated))) loadFuetternEntries(true);
     }
   } catch (error) {
@@ -1656,12 +2024,31 @@ function resetFuetternForm() {
 
   setBreastMode('manual');
   breastDateInput.value = isoDate(new Date());
-  const now = new Date();
-  const todayMidnight = new Date(now); todayMidnight.setHours(0, 0, 0, 0);
-  breastStartInput.value = formatTime(new Date(Math.max(todayMidnight.getTime(), now.getTime() - 15 * 60000)));
-  breastEndInput.value = formatTime(now);
+  breastStartInput.value = breastDefaultStartTime();
   breastDateInput.dispatchEvent(new Event('change'));
-  renderBreastDuration();
+  resetBreastSegments();
+}
+
+// Segmente für die Bearbeiten-Maske. Drei Fälle, absteigend nach Genauigkeit:
+// ein manueller Eintrag bringt seine Segmente mit, ein Timer-Eintrag nur die
+// Summen je Seite (daraus werden zwei Segmente), ein Eintrag ganz ohne
+// Seitenangabe wird ein Segment mit leerem Kürzel — antippen trägt die Seite nach.
+function breastSegmentsFromEntry(entry) {
+  if (Array.isArray(entry.segments) && entry.segments.length) {
+    return entry.segments
+      .filter((s) => s && Number(s.minutes) > 0)
+      .map((s) => ({ side: s.side === 'left' || s.side === 'right' ? s.side : null, minutes: Math.round(Number(s.minutes)) }));
+  }
+  const left = Math.round(Number(entry.leftMinutes)) || 0;
+  const right = Math.round(Number(entry.rightMinutes)) || 0;
+  if (left > 0 || right > 0) {
+    const segs = [];
+    if (left > 0) segs.push({ side: 'left', minutes: left });
+    if (right > 0) segs.push({ side: 'right', minutes: right });
+    return segs;
+  }
+  const minutes = Math.round(Number(entry.minutes)) || 0;
+  return minutes > 0 ? [{ side: null, minutes }] : [];
 }
 
 // Legacy-Einträge (nur `time`+`minutes`) sowie Timer-Einträge (ISO-Zeitstempel
@@ -1682,23 +2069,15 @@ function enterFuetternEdit(entry) {
   } else {
     const entryTs = entryBusinessTimestamp(entry);
     breastDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
-    let startVal, endVal;
-    if (entry.startTime && /^\d{2}:\d{2}$/.test(entry.startTime)) {
-      startVal = entry.startTime;
-      endVal = entry.endTime && /^\d{2}:\d{2}$/.test(entry.endTime) ? entry.endTime : formatTime(new Date());
-    } else if (entry.startTime) {
-      startVal = formatTime(new Date(entry.startTime));
-      endVal = entry.endTime ? formatTime(new Date(entry.endTime)) : formatTime(new Date());
-    } else {
-      startVal = entry.time || formatTime(new Date());
-      const startMin = parseMinutes(startVal);
-      const endMin = (startMin + (entry.minutes || 0)) % 1440;
-      endVal = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
-    }
+    let startVal;
+    if (entry.startTime && /^\d{2}:\d{2}$/.test(entry.startTime)) startVal = entry.startTime;
+    else if (entry.startTime) startVal = formatTime(new Date(entry.startTime));
+    else startVal = entry.time || formatTime(new Date());
     breastStartInput.value = startVal;
-    breastEndInput.value = endVal;
+    breastSegments = breastSegmentsFromEntry(entry);
+    breastNewMinInput.value = String(BREAST_SEG_STEP);
     breastDateInput.dispatchEvent(new Event('change'));
-    renderBreastDuration();
+    renderBreastSegments();
   }
 
   fuetternSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
@@ -1738,20 +2117,10 @@ async function handleFuetternUpdate(triggerBtn) {
       source: null
     };
   } else {
-    if (!breastTimeIsValid()) return;
-    const minutes = renderBreastDuration();
-    if (minutes <= 0) return;
-    entry = {
-      type: 'breast',
-      amount: null,
-      minutes,
-      durationMinutes: minutes,
-      date: breastDateInput.value,
-      time: breastStartInput.value,
-      startTime: breastStartInput.value,
-      endTime: breastEndInput.value,
-      source: 'manual'
-    };
+    if (!breastEntryIsValid()) return;
+    // Beim Bearbeiten wird ein Timer-Eintrag zu einem manuellen: die Sekunden
+    // je Seite haben nach dem Ändern keine Aussagekraft mehr.
+    entry = { ...breastEntryFromForm(), side: null, leftSeconds: null, rightSeconds: null, sideSince: null };
   }
   triggerBtn.disabled = true;
   try {
@@ -1775,6 +2144,19 @@ async function handleFuetternUpdate(triggerBtn) {
 fuetternBottleUpdateBtn.addEventListener('click', () => handleFuetternUpdate(fuetternBottleUpdateBtn));
 fuetternBreastUpdateBtn.addEventListener('click', () => handleFuetternUpdate(fuetternBreastUpdateBtn));
 
+// Historie-Text einer Brust-Fütterung: Gesamtdauer, dahinter die Aufteilung.
+// Einträge ohne Seitenangabe (etwa noch nicht nachgetragene) zeigen nur die
+// Dauer, wie bisher.
+function breastDetailText(entry) {
+  const minutes = entry.minutes || 0;
+  const left = Number(entry.leftMinutes);
+  const right = Number(entry.rightMinutes);
+  if (!Number.isFinite(left) || !Number.isFinite(right) || left + right <= 0) return minutes + ' Min';
+  if (right <= 0) return minutes + ' Min · nur L';
+  if (left <= 0) return minutes + ' Min · nur R';
+  return minutes + ' Min · L ' + left + ' · R ' + right;
+}
+
 function fuetternEntryRow(entry) {
   const ts = entryBusinessTimestamp(entry);
   const isOpenFeeding = entry.type === 'breast' && entry.endTime === null;
@@ -1793,7 +2175,7 @@ function fuetternEntryRow(entry) {
   row.appendChild(typeBadge);
 
   const detail = document.createElement('span');
-  detail.textContent = entry.type === 'bottle' ? (entry.amount || 0) + ' ml' : isOpenFeeding ? 'Läuft…' : (entry.minutes || 0) + ' Min';
+  detail.textContent = entry.type === 'bottle' ? (entry.amount || 0) + ' ml' : isOpenFeeding ? 'Läuft…' : breastDetailText(entry);
   detail.style.cssText = 'font-size:12.5px; color:var(--text-muted); flex-shrink:0;';
   row.appendChild(detail);
 

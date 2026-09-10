@@ -4480,6 +4480,11 @@ function computeFuetternAnalysis(days, feedMap) {
       bottleCount: bottle.length, breastCount: breast.length,
       bottleMl: bottle.reduce((s, f) => s + (f.amount || 0), 0),
       breastMin: breast.reduce((s, f) => s + (f.minutes || 0), 0),
+      // Seitenzeiten getrennt: Einträge ohne Seitenangabe zählen hier nicht
+      // mit, deshalb ist links + rechts nicht zwangsläufig breastMin. Die
+      // Seitenbalance rechnet nur mit dem, was tatsächlich zugeordnet ist.
+      breastLeftMin: breast.reduce((s, f) => s + (Number(f.leftMinutes) || 0), 0),
+      breastRightMin: breast.reduce((s, f) => s + (Number(f.rightMinutes) || 0), 0),
       intervalH: analyseIntervalH(docs)
     };
   });
@@ -4489,6 +4494,9 @@ function computeFuetternAnalysis(days, feedMap) {
   const totalBreast = perDay.reduce((s, d) => s + d.breastCount, 0);
   const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
   const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
+  const totalLeftMin = perDay.reduce((s, d) => s + d.breastLeftMin, 0);
+  const totalRightMin = perDay.reduce((s, d) => s + d.breastRightMin, 0);
+  const totalSideMin = totalLeftMin + totalRightMin;
 
   const avgIntervalH = analyseIntervalH(feedMap.flat().filter(fuetternIsFinished));
 
@@ -4511,6 +4519,12 @@ function computeFuetternAnalysis(days, feedMap) {
     avgBreastCountExact: totalBreast / totalDays,
     avgBottleMlExact: totalMl / totalDays,
     avgBreastMinExact: totalBreastMin / totalDays,
+    avgBreastLeftMinExact: totalLeftMin / totalDays,
+    avgBreastRightMinExact: totalRightMin / totalDays,
+    // Anteil der linken Seite am Ausschnitt. Ein Anteil ist ein Verhältnis und
+    // wird deshalb nicht über daysElapsed normiert. Ohne eine einzige
+    // Seitenangabe gibt es keinen Anteil — dann null statt 0.
+    leftPctExact: totalSideMin > 0 ? totalLeftMin / totalSideMin * 100 : null,
     insight: outlier ? (outlierDayLabel(outlier.day) + ' deutlich mehr Fläschchen als sonst — größter Tageswert ' + analyseRangePhrase + '.') : null
   };
 }
@@ -4977,12 +4991,49 @@ function analyseWeekRangeText(weekStart) {
 }
 
 const FUETTERN_COLOR = 'oklch(48% 0.13 250)';
+const FUETTERN_BREAST_COLOR = 'oklch(80% 0.05 250)';
+
+// Anteil einer Seite an der zugeordneten Stillzeit eines Bündels. Ohne
+// Seitenangabe gibt es keinen Anteil — null heißt „nichts zu zeigen" und
+// unterscheidet sich von 0 % („alles auf der anderen Seite").
+function fuetternSidePct(d, side) {
+  const total = d.breastLeftMin + d.breastRightMin;
+  if (!total) return null;
+  return (side === 'left' ? d.breastLeftMin : d.breastRightMin) / total * 100;
+}
+
+// „51% L · 49% R", isoliert nur die gewählte Seite. Beide Zahlen kommen aus
+// derselben Rundung, damit sie sich immer zu 100 ergänzen.
+function fuetternSideText(v) {
+  if (v === null) return '–';
+  const f = analyseFilter['fu-seite'];
+  const p = analyseRound(v);
+  if (f === 'right') return p + '% R';
+  if (f === 'left') return p + '% L';
+  return p + '% L · ' + (100 - p) + '% R';
+}
+
+// Die Seitenwahl der Balance-Karte greift eine Karte höher durch: die
+// Stilldauer zeigt dann nur die Minuten dieser Seite — dieselbe Kopplung wie
+// die Farblegende der Windeln zum Wechsel-Diagramm.
+function fuetternSideSeries() {
+  const f = analyseFilter['fu-seite'];
+  if (!f) return null;
+  const left = f === 'left';
+  return {
+    key: 'min', label: left ? 'Links' : 'Rechts',
+    color: left ? FUETTERN_COLOR : FUETTERN_BREAST_COLOR,
+    value: (d) => (left ? d.breastLeftMin : d.breastRightMin) / d.daysElapsed,
+    mean: (a) => (left ? a.avgBreastLeftMinExact : a.avgBreastRightMinExact)
+  };
+}
+
 const FUETTERN_CHARTS = {
   'fu-anzahl': {
     title: 'Fütterungen pro Tag',
     series: [
       { key: 'bottle', label: 'Fläschchen', color: FUETTERN_COLOR, value: (d) => d.bottleCount / d.daysElapsed, mean: (a) => a.avgBottleCountExact },
-      { key: 'breast', label: 'Brust', color: 'oklch(80% 0.05 250)', value: (d) => d.breastCount / d.daysElapsed, mean: (a) => a.avgBreastCountExact }
+      { key: 'breast', label: 'Brust', color: FUETTERN_BREAST_COLOR, value: (d) => d.breastCount / d.daysElapsed, mean: (a) => a.avgBreastCountExact }
     ],
     barLabel: (v) => String(analyseRound(v)),
     headline: (v) => 'Ø ' + analyseDe1(v) + ' / Tag',
@@ -5004,6 +5055,34 @@ const FUETTERN_CHARTS = {
     headline: (v) => 'Ø ' + analyseRound(v) + ' Min. / Tag',
     tipValue: (v) => analyseRound(v) + ' Min.',
     detail: (v) => analyseRound(v) + ' Min.'
+  },
+  'fu-seite': {
+    type: 'share',
+    title: 'Seitenbalance in Prozent',
+    // Links steht unten und führt: seine Zahl steht in der Säule, seine Farbe
+    // trägt Ø-Linie und Achsenbeschriftung. `ink` ist die Schriftfarbe auf dem
+    // eigenen Block, `inkOut` die für eine Zahl, die nicht mehr hineinpasst.
+    series: [
+      { key: 'left', label: 'Links', color: FUETTERN_COLOR, ink: 'white',
+        value: (d) => fuetternSidePct(d, 'left'),
+        mean: (a) => a.leftPctExact },
+      { key: 'right', label: 'Rechts', color: FUETTERN_BREAST_COLOR, ink: FUETTERN_COLOR,
+        value: (d) => fuetternSidePct(d, 'right'),
+        mean: (a) => (a.leftPctExact === null ? null : 100 - a.leftPctExact) }
+    ],
+    inkOut: FUETTERN_COLOR,
+    barLabel: (v) => String(analyseRound(v)),
+    headline: fuetternSideText,
+    tipValue: (v) => (v === null ? 'Keine Seitenangabe' : fuetternSideText(v)),
+    // Der Prozentwert allein sagt nicht, wie viel dahintersteckt — die zweite
+    // Zeile nennt deshalb die Minuten.
+    tipSub: (b) => {
+      const total = b.breastLeftMin + b.breastRightMin;
+      if (!total) return '';
+      const right = analyseFilter['fu-seite'] === 'right';
+      return (right ? b.breastRightMin : b.breastLeftMin) + ' von ' + total +
+        ' Min. ' + (right ? 'rechts' : 'links');
+    }
   }
 };
 
@@ -5132,7 +5211,7 @@ const ANALYSE_SECTION_UI = {
   fuettern: {
     hostId: 'analyse-view-fuettern',
     charts: FUETTERN_CHARTS,
-    order: ['fu-anzahl', 'fu-menge', 'fu-still'],
+    order: ['fu-anzahl', 'fu-menge', 'fu-still', 'fu-seite'],
     tileClass: 'a-stat-row',
     tileColor: 'var(--fuettern-strong)',
     tiles: [
@@ -5249,13 +5328,20 @@ function windelnColorSeries() {
   };
 }
 
+// Diagramme, die von einer anderen Karte gesteuert werden: die gewählte Reihe
+// kommt dann von dort und ersetzt die eigenen.
+function secForcedSeries(chartId) {
+  if (chartId === 'wi-wechsel') return windelnColorSeries();
+  if (chartId === 'fu-still') return fuetternSideSeries();
+  return null;
+}
+
 function secVisibleSeries(chartId, cfg) {
-  // Nur das Wechsel-Diagramm kennt Farben — und der Farbfilter schlägt dort
-  // den Klein/Groß-Filter, weil Farbe nur an großen Wechseln hängt.
-  if (chartId === 'wi-wechsel') {
-    const cs = windelnColorSeries();
-    if (cs) return [cs];
-  }
+  // Eine von außen gesetzte Reihe schlägt die eigene Legende: die Farbe der
+  // Windeln-Verteilung den Klein/Groß-Filter, weil Farbe nur an großen
+  // Wechseln hängt, und die Seitenwahl der Balance-Karte die Stilldauer.
+  const forced = secForcedSeries(chartId);
+  if (forced) return [forced];
   const iso = analyseFilter[chartId];
   return iso ? cfg.series.filter((s) => s.key === iso) : cfg.series;
 }
@@ -5330,7 +5416,9 @@ function secBarInner(chartId, cfg, analysis) {
 function secAreaInner(chartId, cfg, analysis) {
   const bs = analysis.perDay;
   const baseline = 95, topY = 5;
-  const se = cfg.series[0];
+  // Auch die Flächendiagramme fragen die sichtbare Reihe ab: die Stilldauer
+  // wird von der Seitenwahl der Balance-Karte gesteuert.
+  const se = secVisibleSeries(chartId, cfg)[0];
   const totals = bs.map((b) => se.value(b));
   const mean = se.mean(analysis) || 0;
   const maxVal = Math.max(1, ...totals, mean);
@@ -5371,8 +5459,76 @@ function secAreaInner(chartId, cfg, analysis) {
   return out + SEC_MARKER + secHitRects(bs, cxOf, step);
 }
 
+// Anteilsdiagramm. Anders als bei den anderen Balken ist jede Säule gleich
+// hoch: sie zeigt nur das Verhältnis, die Menge steht eine Karte höher.
+// Deshalb steht die Skala fest auf 0–100 % und wächst nicht mit dem größten
+// Wert mit — wird eine Seite in der Legende isoliert, behält ihr Block dadurch
+// genau die Höhe, die er im Stapel hatte.
+function secShareInner(chartId, cfg, analysis) {
+  const bs = analysis.perDay;
+  const { barW, gap } = analyseBarGeom(bs.length);
+  const startX = 4, baseline = 95, colH = 78, step = barW + gap;
+  const series = secVisibleSeries(chartId, cfg);
+  const lead = series[0];
+  const totals = bs.map((b) => lead.value(b));
+  const mean = lead.mean(analysis);
+  const y = scaleLinear().domain([0, 100]).range([baseline, baseline - colH]);
+  const cxOf = (i) => startX + i * step + barW / 2;
+  analyseRender[chartId] = {
+    cfg, bs, series, totals, mean, cxOf,
+    // Ohne Seitenangabe hat der Tag keinen Wert — die Markierung sitzt dann
+    // auf der Grundlinie statt im Nirgendwo.
+    yOf: (v) => (v === null ? baseline : y(v)),
+    idxAt: (vx) => Math.round((vx - startX - barW / 2) / step)
+  };
+
+  let out = '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
+    svgMeanLine(mean, 100, baseline, colH, lead.color);
+
+  bs.forEach((b, i) => {
+    const x = startX + i * step, cx = cxOf(i);
+    let stack = 0, rects = '';
+    series.forEach((se) => {
+      const v = se.value(b);
+      if (v === null) return;
+      const h = v / 100 * colH;
+      rects += '<rect x="' + x + '" y="' + (baseline - stack - h) + '" width="' + barW +
+        '" height="' + h + '" rx="4" fill="' + se.color + '"/>';
+      stack += h;
+    });
+    // Die Zahl steht im Block der führenden Seite. Wird er zu flach, rückt sie
+    // darüber und wechselt aus der Schrift auf dem Block in die daneben.
+    const v0 = totals[i];
+    if (v0 !== null) {
+      const inside = v0 >= 20;
+      rects += '<text class="val" x="' + cx + '" y="' + (inside ? baseline - 7 : y(v0) - 5) +
+        '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' +
+        (inside ? lead.ink : cfg.inkOut) + '" text-anchor="middle">' + cfg.barLabel(v0) + '</text>';
+    }
+    out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cx, lead.color) + '</g>';
+  });
+
+  // Die Ø-Linie liegt wie überall hinter den Säulen — bei durchgehend vollen
+  // Säulen bliebe davon nichts übrig. In den Lücken wird dasselbe Stück
+  // deshalb noch einmal darübergelegt.
+  if (mean !== null) {
+    const yMean = y(mean);
+    for (let i = 0; i <= bs.length; i++) {
+      const x1 = i === 0 ? 4 : startX + (i - 1) * step + barW;
+      const x2 = i === bs.length ? 304 : startX + i * step;
+      if (x2 <= x1) continue;
+      out += '<line x1="' + x1 + '" y1="' + yMean + '" x2="' + x2 + '" y2="' + yMean +
+        '" stroke="' + lead.color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>';
+    }
+  }
+
+  return out + SEC_MARKER + secHitRects(bs, cxOf, step);
+}
+
 function secChartInner(chartId, cfg, analysis) {
-  return cfg.type === 'area' ? secAreaInner(chartId, cfg, analysis) : secBarInner(chartId, cfg, analysis);
+  if (cfg.type === 'area') return secAreaInner(chartId, cfg, analysis);
+  if (cfg.type === 'share') return secShareInner(chartId, cfg, analysis);
+  return secBarInner(chartId, cfg, analysis);
 }
 
 // Kartengerüst: Überschrift, Legende, Achsenhinweis und die leere SVG. Wird
@@ -5503,7 +5659,8 @@ function applySecSelection(view, center) {
     // Label: große Zahl, darunter die Aufteilung. Ohne Datum — das steht schon
     // hervorgehoben unter dem Balken und in der Kontextzeile.
     const bucket = r.bs[i];
-    const sub = r.series.length > 1
+    const sub = r.cfg.tipSub ? r.cfg.tipSub(bucket)
+      : r.series.length > 1
       ? r.series.map((s) => s.label + ' ' + r.cfg.detail(s.value(bucket), bucket)).join(' · ') : '';
     tip.hidden = false;
     tip.innerHTML = '<div class="a-tip-v">' + r.cfg.tipValue(r.totals[i], bucket) + '</div>' +
@@ -5527,8 +5684,11 @@ function updateSecCard(view, chartId) {
   card.querySelector('svg.a-chart').innerHTML = secChartInner(chartId, cfg, analyseData[view]);
 
   const iso = analyseFilter[chartId];
-  const cs = chartId === 'wi-wechsel' ? windelnColorSeries() : null;
-  const qualLabel = cs ? cs.label : (iso ? cfg.series.find((s) => s.key === iso).label : null);
+  const cs = secForcedSeries(chartId);
+  // Beim Anteilsdiagramm steckt die gewählte Seite schon im Kartenwert
+  // („51% L") — ein „nur links" daneben sagte dasselbe zweimal.
+  const qualLabel = cfg.type === 'share' ? null
+    : cs ? cs.label : (iso ? cfg.series.find((s) => s.key === iso).label : null);
   const qual = qualLabel ? ' <span class="qual" style="font-family:\'Work Sans\',sans-serif; font-size:12px; font-weight:600; color:var(--text-muted);">nur ' +
     qualLabel.toLowerCase() + '</span>' : '';
   card.querySelector('.a-card-value').innerHTML = cfg.headline(analyseRender[chartId].mean) + qual;
@@ -5690,6 +5850,8 @@ function secPick(view, chartId, i, toggle) {
     if (analyseColorFilter && c === 'wi-wechsel') { analyseColorFilter = null; analyseFilter[c] = k; }
     else analyseFilter[c] = analyseFilter[c] === k ? null : k;
     updateSecCard(analyseView, c);
+    // Die Seitenwahl steuert auch die Stilldauer darüber.
+    if (c === 'fu-seite') updateSecCard('fuettern', 'fu-still');
     applySecSelection(analyseView);
   });
 

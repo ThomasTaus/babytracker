@@ -4241,23 +4241,30 @@ async function loadOverview() {
     }
 
     const nightHintBtn = document.getElementById('schlafen-night-hint');
+    const nightStatsEl = document.getElementById('schlafen-stats');
+    nightStatsEl.style.display = '';
     if (wakeIsToday) {
       const nightHours = Math.round(nightDurationMinutes(lastNight) / 60);
-      document.getElementById('schlafen-stats').textContent =
+      nightStatsEl.textContent =
         'Nachts: ' + nightHours + ' Std. · ' + lastNight.wakeCount + '× aufgewacht';
       nightHintBtn.style.display = 'none';
       if (lastNight.createdAt) {
         timelineEvents.push({ ts: timeOnDate(now, lastNight.wakeTime), color: 'var(--schlafen)', label: 'Aufgewacht' });
       }
     } else {
-      document.getElementById('schlafen-stats').textContent = '';
+      nightStatsEl.textContent = '';
       // Erst ab Mittag erinnern: vormittags öffnet die Nachts-Karte ohnehin
       // auf der letzten Nacht, und wer gerade erst aufgestanden ist, trägt sie
       // meist noch ein. Danach würde die Lücke sonst unsichtbar bleiben.
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       const openIsLastNight = !!(openNight && openNight.nightStart === isoDate(yesterday));
-      nightHintBtn.style.display = now.getHours() >= 12 ? 'inline-flex' : 'none';
+      const showHint = now.getHours() >= 12;
+      nightHintBtn.style.display = showHint ? 'inline-flex' : 'none';
+      // Die leere Statuszeile daneben würde die Erinnerung sonst per
+      // space-between aus dem linken Rand schieben — sie fluchtet mit der
+      // Zeile darüber nur, wenn sie das erste Element der Reihe ist.
+      nightStatsEl.style.display = showHint ? 'none' : '';
       document.getElementById('schlafen-night-hint-text').textContent =
         openIsLastNight ? 'Letzte Nacht ergänzen' : 'Letzte Nacht fehlt';
       // Eine begonnene Nacht liegt bereits auf der Startposition der

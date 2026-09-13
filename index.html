@@ -1266,6 +1266,7 @@ const screens = {
 // Kachel ein neuer Eintrag, über die Historie das Bearbeiten eines bestehenden
 // (opts.edit — dann setzt enterXEdit die Maske, hier wird nichts zurückgesetzt).
 function showScreen(target, opts = {}) {
+  currentScreen = target;
   Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
   if (target === 'heute') loadOverview();
   if (target === 'analyse') loadAnalyse();
@@ -1281,6 +1282,7 @@ function showScreen(target, opts = {}) {
   if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); else resetWindelnForm(); }
   if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); else prepareFuetternForNewEntry(); refreshFuetternAmountChips(); }
   if (screens[target] && ['fuettern', 'windeln', 'schlafen'].includes(target)) screens[target].firstElementChild.scrollTop = 0;
+  syncHistory();
 }
 
 // Eine Fußleiste für alle Screens; welcher Eintrag markiert ist, steht als
@@ -1343,6 +1345,70 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
 
 // Nach dem Speichern eines neuen Eintrags zurück auf Heute; der Eintrag
 // leuchtet dort im Zeitverlauf kurz auf (siehe loadOverview).
+// --- Android-Zurück-Taste ---
+// Die installierte PWA verhält sich wie ein Browser-Tab: die Zurück-Taste geht
+// einen Schritt im Verlauf zurück, und ohne Verlauf schließt Android die App.
+// Deshalb spiegelt der Verlauf die Tiefe der Navigation: Heute = 0; Tabs,
+// Eintragen-Seiten und Historie = 1; Bearbeiten aus der Historie und „Messung
+// eintragen" = 2. Tiefer → pushState, flacher (per Knopf in der App) →
+// history.go zurück, gleiche Tiefe (Tabwechsel) → nichts. So stapeln sich beim
+// Hin- und Herwechseln keine Einträge, und von Heute aus schließt die Taste.
+let currentScreen = 'heute';
+let navDepth = 0;
+let navIgnorePops = 0;
+let navHandlingPop = false;
+history.replaceState({ bt: 0 }, '');
+
+function uiNavDepth() {
+  if (currentScreen === 'heute') return 0;
+  if (currentScreen === 'fuettern') return editingFeedingId ? 2 : 1;
+  if (currentScreen === 'windeln') return editingDiaperId ? 2 : 1;
+  if (currentScreen === 'schlafen') return (editingNightId || editingNapId) ? 2 : 1;
+  if (currentScreen === 'entwicklung') return entState.messung ? 2 : 1;
+  return 1;
+}
+
+function syncHistory() {
+  // Während ein Zurückspringen noch unterwegs ist oder gerade verarbeitet
+  // wird, nichts anfassen — der popstate-Handler gleicht danach ab.
+  if (navHandlingPop || navIgnorePops > 0) return;
+  const want = uiNavDepth();
+  if (want > navDepth) {
+    for (let d = navDepth + 1; d <= want; d++) history.pushState({ bt: d }, '');
+    navDepth = want;
+  } else if (want < navDepth) {
+    navIgnorePops += 1;
+    const diff = navDepth - want;
+    navDepth = want;
+    history.go(-diff);
+  }
+}
+
+// Ein Schritt zurück — dasselbe wie „‹ Zurück" auf der jeweiligen Seite.
+function navigateBackOneLevel() {
+  if (['fuettern', 'windeln', 'schlafen'].includes(currentScreen)) leaveEntryScreen(currentScreen);
+  else if (currentScreen === 'entwicklung' && entState.messung) closeEntwicklungMessung();
+  else if (currentScreen !== 'heute') showScreen('heute');
+}
+
+window.addEventListener('popstate', (e) => {
+  const depth = e.state && typeof e.state.bt === 'number' ? e.state.bt : 0;
+  navDepth = depth;
+  if (navIgnorePops > 0) {
+    // Selbst ausgelöst (Knopf in der App) — die Oberfläche steht schon.
+    navIgnorePops -= 1;
+    syncHistory();
+    return;
+  }
+  navHandlingPop = true;
+  try {
+    for (let guard = 0; guard < 4 && uiNavDepth() > depth; guard++) navigateBackOneLevel();
+  } finally {
+    navHandlingPop = false;
+  }
+  syncHistory();
+});
+
 let pendingTimelineFlash = null;
 function afterNewEntrySaved(ts, color) {
   pendingTimelineFlash = ts ? { ts: ts.getTime(), color } : null;
@@ -3921,6 +3987,7 @@ function openHistorieEdit(entry) {
   if (entry._cat === 'fuettern') enterFuetternEdit(entry);
   else if (entry._cat === 'windeln') enterWindelnEdit(entry);
   else enterSchlafenEdit(entry);
+  syncHistory();
 }
 
 // Nach dem Aktualisieren nur die eine Zeile neu einsortieren (Datum oder
@@ -6363,6 +6430,7 @@ function openEntwicklung() {
 function closeEntwicklungMessung() {
   entState.messung = null;
   renderEntwicklung();
+  syncHistory();
 }
 
 entBodyEl.addEventListener('input', (e) => {
@@ -6414,6 +6482,7 @@ entBodyEl.addEventListener('click', (e) => {
     default: return;
   }
   renderEntwicklung();
+  syncHistory();
 });
 </script>
 

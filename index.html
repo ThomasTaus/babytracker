@@ -24,10 +24,67 @@
   #screen-heute .timeline-fade { position: absolute; left: 0; right: 0; height: 34px; pointer-events: none; opacity: 0; transition: opacity .15s ease; z-index: 1; }
   #screen-heute .timeline-fade-t { top: 0; background: linear-gradient(to bottom, var(--surface), transparent); }
   #screen-heute .timeline-fade-b { bottom: 0; background: linear-gradient(to top, var(--surface), transparent); }
+  /* Ein gerade gespeicherter Eintrag leuchtet im Zeitverlauf kurz auf. */
+  #screen-heute .tl-flash { border-radius: 8px; margin: -2px -8px 0; padding: 2px 8px 0; animation: tlFlash 2.6s ease-out; }
+  @keyframes tlFlash { 0%, 45% { background: var(--fl); } 100% { background: transparent; } }
+  @media (prefers-reduced-motion: reduce) { #screen-heute .tl-flash { animation: none; } }
   #screen-heute .timeline-chev { flex-shrink: 0; height: 18px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s ease; color: var(--text-muted); }
 
   .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
   .quick-row { margin-top: -17px; }
+
+  /* Fußleiste: auf jeder Seite dieselbe, gebaut von renderTabbars(). Alle
+     Einträge schwarz — der gewählte trägt eine Linie am oberen Rand. Die
+     Fallbacks gelten für Screens, die --neutral-strong nicht selbst setzen. */
+  .tabbar { flex-shrink: 0; display: flex; border-top: 1px solid var(--border); background: var(--surface); }
+  .tabbar .tab-btn { position: relative; flex: 1; min-width: 0; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .tabbar .tab-btn span { font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .tabbar .tab-btn.on { color: var(--neutral-strong, oklch(35% 0.006 250)); }
+  .tabbar .tab-btn.on span { font-weight: 700; }
+  .tabbar .tab-btn.on::before { content: ''; position: absolute; top: -1px; left: 50%; width: 36px; height: 3px; margin-left: -18px; border-radius: 0 0 3px 3px; background: var(--neutral-strong, oklch(35% 0.006 250)); }
+
+  /* Rücksprung auf Unterseiten: eine Zeile über dem Kopf, damit Symbol und
+     Titel bündig links bleiben. */
+  .back-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 2px; margin: 0 0 -16px -4px; padding: 4px 10px 4px 2px; border: none; background: none; border-radius: 8px; color: var(--text-muted); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+  .tl-all-btn { display: inline-flex; align-items: center; gap: 3px; border: none; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--neutral-strong); background: var(--surface-alt); border-radius: 10px; padding: 5px 7px 5px 10px; }
+
+  /* Gemeinsame Historie */
+  #screen-historie .h-chip { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 6px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); white-space: nowrap; cursor: pointer; font-family: inherit; }
+  #screen-historie .h-chip.on { font-weight: 700; background: var(--chip-soft); border-color: var(--chip-border); color: var(--chip-strong); }
+  #screen-historie .h-row { display: flex; align-items: center; gap: 9px; padding: 10px 8px 10px 14px; border-bottom: 1px solid var(--border); }
+  #screen-historie .h-ico { width: 24px; height: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #screen-historie .h-time { font-size: 13px; font-weight: 600; color: var(--text); width: 40px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  #screen-historie .h-detail { font-size: 12.5px; color: var(--text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #screen-historie .h-detail b { color: var(--text); font-weight: 600; }
+  #screen-historie .h-btn { border: none; background: none; padding: 6px; cursor: pointer; display: flex; color: var(--text-muted); }
+  #screen-historie .h-btn.del { color: var(--warn); }
+  /* Entwicklung (Vorschau) */
+  #screen-entwicklung button { font-family: inherit; }
+  #screen-entwicklung .e-seg { display: flex; background: var(--surface-alt); border-radius: 18px; padding: 5px; gap: 5px; }
+  #screen-entwicklung .e-seg button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; border-radius: 14px; border: none; font-weight: 600; font-size: 14px; background: transparent; color: var(--text-muted); cursor: pointer; }
+  #screen-entwicklung .e-seg button.on { background: var(--accent); color: white; }
+  #screen-entwicklung .e-note { display: flex; gap: 9px; align-items: flex-start; border-radius: 14px; padding: 11px 13px; font-size: 12px; line-height: 1.45; background: var(--accent-soft); color: var(--accent-ink); }
+  #screen-entwicklung .e-lbl { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  #screen-entwicklung .e-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  #screen-entwicklung .e-tile { border-radius: 16px; padding: 11px 10px 10px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; text-align: left; cursor: pointer; }
+  #screen-entwicklung .e-tile.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); }
+  #screen-entwicklung .e-tile-cap { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  #screen-entwicklung .e-tile-num { font-family: 'Fredoka', sans-serif; font-size: 19px; font-weight: 600; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+  #screen-entwicklung .e-tile-num small { font-family: 'Work Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-left: 2px; }
+  #screen-entwicklung .e-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; }
+  #screen-entwicklung .e-chart text { font-family: 'Work Sans', sans-serif; font-size: 9.5px; font-weight: 600; fill: var(--text-muted); }
+  #screen-entwicklung .e-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  #screen-entwicklung .e-row:last-child { border-bottom: none; }
+  #screen-entwicklung .e-save { width: 100%; padding: 13px 10px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; color: white; background: var(--accent-strong); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; white-space: nowrap; }
+  #screen-entwicklung .e-cancel { width: 100%; padding: 13px 10px; border: 1px solid var(--border); border-radius: 14px; font-size: 15px; font-weight: 700; color: var(--text-muted); background: var(--surface); cursor: pointer; white-space: nowrap; }
+  #screen-entwicklung .e-btn2 { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); font-weight: 600; font-size: 14px; cursor: pointer; }
+  #screen-entwicklung .e-chip { padding: 7px 12px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; }
+  #screen-entwicklung .e-chip.on { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); font-weight: 700; }
+  #screen-entwicklung .e-num { display: inline-flex; align-items: baseline; gap: 5px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px; }
+  #screen-entwicklung .e-num input { width: 48px; text-align: right; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; font-family: inherit; }
+  #screen-entwicklung .e-num span { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  #screen-historie .h-badge { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px; margin-right: 6px; flex-shrink: 0; }
 
   /* Brust: Links/Rechts. Der Seitenwechsel im Timer ist bewusst ein kleiner
      Schieberegler und kein dritter Segment-Umschalter — Fläschchen/Brust und
@@ -203,8 +260,8 @@
   <div id="screen-heute" style="
     --neutral-soft: oklch(93% 0.004 250);
     --neutral-strong: oklch(35% 0.006 250);
-    --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250);
-    --windeln: #39ABAB;
+    --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250); --fuettern-soft: oklch(93% 0.025 250);
+    --windeln: #39ABAB; --windeln-soft: #DFF2F2;
     --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9; --schlafen-ink: #3A306E;
     --ok: oklch(58% 0.11 150);
     --warn: oklch(58% 0.17 25);
@@ -232,7 +289,6 @@
             <div id="heute-date" style="font-size: 13px; color: var(--text-muted);"></div>
           </div>
         </div>
-        <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -251,11 +307,8 @@
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
             <span id="fuettern-stats" style="font-size: 11px; color: var(--text-muted);"></span>
             <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
-              <button class="quick-btn" data-action="entry" data-target="fuettern" title="Eintrag hinzufügen">
+              <button class="quick-btn" data-target="fuettern" title="Eintrag hinzufügen" aria-label="Füttern: Eintrag hinzufügen">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              </button>
-              <button class="quick-btn" data-action="analyse" data-target="fuettern" title="Zur Analyse">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.2" y="7" width="3.4" height="13" rx="1"/><rect x="14.4" y="10" width="3.4" height="10" rx="1"/></svg>
               </button>
             </div>
           </div>
@@ -275,11 +328,8 @@
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
             <span id="windeln-stats" style="font-size: 11px; color: var(--text-muted);"></span>
             <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
-              <button class="quick-btn" data-action="entry" data-target="windeln" title="Eintrag hinzufügen">
+              <button class="quick-btn" data-target="windeln" title="Eintrag hinzufügen" aria-label="Windeln: Eintrag hinzufügen">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              </button>
-              <button class="quick-btn" data-action="analyse" data-target="windeln" title="Zur Analyse">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.2" y="7" width="3.4" height="13" rx="1"/><rect x="14.4" y="10" width="3.4" height="10" rx="1"/></svg>
               </button>
             </div>
           </div>
@@ -313,18 +363,18 @@
               <span id="schlafen-night-hint-text">Letzte Nacht fehlt</span>
             </button>
             <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
-              <button class="quick-btn" data-action="entry" data-target="schlafen" title="Eintrag hinzufügen">
+              <button class="quick-btn" data-target="schlafen" title="Eintrag hinzufügen" aria-label="Schlafen: Eintrag hinzufügen">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              </button>
-              <button class="quick-btn" data-action="analyse" data-target="schlafen" title="Zur Analyse">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.4" height="8" rx="1"/><rect x="10.2" y="7" width="3.4" height="13" rx="1"/><rect x="14.4" y="10" width="3.4" height="10" rx="1"/></svg>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Zeitverlauf</label>
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Zeitverlauf</label>
+        <button id="heute-all-entries" class="tl-all-btn">Alle Einträge<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
     </div>
 
     <div style="flex: 1; min-height: 0; position: relative; padding: 8px 24px 10px;">
@@ -341,42 +391,7 @@
       </div>
     </div>
 
-    <div style="flex-shrink: 0; display: flex; border-top: 1px solid var(--border); background: var(--surface);">
-      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--neutral-strong); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Heute</span>
-      </button>
-      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
-          <line x1="9" y1="12" x2="15" y2="12"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
-      </button>
-      <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Windeln</span>
-      </button>
-      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
-      </button>
-      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="20" x2="20" y2="20"/>
-          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
-          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
-          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
-      </button>
-    </div>
+    <nav class="tabbar" data-active="heute"></nav>
   </div>
 
   <!-- Füttern -->
@@ -394,7 +409,8 @@
     height: 100vh; max-width: 480px; margin: 0 auto;
     color: var(--text); display: none; flex-direction: column;
   ">
-    <div style="flex: 1; overflow-y: auto; padding: 32px 24px 16px; display: flex; flex-direction: column; gap: 28px;">
+    <div style="flex: 1; overflow-y: auto; padding: 18px 24px 16px; display: flex; flex-direction: column; gap: 28px;">
+      <button class="back-btn" data-back="fuettern"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Zurück</button>
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
           <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--accent-strong); flex-shrink: 0;">
@@ -406,10 +422,9 @@
           </div>
           <div>
             <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Füttern</div>
-            <div id="fuettern-subtitle" style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
+            <div id="fuettern-subtitle" style="font-size: 13px; color: var(--text-muted);">Neuer Eintrag</div>
           </div>
         </div>
-        <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
       </div>
 
       <div style="display: flex; background: var(--surface-alt); border-radius: 18px; padding: 5px; gap: 5px;">
@@ -473,7 +488,10 @@
           <button id="fuettern-time-now" style="flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px; cursor: pointer;">Jetzt</button>
         </div>
         <div id="fuettern-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
-        <button id="fuettern-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+        <div id="fuettern-save-row" style="display: flex; gap: 10px;">
+          <button id="fuettern-save" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); white-space: nowrap;">Eintrag speichern</button>
+          <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+        </div>
         <div id="fuettern-bottle-edit-actions" style="display: none; gap: 10px;">
           <button id="fuettern-bottle-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
           <button id="fuettern-bottle-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
@@ -542,7 +560,10 @@
             </div>
           </div>
 
-          <button id="breast-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+          <div id="breast-save-row" style="display: flex; gap: 10px;">
+            <button id="breast-save" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); white-space: nowrap;">Eintrag speichern</button>
+            <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          </div>
           <div id="fuettern-breast-edit-actions" style="display: none; gap: 10px;">
             <button id="fuettern-breast-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
             <button id="fuettern-breast-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
@@ -576,51 +597,9 @@
         </div>
       </div>
 
-      <div id="fuettern-historie-section" style="display: flex; flex-direction: column; gap: 10px;">
-        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Historie</label>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden;">
-          <div id="fuettern-entries-list" style="display: flex; flex-direction: column;"></div>
-          <button id="fuettern-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
-        </div>
-      </div>
     </div>
 
-    <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
-      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Heute</span>
-      </button>
-      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--accent-strong); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
-          <line x1="9" y1="12" x2="15" y2="12"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
-      </button>
-      <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Windeln</span>
-      </button>
-      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
-      </button>
-      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="20" x2="20" y2="20"/>
-          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
-          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
-          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
-      </button>
-    </div>
+    <nav class="tabbar" data-active="heute"></nav>
   </div>
 
   <!-- Windeln -->
@@ -639,7 +618,8 @@
     height: 100vh; max-width: 480px; margin: 0 auto;
     color: var(--text); display: none; flex-direction: column;
   ">
-    <div style="flex: 1; overflow-y: auto; padding: 32px 24px 16px; display: flex; flex-direction: column; gap: 26px;">
+    <div style="flex: 1; overflow-y: auto; padding: 18px 24px 16px; display: flex; flex-direction: column; gap: 26px;">
+      <button class="back-btn" data-back="windeln"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Zurück</button>
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
           <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--accent-strong); flex-shrink: 0;">
@@ -649,10 +629,9 @@
           </div>
           <div>
             <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Windel wechseln</div>
-            <div id="windeln-subtitle" style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
+            <div id="windeln-subtitle" style="font-size: 13px; color: var(--text-muted);">Neuer Eintrag</div>
           </div>
         </div>
-        <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
       </div>
 
       <div style="display: flex; gap: 10px;">
@@ -719,58 +698,19 @@
         </div>
         <div id="windeln-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
 
-        <button id="windeln-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white;">Eintrag speichern</button>
+        <div id="windeln-save-row" style="display: flex; gap: 10px;">
+          <button id="windeln-save" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; white-space: nowrap;">Eintrag speichern</button>
+          <button class="entry-cancel" data-back="windeln" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+        </div>
         <div id="windeln-edit-actions" style="display: none; gap: 10px;">
           <button id="windeln-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
           <button id="windeln-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
         </div>
       </div>
 
-      <div id="windeln-historie-section" style="display: flex; flex-direction: column; gap: 10px;">
-        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Historie</label>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden;">
-          <div id="windeln-entries-list" style="display: flex; flex-direction: column;"></div>
-          <button id="windeln-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
-        </div>
-      </div>
     </div>
 
-    <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
-      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Heute</span>
-      </button>
-      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
-          <line x1="9" y1="12" x2="15" y2="12"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
-      </button>
-      <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--accent-strong); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Windeln</span>
-      </button>
-      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
-      </button>
-      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="20" x2="20" y2="20"/>
-          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
-          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
-          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
-      </button>
-    </div>
+    <nav class="tabbar" data-active="heute"></nav>
   </div>
 
   <!-- Schlafen -->
@@ -789,7 +729,8 @@
     height: 100vh; max-width: 480px; margin: 0 auto;
     color: var(--text); display: none; flex-direction: column;
   ">
-    <div style="flex: 1; overflow-y: auto; padding: 32px 24px 16px; display: flex; flex-direction: column; gap: 26px;">
+    <div style="flex: 1; overflow-y: auto; padding: 18px 24px 16px; display: flex; flex-direction: column; gap: 26px;">
+      <button class="back-btn" data-back="schlafen"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Zurück</button>
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
           <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--accent-strong); flex-shrink: 0;">
@@ -799,10 +740,9 @@
           </div>
           <div>
             <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Schlafen</div>
-            <div id="schlafen-subtitle" style="font-size: 13px; color: var(--text-muted);">Eintrag hinzufügen</div>
+            <div id="schlafen-subtitle" style="font-size: 13px; color: var(--text-muted);">Neuer Eintrag</div>
           </div>
         </div>
-        <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
       </div>
 
       <div id="schlafen-mode-toggle" style="display: flex; background: var(--surface-alt); border-radius: 18px; padding: 5px; gap: 5px;">
@@ -950,7 +890,10 @@
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
           </div>
-          <button id="nap-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
+          <div id="nap-save-row" style="display: flex; gap: 10px;">
+            <button id="nap-save" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); white-space: nowrap;">Eintrag speichern</button>
+            <button class="entry-cancel" data-back="schlafen" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          </div>
           <div id="nap-edit-actions" style="display: none; gap: 10px;">
             <button id="nap-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
             <button id="nap-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
@@ -969,51 +912,9 @@
         </div>
       </div>
 
-      <div id="schlafen-historie-section" style="display: flex; flex-direction: column; gap: 10px;">
-        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Historie</label>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden;">
-          <div id="schlafen-entries-list" style="display: flex; flex-direction: column;"></div>
-          <button id="schlafen-entries-more" style="display: none; width: 100%; border: none; background: none; color: var(--accent-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
-        </div>
-      </div>
     </div>
 
-    <div style="display: flex; border-top: 1px solid var(--border); background: var(--surface);">
-      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Heute</span>
-      </button>
-      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
-          <line x1="9" y1="12" x2="15" y2="12"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
-      </button>
-      <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Windeln</span>
-      </button>
-      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--accent-strong); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
-      </button>
-      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="20" x2="20" y2="20"/>
-          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
-          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
-          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
-      </button>
-    </div>
+    <nav class="tabbar" data-active="heute"></nav>
   </div>
 
   <!-- Analyse -->
@@ -1045,7 +946,6 @@
             <div style="font-size: 13px; color: var(--text-muted);">Verlauf &amp; Trends</div>
           </div>
         </div>
-        <button class="logout-btn" style="border: none; background: none; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">Abmelden</button>
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 16px;">
@@ -1092,42 +992,161 @@
       <div id="analyse-view-schlafen" style="display: none; flex-direction: column;"></div>
     </div>
 
-    <div style="flex-shrink: 0; display: flex; border-top: 1px solid var(--border); background: var(--surface);">
-      <button class="tab-btn" data-target="heute" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Heute</span>
-      </button>
-      <button class="tab-btn" data-target="fuettern" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
-          <line x1="9" y1="12" x2="15" y2="12"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Füttern</span>
-      </button>
-      <button class="tab-btn" data-target="windeln" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Windeln</span>
-      </button>
-      <button class="tab-btn" data-target="schlafen" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--text-muted); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Schlafen</span>
-      </button>
-      <button class="tab-btn" data-target="analyse" style="flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 14px; color: var(--neutral-strong); cursor: pointer;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="20" x2="20" y2="20"/>
-          <rect x="6" y="12" width="3.6" height="8" rx="1"/>
-          <rect x="10.2" y="7" width="3.6" height="13" rx="1"/>
-          <rect x="14.4" y="10" width="3.6" height="10" rx="1"/>
-        </svg>
-        <span style="font-size: 11px; font-weight: 600;">Analyse</span>
-      </button>
+    <nav class="tabbar" data-active="analyse"></nav>
+  </div>
+
+  <!-- Historie: alle Einträge aus allen vier Collections in einer Liste -->
+  <div id="screen-historie" style="
+    --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
+    --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250); --fuettern-soft: oklch(93% 0.025 250);
+    --windeln: #39ABAB; --windeln-soft: #DFF2F2;
+    --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9;
+    --warn: oklch(58% 0.17 25);
+    --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
+    --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
+    height: 100vh; max-width: 480px; margin: 0 auto;
+    color: var(--text); display: none; flex-direction: column;
+  ">
+    <div id="historie-scroll" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 18px 24px 16px; display: flex; flex-direction: column; gap: 26px;">
+      <button class="back-btn" data-back="historie"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Zurück</button>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6.5" x2="20" y2="6.5"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17.5" x2="20" y2="17.5"/><circle cx="4.8" cy="6.5" r="1"/><circle cx="4.8" cy="12" r="1"/><circle cx="4.8" cy="17.5" r="1"/></svg>
+        </div>
+        <div>
+          <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Historie</div>
+          <div id="historie-subtitle" style="font-size: 13px; color: var(--text-muted);">Alle Einträge</div>
+        </div>
+      </div>
+      <div id="historie-chips" style="display: flex; gap: 5px; margin-top: -10px;">
+        <button class="h-chip on" data-filter="all" style="--chip-soft: var(--neutral-soft); --chip-border: var(--neutral-strong); --chip-strong: var(--neutral-strong);">Alle</button>
+        <button class="h-chip" data-filter="fuettern" style="--chip-soft: var(--fuettern-soft); --chip-border: var(--fuettern); --chip-strong: var(--fuettern-strong);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>Füttern</button>
+        <button class="h-chip" data-filter="windeln" style="--chip-soft: var(--windeln-soft); --chip-border: var(--windeln); --chip-strong: var(--windeln);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>Windeln</button>
+        <button class="h-chip" data-filter="schlafen" style="--chip-soft: var(--schlafen-soft); --chip-border: var(--schlafen); --chip-strong: var(--schlafen-strong);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>Schlafen</button>
+      </div>
+      <div style="flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; margin-top: -8px;">
+        <div id="historie-list" style="display: flex; flex-direction: column;"></div>
+        <button id="historie-more" style="display: none; width: 100%; border: none; background: none; color: var(--neutral-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
+      </div>
     </div>
+    <nav class="tabbar" data-active="heute"></nav>
+  </div>
+
+  <!-- Entwicklung: vorerst Vorschau mit Beispieldaten, ohne Backend -->
+  <div id="screen-entwicklung" style="
+    --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
+    --accent: oklch(72% 0.11 65); --accent-strong: oklch(50% 0.11 55); --accent-soft: oklch(94% 0.03 70); --accent-light: oklch(86% 0.06 65); --accent-ink: oklch(38% 0.07 55);
+    --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
+    --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
+    height: 100vh; max-width: 480px; margin: 0 auto;
+    color: var(--text); display: none; flex-direction: column;
+  ">
+    <div id="entwicklung-scroll" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 32px 24px 16px; display: flex; flex-direction: column; gap: 22px;">
+      <div id="entwicklung-back" style="display: none; margin-top: -14px;"><button class="back-btn" data-back="entwicklung" style="margin-bottom: 0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Zurück</button></div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--accent-strong); flex-shrink: 0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8.5"/><path d="M12 12.5c0-4.4 3-7.5 8-7.5 0 5-3.2 7.5-8 7.5z"/><path d="M12 15c0-3.3-2.4-5.5-7-5.5 0 3.6 2.6 5.5 7 5.5z"/></svg>
+        </div>
+        <div>
+          <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Entwicklung</div>
+          <div id="entwicklung-subtitle" style="font-size: 13px; color: var(--text-muted);"></div>
+        </div>
+      </div>
+      <div id="entwicklung-body" style="display: flex; flex-direction: column; gap: 22px;"></div>
+    </div>
+    <nav class="tabbar" data-active="entwicklung"></nav>
+  </div>
+
+  <!-- Profil: Baby-Stammdaten (vorerst nur auf diesem Gerät) und Konto -->
+  <div id="screen-profil" style="
+    --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
+    --accent: oklch(35% 0.006 250);
+    --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
+    --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
+    height: 100vh; max-width: 480px; margin: 0 auto;
+    color: var(--text); display: none; flex-direction: column;
+  ">
+    <div class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 32px 24px 16px; display: flex; flex-direction: column; gap: 22px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c1.2-3.6 3.9-5.5 7.2-5.5s6 1.9 7.2 5.5"/></svg>
+        </div>
+        <div>
+          <div style="font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2;">Profil</div>
+          <div style="font-size: 13px; color: var(--text-muted);">Baby &amp; Konto</div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Baby</label>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.2 6.2a1.4 1.4 0 0 1-2 0z"/><circle cx="8" cy="8" r="1.3"/></svg>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Name</div>
+              <input id="profil-name" type="text" placeholder="Name eintragen" autocomplete="off" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
+            </div>
+          </div>
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/></svg>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Geburtsdatum</div>
+              <input id="profil-birth" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
+            </div>
+            <span id="profil-age" style="font-size: 12px; color: var(--text-muted); flex-shrink: 0;"></span>
+          </div>
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Geschlecht</div>
+            <div style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
+              <button class="profil-sex" data-sex="f" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; font-family: inherit;">Mädchen</button>
+              <button class="profil-sex" data-sex="m" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; font-family: inherit;">Junge</button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted);">Wird für die WHO-Kurven in Entwicklung gebraucht.</div>
+          </div>
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="display: flex; gap: 14px;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Geburtsgewicht</div>
+              <span style="align-self: flex-start; display: inline-flex; align-items: baseline; gap: 5px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px;">
+                <input id="profil-bw" type="text" inputmode="decimal" placeholder="–" style="width: 48px; text-align: right; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; font-family: inherit;">
+                <span style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">kg</span>
+              </span>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Größe bei Geburt</div>
+              <span style="align-self: flex-start; display: inline-flex; align-items: baseline; gap: 5px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px;">
+                <input id="profil-bl" type="text" inputmode="decimal" placeholder="–" style="width: 48px; text-align: right; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; font-family: inherit;">
+                <span style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">cm</span>
+              </span>
+            </div>
+          </div>
+          <button id="profil-save" style="width:100%; margin-top: 4px; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--neutral-strong); font-family: inherit;">Änderungen speichern</button>
+          <div style="font-size: 12px; color: var(--text-muted);">Wird vorerst nur auf diesem Gerät gespeichert.</div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Konto</label>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <span id="profil-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--neutral-soft); color: var(--neutral-strong); display: flex; align-items: center; justify-content: center; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 17px; flex-shrink: 0;"></span>
+            <div style="min-width: 0;">
+              <div id="profil-account-name" style="font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+              <div id="profil-account-email" style="font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+            </div>
+          </div>
+          <button class="logout-btn" style="width: 100%; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); font-family: inherit;">Abmelden</button>
+        </div>
+      </div>
+
+      <div style="border: 1.5px dashed var(--border); border-radius: 20px; padding: 14px 16px; font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.3"/><circle cx="15" cy="17" r="2.3"/></svg>
+        Hier finden später die App-Einstellungen Platz.
+      </div>
+    </div>
+    <nav class="tabbar" data-active="profil"></nav>
   </div>
 
 </div>
@@ -1237,36 +1256,98 @@ const screens = {
   fuettern: document.getElementById('screen-fuettern'),
   windeln: document.getElementById('screen-windeln'),
   schlafen: document.getElementById('screen-schlafen'),
-  analyse: document.getElementById('screen-analyse')
+  analyse: document.getElementById('screen-analyse'),
+  historie: document.getElementById('screen-historie'),
+  entwicklung: document.getElementById('screen-entwicklung'),
+  profil: document.getElementById('screen-profil')
 };
-function showScreen(target) {
+
+// Füttern, Windeln und Schlafen sind Unterseiten von Heute: über das „+" der
+// Kachel ein neuer Eintrag, über die Historie das Bearbeiten eines bestehenden
+// (opts.edit — dann setzt enterXEdit die Maske, hier wird nichts zurückgesetzt).
+function showScreen(target, opts = {}) {
   Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
   if (target === 'heute') loadOverview();
   if (target === 'analyse') loadAnalyse();
-  if (target === 'schlafen') { if (editingNightId || editingNapId) exitSchlafenEdit(false); decideSchlafenDefault(); loadSchlafenEntries(true); }
-  if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); loadWindelnEntries(true); }
-  if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); loadFuetternEntries(true); refreshFuetternAmountChips(); }
+  if (target === 'historie' && !opts.keep) loadHistorie(true);
+  if (target === 'entwicklung') openEntwicklung();
+  if (target === 'profil') loadProfilForm();
+  if (opts.edit) return;
+  if (target === 'schlafen') {
+    if (editingNightId || editingNapId) exitSchlafenEdit(false);
+    else { resetNapManualForm(); decideSchlafenDefault(); }
+    if (openNapDocId) setNapMode('timer');
+  }
+  if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); else resetWindelnForm(); }
+  if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); else prepareFuetternForNewEntry(); refreshFuetternAmountChips(); }
+  if (screens[target] && ['fuettern', 'windeln', 'schlafen'].includes(target)) screens[target].firstElementChild.scrollTop = 0;
 }
+
+// Eine Fußleiste für alle Screens; welcher Eintrag markiert ist, steht als
+// data-active am jeweiligen <nav>. Unterseiten von Heute markieren Heute.
+const TABBAR_ITEMS = [
+  ['heute', 'Heute', '<rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>'],
+  ['analyse', 'Analyse', '<line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.6" height="8" rx="1"/><rect x="10.2" y="7" width="3.6" height="13" rx="1"/><rect x="14.4" y="10" width="3.6" height="10" rx="1"/>'],
+  ['entwicklung', 'Entwicklung', '<path d="M12 21v-8.5"/><path d="M12 12.5c0-4.4 3-7.5 8-7.5 0 5-3.2 7.5-8 7.5z"/><path d="M12 15c0-3.3-2.4-5.5-7-5.5 0 3.6 2.6 5.5 7 5.5z"/>'],
+  ['profil', 'Profil', '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c1.2-3.6 3.9-5.5 7.2-5.5s6 1.9 7.2 5.5"/>']
+];
+document.querySelectorAll('.tabbar').forEach((nav) => {
+  nav.innerHTML = TABBAR_ITEMS.map(([key, label, icon]) => {
+    const on = nav.dataset.active === key;
+    return '<button class="tab-btn' + (on ? ' on' : '') + '" data-target="' + key + '"' + (on ? ' aria-current="page"' : '') + '>' +
+      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (on ? '1.9' : '1.7') + '" stroke-linecap="round" stroke-linejoin="round">' + icon + '</svg>' +
+      '<span>' + label + '</span></button>';
+  }).join('');
+});
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     showScreen(btn.dataset.target);
     // Der Analyse-Tab führt immer auf die Übersicht — sie ist die Einstiegs-
-    // ebene, die Detailbereiche liegen darunter. Die Verknüpfungen aus „Heute"
-    // springen weiterhin direkt in ihren Bereich (siehe .quick-btn).
+    // ebene, die Detailbereiche liegen darunter.
     if (btn.dataset.target === 'analyse') showAnalyseView('overview');
   });
 });
 
 document.querySelectorAll('.quick-btn').forEach((btn) => {
+  btn.addEventListener('click', () => showScreen(btn.dataset.target));
+});
+document.getElementById('heute-all-entries').addEventListener('click', () => showScreen('historie'));
+
+// „‹ Zurück" und „Abbrechen" auf den Eintragen-Seiten: ein neuer Eintrag
+// führt zurück auf Heute, eine Bearbeitung zurück in die Historie. Laufende
+// Timer bleiben davon unberührt.
+function leaveEntryScreen(cat, discard) {
+  const editing = cat === 'fuettern' ? !!editingFeedingId
+    : cat === 'windeln' ? !!editingDiaperId
+    : !!(editingNightId || editingNapId);
+  if (editing) {
+    if (cat === 'fuettern') exitFuetternEdit(false);
+    else if (cat === 'windeln') exitWindelnEdit(false);
+    else exitSchlafenEdit(false);
+    historieEditingEntry = null;
+    showScreen('historie', { keep: true });
+    historieScrollEl.scrollTop = historieScrollTop;
+    return;
+  }
+  if (discard && cat === 'fuettern') resetBreastSegments();
+  showScreen('heute');
+}
+document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
   btn.addEventListener('click', () => {
-    if (btn.dataset.action === 'entry') {
-      showScreen(btn.dataset.target);
-    } else {
-      showScreen('analyse');
-      showAnalyseView(btn.dataset.target);
-    }
+    const where = btn.dataset.back;
+    if (where === 'historie') showScreen('heute');
+    else if (where === 'entwicklung') closeEntwicklungMessung();
+    else leaveEntryScreen(where, btn.classList.contains('entry-cancel'));
   });
 });
+
+// Nach dem Speichern eines neuen Eintrags zurück auf Heute; der Eintrag
+// leuchtet dort im Zeitverlauf kurz auf (siehe loadOverview).
+let pendingTimelineFlash = null;
+function afterNewEntrySaved(ts, color) {
+  pendingTimelineFlash = ts ? { ts: ts.getTime(), color } : null;
+  showScreen('heute');
+}
 
 // Die Erinnerung an die fehlende Nacht führt in den Schlafen-Bereich und dort
 // direkt auf die betroffene Nacht (siehe schlafenForceLastNight).
@@ -1405,7 +1486,7 @@ feedBreastTimerBtn.addEventListener('click', () => setBreastMode('timer'));
 function refreshBreastPanelForEditState() {
   const editing = !!editingFeedingId;
   breastModeToggle.style.display = editing ? 'none' : 'flex';
-  breastSaveBtn.style.display = editing ? 'none' : 'block';
+  breastSaveBtn.parentElement.style.display = editing ? 'none' : 'flex';
   fuetternBreastEditActions.style.display = editing ? 'flex' : 'none';
   if (editing) setBreastMode('manual');
 }
@@ -1415,7 +1496,7 @@ function refreshBreastPanelForEditState() {
 // Leiste unten.
 function refreshBottlePanelForEditState() {
   const editing = !!editingFeedingId;
-  fuetternSaveBtn.style.display = editing ? 'none' : 'block';
+  fuetternSaveBtn.parentElement.style.display = editing ? 'none' : 'flex';
   fuetternBottleEditActions.style.display = editing ? 'flex' : 'none';
 }
 
@@ -1522,11 +1603,10 @@ fuetternSaveBtn.addEventListener('click', async () => {
   };
   fuetternSaveBtn.disabled = true;
   try {
-    const ref = await addDoc(collection(db, 'feedings'), entry);
-    fuetternSaveBtn.textContent = 'Gespeichert ✓';
-    setTimeout(() => { fuetternSaveBtn.textContent = 'Eintrag speichern'; fuetternSaveBtn.disabled = false; }, 1400);
-    addFuetternEntryToHistory({ id: ref.id, ...entry });
+    await addDoc(collection(db, 'feedings'), entry);
+    fuetternSaveBtn.disabled = false;
     refreshFuetternAmountChips();
+    afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--fuettern)');
   } catch (error) {
     fuetternSaveBtn.textContent = 'Fehler beim Speichern';
     fuetternSaveBtn.disabled = false;
@@ -1743,11 +1823,10 @@ breastSaveBtn.addEventListener('click', async () => {
   breastSaveBtn.disabled = true;
   try {
     const entry = { ...breastEntryFromForm(), createdBy: currentUser.email, createdAt: serverTimestamp() };
-    const ref = await addDoc(collection(db, 'feedings'), entry);
-    breastSaveBtn.textContent = 'Gespeichert ✓';
-    setTimeout(() => { breastSaveBtn.textContent = 'Eintrag speichern'; breastSaveBtn.disabled = false; }, 1400);
-    addFuetternEntryToHistory({ id: ref.id, ...entry });
+    await addDoc(collection(db, 'feedings'), entry);
+    breastSaveBtn.disabled = false;
     resetBreastSegments();
+    afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--fuettern)');
   } catch (error) {
     breastSaveBtn.textContent = 'Fehler beim Speichern';
     breastSaveBtn.disabled = false;
@@ -1979,7 +2058,6 @@ breastTimerToggleBtn.addEventListener('click', async () => {
       breastTimerSideSince = startedAt.getTime();
       feedingTimerInterval = setInterval(renderBreastTimerDisplay, 1000);
       renderBreastTimerDisplay();
-      addFuetternEntryToHistory({ id: ref.id, ...entry });
     } else {
       // Der Stand aus Firestore gewinnt: ein zweites Gerät kann inzwischen die
       // Seite gewechselt haben, seine Sekunden stehen dann im Dokument.
@@ -2015,11 +2093,8 @@ breastTimerToggleBtn.addEventListener('click', async () => {
       breastTimerSideSince = null;
       renderBreastTimerDisplay();
       applyBreastStartSide();
-      // Die "Läuft…"-Zeile steht schon in der Liste (beim Start eingefügt bzw.
-      // beim Laden mitgekommen) — nur sie austauschen statt alles neu zu holen.
-      const base = open || { type: 'breast', amount: null, date: isoDate(startedAt), time: formatTime(startedAt), startTime: startedAt.toISOString(), source: 'timer' };
-      const updated = { ...base, id: targetId, endTime: endedAt.toISOString(), durationMinutes, minutes: durationMinutes, leftMinutes: split.leftMinutes, rightMinutes: split.rightMinutes };
-      if (!replaceHistoryRow(document.getElementById('fuettern-entries-list'), targetId, fuetternEntryRow(updated))) loadFuetternEntries(true);
+      breastTimerToggleBtn.disabled = false;
+      afterNewEntrySaved(startedAt, 'var(--fuettern)');
     }
   } catch (error) {
     breastTimerSublabel.textContent = 'Fehler: ' + error.message;
@@ -2027,17 +2102,10 @@ breastTimerToggleBtn.addEventListener('click', async () => {
   breastTimerToggleBtn.disabled = false;
 });
 
-// --- Füttern: Historie (bearbeiten/löschen), selbes Muster wie Windeln ---
-let fuetternListScrollTop = 0;
-let fuetternJustUpdatedId = null;
+// --- Füttern: Bearbeiten aus der gemeinsamen Historie ---
 const fuetternSubtitleEl = document.getElementById('fuettern-subtitle');
-const fuetternHistorieSection = document.getElementById('fuettern-historie-section');
 const fuetternTimeNowBtn = document.getElementById('fuettern-time-now');
 const fuetternScrollEl = screens.fuettern.firstElementChild;
-const FUETTERN_PAGE_SIZE = 15;
-let fuetternEntriesLastSnap = null;
-let fuetternEntriesAllLoaded = false;
-let fuetternEntriesLastDayKey = null;
 
 function resetFuetternForm() {
   setFeedType('bottle');
@@ -2053,6 +2121,26 @@ function resetFuetternForm() {
   breastStartInput.value = breastDefaultStartTime();
   breastDateInput.dispatchEvent(new Event('change'));
   resetBreastSegments();
+}
+
+// Über das „+" auf Heute kommt man immer für einen Eintrag von jetzt: Datum
+// und Uhrzeit rücken auf die aktuelle Zeit vor. Eine angefangene Brust-
+// Segmentliste bleibt stehen (nur „Abbrechen" verwirft sie), und ein laufender
+// Brust-Timer wird direkt gezeigt.
+function prepareFuetternForNewEntry() {
+  amountErrorEl.style.display = 'none';
+  fuetternDateInput.value = isoDate(new Date());
+  fuetternTimeInput.value = formatTime(new Date());
+  fuetternDateInput.dispatchEvent(new Event('change'));
+  if (!breastSegments.length) {
+    breastDateInput.value = isoDate(new Date());
+    breastStartInput.value = breastDefaultStartTime();
+    breastDateInput.dispatchEvent(new Event('change'));
+  }
+  if (openFeedingDocId) {
+    setFeedType('breast');
+    setBreastMode('timer');
+  }
 }
 
 // Segmente für die Bearbeiten-Maske. Drei Fälle, absteigend nach Genauigkeit:
@@ -2081,7 +2169,6 @@ function breastSegmentsFromEntry(entry) {
 // in startTime/endTime) müssen beim Bearbeiten genauso sauber vorbefüllt werden
 // wie neue manuelle Einträge (bloße "HH:MM"-Strings) — daher die Fallunterscheidung.
 function enterFuetternEdit(entry) {
-  fuetternListScrollTop = fuetternScrollEl.scrollTop;
   editingFeedingId = entry.id;
   setFeedType(entry.type);
   if (entry.type === 'bottle') {
@@ -2109,21 +2196,18 @@ function enterFuetternEdit(entry) {
   fuetternSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
     'Eintrag bearbeiten</span>';
-  fuetternHistorieSection.style.display = 'none';
   fuetternTimeNowBtn.style.display = 'none';
   fuetternScrollEl.scrollTop = 0;
 }
 
-function exitFuetternEdit(restoreScroll) {
+function exitFuetternEdit() {
   editingFeedingId = null;
-  fuetternSubtitleEl.textContent = 'Eintrag hinzufügen';
-  fuetternHistorieSection.style.display = 'flex';
+  fuetternSubtitleEl.textContent = 'Neuer Eintrag';
   fuetternTimeNowBtn.style.display = '';
   resetFuetternForm();
-  if (restoreScroll) fuetternScrollEl.scrollTop = fuetternListScrollTop;
 }
-fuetternBottleCancelEditBtn.addEventListener('click', () => exitFuetternEdit(true));
-fuetternBreastCancelEditBtn.addEventListener('click', () => exitFuetternEdit(true));
+fuetternBottleCancelEditBtn.addEventListener('click', () => leaveEntryScreen('fuettern'));
+fuetternBreastCancelEditBtn.addEventListener('click', () => leaveEntryScreen('fuettern'));
 
 async function handleFuetternUpdate(triggerBtn) {
   if (!currentUser || !editingFeedingId) return;
@@ -2151,15 +2235,9 @@ async function handleFuetternUpdate(triggerBtn) {
   triggerBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'feedings', updatedId), entry);
-    exitFuetternEdit(false);
-    fuetternJustUpdatedId = updatedId;
+    exitFuetternEdit();
     if (entry.type === 'bottle') refreshFuetternAmountChips();
-    updateFuetternHistoryEntry({ id: updatedId, ...entry });
-    fuetternScrollEl.scrollTop = fuetternListScrollTop;
-    setTimeout(() => {
-      fuetternJustUpdatedId = null;
-      replaceHistoryRow(document.getElementById('fuettern-entries-list'), updatedId, fuetternEntryRow({ id: updatedId, ...entry }));
-    }, 1800);
+    returnToHistorieAfterUpdate({ id: updatedId, ...entry });
   } catch (error) {
     triggerBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { triggerBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
@@ -2182,140 +2260,6 @@ function breastDetailText(entry) {
   if (left <= 0) return minutes + ' Min · nur R';
   return minutes + ' Min · L ' + left + ' · R ' + right;
 }
-
-function fuetternEntryRow(entry) {
-  const ts = entryBusinessTimestamp(entry);
-  const isOpenFeeding = entry.type === 'breast' && entry.endTime === null;
-  const row = document.createElement('div');
-  row.dataset.entryId = entry.id;
-  row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border);';
-
-  const time = document.createElement('span');
-  time.textContent = ts ? formatTime(ts) : '--:--';
-  time.style.cssText = 'font-size:13px; font-weight:600; color:var(--text); width:38px; flex-shrink:0; font-variant-numeric:tabular-nums;';
-  row.appendChild(time);
-
-  const typeBadge = document.createElement('span');
-  typeBadge.textContent = entry.type === 'bottle' ? 'Fläschchen' : 'Brust';
-  typeBadge.style.cssText = 'font-size:12px; padding:3px 8px; border-radius:8px; flex-shrink:0; background:var(--accent-soft); color:var(--accent-strong);';
-  row.appendChild(typeBadge);
-
-  const detail = document.createElement('span');
-  detail.textContent = entry.type === 'bottle' ? (entry.amount || 0) + ' ml' : isOpenFeeding ? 'Läuft…' : breastDetailText(entry);
-  detail.style.cssText = 'font-size:12.5px; color:var(--text-muted); flex-shrink:0;';
-  row.appendChild(detail);
-
-  const spacer = document.createElement('span');
-  spacer.style.flex = '1';
-  row.appendChild(spacer);
-
-  if (entry.id === fuetternJustUpdatedId) {
-    const badge = document.createElement('span');
-    badge.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--accent-strong); background:var(--accent-soft); padding:4px 9px; border-radius:999px;';
-    badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert';
-    row.appendChild(badge);
-    return row;
-  }
-
-  // Ein laufender Brust-Timer lässt sich nicht "bearbeiten" (kein Ende, keine
-  // Dauer) — nur löschen, falls versehentlich gestartet.
-  if (!isOpenFeeding) {
-    const editBtn = document.createElement('button');
-    editBtn.setAttribute('aria-label', 'Bearbeiten');
-    editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
-    editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-    editBtn.addEventListener('click', () => enterFuetternEdit(entry));
-    row.appendChild(editBtn);
-  }
-
-  const delBtn = document.createElement('button');
-  delBtn.setAttribute('aria-label', 'Löschen');
-  delBtn.style.cssText = 'border:none; background:none; color:var(--warn); padding:6px; cursor:pointer; display:flex;';
-  delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
-  delBtn.addEventListener('click', async () => {
-    if (!confirm('Diesen Fütterungs-Eintrag wirklich löschen?')) return;
-    delBtn.disabled = true;
-    try {
-      await deleteDoc(doc(db, 'feedings', entry.id));
-      removeHistoryRow(document.getElementById('fuettern-entries-list'), entry.id);
-      if (entry.type === 'bottle') refreshFuetternAmountChips();
-    } catch (error) {
-      delBtn.disabled = false;
-    }
-  });
-  row.appendChild(delBtn);
-
-  return row;
-}
-
-function appendFuetternEntries(docs) {
-  const list = document.getElementById('fuettern-entries-list');
-  const now = new Date();
-  docs.forEach((entry) => {
-    const ts = entryBusinessTimestamp(entry);
-    const dayKey = ts ? isoDate(ts) : 'unbekannt';
-    if (dayKey !== fuetternEntriesLastDayKey) {
-      list.appendChild(historyHeaderEl(dayKey, ts ? dayLabel(ts, now) : 'Unbekanntes Datum'));
-      fuetternEntriesLastDayKey = dayKey;
-    }
-    const row = fuetternEntryRow(entry);
-    row.dataset.dayKey = dayKey;
-    row.dataset.sort = String(ts ? ts.getTime() : 0);
-    list.appendChild(row);
-  });
-  if (list.children.length === 0) list.appendChild(historyEmptyEl());
-}
-
-// Einen frisch gespeicherten Eintrag direkt in die schon gerenderte Historie
-// einsetzen, statt sie komplett neu von Firestore zu holen. Nur wenn er
-// hinter das Ende der geladenen Seiten fiele (stark rückdatiert), bleibt der
-// reguläre Reload.
-function addFuetternEntryToHistory(entry) {
-  const list = document.getElementById('fuettern-entries-list');
-  const ts = entryBusinessTimestamp(entry);
-  if (!ts || !insertHistoryRow(list, fuetternEntryRow(entry), isoDate(ts), dayLabel(ts, new Date()), ts.getTime(), fuetternEntriesAllLoaded)) {
-    loadFuetternEntries(true);
-    return;
-  }
-  fuetternEntriesLastDayKey = historyLastDayKey(list);
-}
-
-// Nach dem Bearbeiten kann sich Datum/Uhrzeit geändert haben — also die alte
-// Zeile entfernen und die neue an ihrer neuen Position einsetzen.
-function updateFuetternHistoryEntry(entry) {
-  removeHistoryRow(document.getElementById('fuettern-entries-list'), entry.id);
-  addFuetternEntryToHistory(entry);
-}
-
-async function loadFuetternEntries(reset) {
-  if (reset) {
-    fuetternEntriesLastSnap = null;
-    fuetternEntriesAllLoaded = false;
-    fuetternEntriesLastDayKey = null;
-    document.getElementById('fuettern-entries-list').innerHTML = '';
-  }
-  if (fuetternEntriesAllLoaded) return;
-  const moreBtn = document.getElementById('fuettern-entries-more');
-  moreBtn.textContent = 'Lädt…';
-  moreBtn.style.display = 'block';
-  moreBtn.disabled = true;
-  try {
-    const q = fuetternEntriesLastSnap
-      ? query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), startAfter(fuetternEntriesLastSnap), limit(FUETTERN_PAGE_SIZE))
-      : query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(FUETTERN_PAGE_SIZE));
-    const snap = await getDocs(q);
-    if (snap.docs.length < FUETTERN_PAGE_SIZE) fuetternEntriesAllLoaded = true;
-    if (!snap.empty) fuetternEntriesLastSnap = snap.docs[snap.docs.length - 1];
-    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));
-    appendFuetternEntries(docs);
-  } finally {
-    moreBtn.textContent = 'Weitere laden';
-    moreBtn.disabled = false;
-    moreBtn.style.display = fuetternEntriesAllLoaded ? 'none' : 'block';
-  }
-}
-document.getElementById('fuettern-entries-more').addEventListener('click', () => loadFuetternEntries(false));
 
 // --- Windeln screen logic ---
 const smallCard = document.getElementById('small-card');
@@ -2439,10 +2383,7 @@ windelnTimeInput.value = formatTime(new Date());
 const windelnTimeIsValid = setupPastOnlyDateTime(windelnDateInput, windelnTimeInput, document.getElementById('windeln-time-now'), document.getElementById('windeln-time-error'));
 
 let editingDiaperId = null;
-let windelnListScrollTop = 0;
-let windelnJustUpdatedId = null;
 const windelnSubtitleEl = document.getElementById('windeln-subtitle');
-const windelnHistorieSection = document.getElementById('windeln-historie-section');
 const windelnEditActions = document.getElementById('windeln-edit-actions');
 const windelnUpdateBtn = document.getElementById('windeln-update');
 const windelnCancelEditBtn = document.getElementById('windeln-cancel-edit');
@@ -2460,12 +2401,10 @@ function resetWindelnForm() {
   windelnDateInput.dispatchEvent(new Event('change'));
 }
 
-// Editing opens its own "window": the Historie and the Jetzt-shortcut are
-// hidden (editing an already-dated entry, not logging one for now), and the
-// footer swaps to Aktualisieren/Abbrechen. No inline scroll trick — entering
-// jumps straight to the top since there's nothing else left on the screen.
+// Bearbeiten (aus der gemeinsamen Historie) öffnet die Maske als eigenes
+// "Fenster": der Jetzt-Knopf entfällt (der Eintrag hat schon seine Zeit), und
+// statt Speichern/Abbrechen stehen Aktualisieren/Abbrechen da.
 function enterWindelnEdit(entry) {
-  windelnListScrollTop = windelnScrollEl.scrollTop;
   editingDiaperId = entry.id;
   small = !!entry.small;
   big = !!entry.big;
@@ -2480,26 +2419,21 @@ function enterWindelnEdit(entry) {
   windelnSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
     'Eintrag bearbeiten</span>';
-  windelnHistorieSection.style.display = 'none';
   windelnTimeNowBtn.style.display = 'none';
-  windelnSaveBtn.style.display = 'none';
+  windelnSaveBtn.parentElement.style.display = 'none';
   windelnEditActions.style.display = 'flex';
   windelnScrollEl.scrollTop = 0;
 }
 
-// restoreScroll is false only for the initial tab-open safety reset, where
-// there's no previous Historie position worth returning to yet.
-function exitWindelnEdit(restoreScroll) {
+function exitWindelnEdit() {
   editingDiaperId = null;
-  windelnSubtitleEl.textContent = 'Eintrag hinzufügen';
-  windelnHistorieSection.style.display = 'flex';
+  windelnSubtitleEl.textContent = 'Neuer Eintrag';
   windelnTimeNowBtn.style.display = '';
-  windelnSaveBtn.style.display = '';
+  windelnSaveBtn.parentElement.style.display = 'flex';
   windelnEditActions.style.display = 'none';
   resetWindelnForm();
-  if (restoreScroll) windelnScrollEl.scrollTop = windelnListScrollTop;
 }
-windelnCancelEditBtn.addEventListener('click', () => exitWindelnEdit(true));
+windelnCancelEditBtn.addEventListener('click', () => leaveEntryScreen('windeln'));
 
 windelnSaveBtn.addEventListener('click', async () => {
   if (!currentUser || (!small && !big) || !windelnTimeIsValid()) return;
@@ -2514,10 +2448,9 @@ windelnSaveBtn.addEventListener('click', async () => {
   };
   windelnSaveBtn.disabled = true;
   try {
-    const ref = await addDoc(collection(db, 'diaperChanges'), entry);
-    windelnSaveBtn.textContent = 'Gespeichert ✓';
-    setTimeout(() => { windelnSaveBtn.textContent = 'Eintrag speichern'; windelnSaveBtn.disabled = false; }, 1400);
-    addWindelnEntryToHistory({ id: ref.id, ...entry });
+    await addDoc(collection(db, 'diaperChanges'), entry);
+    windelnSaveBtn.disabled = false;
+    afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--windeln)');
   } catch (error) {
     windelnSaveBtn.textContent = 'Fehler beim Speichern';
     windelnSaveBtn.disabled = false;
@@ -2537,19 +2470,8 @@ windelnUpdateBtn.addEventListener('click', async () => {
   windelnUpdateBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'diaperChanges', updatedId), entry);
-    exitWindelnEdit(false);
-    windelnJustUpdatedId = updatedId;
-    // Nur die eine Zeile neu setzen (Datum/Uhrzeit können sich geändert
-    // haben, deshalb entfernen + neu einsortieren) — die Liste bleibt sonst
-    // stehen, also auch die Scrollposition.
-    updateWindelnHistoryEntry({ id: updatedId, ...entry });
-    windelnScrollEl.scrollTop = windelnListScrollTop;
-    // Swap just this one row back to normal — a full reload would blank and
-    // rebuild every row just to change one badge back into two icons.
-    setTimeout(() => {
-      windelnJustUpdatedId = null;
-      replaceHistoryRow(document.getElementById('windeln-entries-list'), updatedId, windelnEntryRow({ id: updatedId, ...entry }));
-    }, 1800);
+    exitWindelnEdit();
+    returnToHistorieAfterUpdate({ id: updatedId, ...entry });
   } catch (error) {
     windelnUpdateBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { windelnUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
@@ -2558,11 +2480,6 @@ windelnUpdateBtn.addEventListener('click', async () => {
   }
 });
 
-// --- Windeln: Einträge-Liste (bearbeiten/löschen) ---
-const WINDELN_PAGE_SIZE = 15;
-let windelnEntriesLastSnap = null;
-let windelnEntriesAllLoaded = false;
-let windelnEntriesLastDayKey = null;
 
 function dayLabel(d, now) {
   if (isoDate(d) === isoDate(now)) return 'Heute';
@@ -2664,139 +2581,7 @@ function removeHistoryRow(list, id) {
   return true;
 }
 
-function windelnEntryRow(entry) {
-  const ts = entryBusinessTimestamp(entry);
-  const row = document.createElement('div');
-  row.dataset.entryId = entry.id;
-  row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border);';
 
-  const time = document.createElement('span');
-  time.textContent = ts ? formatTime(ts) : '--:--';
-  time.style.cssText = 'font-size:13px; font-weight:600; color:var(--text); width:38px; flex-shrink:0; font-variant-numeric:tabular-nums;';
-  row.appendChild(time);
-
-  const sizeBadge = document.createElement('span');
-  sizeBadge.textContent = entry.big ? 'Groß' : 'Klein';
-  sizeBadge.style.cssText = 'font-size:12px; padding:3px 8px; border-radius:8px; flex-shrink:0; ' +
-    (entry.big ? 'background:var(--accent-soft); color:var(--accent-strong);' : 'background:var(--surface-alt); color:var(--text-muted);');
-  row.appendChild(sizeBadge);
-
-  if (entry.big && entry.color && COLOR_BY_ID[entry.color]) {
-    const dot = document.createElement('span');
-    dot.title = COLOR_BY_ID[entry.color].label;
-    dot.style.cssText = 'width:9px; height:9px; border-radius:50%; flex-shrink:0; background:' + COLOR_BY_ID[entry.color].hex + ';';
-    row.appendChild(dot);
-
-    if (WARN_COLOR_IDS.includes(entry.color)) {
-      const warnIcon = document.createElement('span');
-      warnIcon.title = 'Bitte beobachten';
-      warnIcon.style.cssText = 'display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:var(--warn); flex-shrink:0;';
-      warnIcon.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 14.5H3.5z"/><line x1="12" y1="10.5" x2="12" y2="14"/></svg>';
-      row.appendChild(warnIcon);
-    }
-  }
-
-  const spacer = document.createElement('span');
-  spacer.style.flex = '1';
-  row.appendChild(spacer);
-
-  if (entry.id === windelnJustUpdatedId) {
-    const badge = document.createElement('span');
-    badge.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--accent-strong); background:var(--accent-soft); padding:4px 9px; border-radius:999px;';
-    badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert';
-    row.appendChild(badge);
-    return row;
-  }
-
-  const editBtn = document.createElement('button');
-  editBtn.setAttribute('aria-label', 'Bearbeiten');
-  editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
-  editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-  editBtn.addEventListener('click', () => enterWindelnEdit(entry));
-  row.appendChild(editBtn);
-
-  const delBtn = document.createElement('button');
-  delBtn.setAttribute('aria-label', 'Löschen');
-  delBtn.style.cssText = 'border:none; background:none; color:var(--warn); padding:6px; cursor:pointer; display:flex;';
-  delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
-  delBtn.addEventListener('click', async () => {
-    if (!confirm('Diesen Windel-Eintrag wirklich löschen?')) return;
-    delBtn.disabled = true;
-    try {
-      await deleteDoc(doc(db, 'diaperChanges', entry.id));
-      removeHistoryRow(document.getElementById('windeln-entries-list'), entry.id);
-    } catch (error) {
-      delBtn.disabled = false;
-    }
-  });
-  row.appendChild(delBtn);
-
-  return row;
-}
-
-function appendWindelnEntries(docs) {
-  const list = document.getElementById('windeln-entries-list');
-  const now = new Date();
-  docs.forEach((entry) => {
-    const ts = entryBusinessTimestamp(entry);
-    const dayKey = ts ? isoDate(ts) : 'unbekannt';
-    if (dayKey !== windelnEntriesLastDayKey) {
-      list.appendChild(historyHeaderEl(dayKey, ts ? dayLabel(ts, now) : 'Unbekanntes Datum'));
-      windelnEntriesLastDayKey = dayKey;
-    }
-    const row = windelnEntryRow(entry);
-    row.dataset.dayKey = dayKey;
-    row.dataset.sort = String(ts ? ts.getTime() : 0);
-    list.appendChild(row);
-  });
-  if (list.children.length === 0) list.appendChild(historyEmptyEl());
-}
-
-// Wie addFuetternEntryToHistory, siehe dort.
-function addWindelnEntryToHistory(entry) {
-  const list = document.getElementById('windeln-entries-list');
-  const ts = entryBusinessTimestamp(entry);
-  if (!ts || !insertHistoryRow(list, windelnEntryRow(entry), isoDate(ts), dayLabel(ts, new Date()), ts.getTime(), windelnEntriesAllLoaded)) {
-    loadWindelnEntries(true);
-    return;
-  }
-  windelnEntriesLastDayKey = historyLastDayKey(list);
-}
-
-function updateWindelnHistoryEntry(entry) {
-  removeHistoryRow(document.getElementById('windeln-entries-list'), entry.id);
-  addWindelnEntryToHistory(entry);
-}
-
-async function loadWindelnEntries(reset) {
-  if (reset) {
-    windelnEntriesLastSnap = null;
-    windelnEntriesAllLoaded = false;
-    windelnEntriesLastDayKey = null;
-    document.getElementById('windeln-entries-list').innerHTML = '';
-  }
-  if (windelnEntriesAllLoaded) return;
-  const moreBtn = document.getElementById('windeln-entries-more');
-  moreBtn.textContent = 'Lädt…';
-  moreBtn.style.display = 'block';
-  moreBtn.disabled = true;
-  try {
-    const q = windelnEntriesLastSnap
-      ? query(collection(db, 'diaperChanges'), orderBy('createdAt', 'desc'), startAfter(windelnEntriesLastSnap), limit(WINDELN_PAGE_SIZE))
-      : query(collection(db, 'diaperChanges'), orderBy('createdAt', 'desc'), limit(WINDELN_PAGE_SIZE));
-    const snap = await getDocs(q);
-    if (snap.docs.length < WINDELN_PAGE_SIZE) windelnEntriesAllLoaded = true;
-    if (!snap.empty) windelnEntriesLastSnap = snap.docs[snap.docs.length - 1];
-    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));
-    appendWindelnEntries(docs);
-  } finally {
-    moreBtn.textContent = 'Weitere laden';
-    moreBtn.disabled = false;
-    moreBtn.style.display = windelnEntriesAllLoaded ? 'none' : 'block';
-  }
-}
-document.getElementById('windeln-entries-more').addEventListener('click', () => loadWindelnEntries(false));
 
 // --- Schlafen screen logic ---
 function fmtDayDate(d) {
@@ -2817,12 +2602,9 @@ const schlafenNightPanel = document.getElementById('schlafen-night-panel');
 const schlafenDayPanel = document.getElementById('schlafen-day-panel');
 const schlafenModeToggleEl = document.getElementById('schlafen-mode-toggle');
 const schlafenSubtitleEl = document.getElementById('schlafen-subtitle');
-const schlafenHistorieSection = document.getElementById('schlafen-historie-section');
 const schlafenScrollEl = screens.schlafen.firstElementChild;
 let editingNightId = null;
 let editingNapId = null;
-let schlafenListScrollTop = 0;
-let schlafenJustUpdatedId = null;
 
 function schlafenModeStyle(active) {
   return active
@@ -2886,16 +2668,14 @@ async function decideSchlafenDefault() {
   await refreshLastNightPending();
 }
 
-// Bearbeiten öffnet ein eigenes "Fenster", wie bei Windeln/Füttern: Historie
-// und der Nachts/Tagsüber-Umschalter werden versteckt (man bearbeitet einen
+// Bearbeiten (aus der gemeinsamen Historie) öffnet ein eigenes "Fenster", wie
+// bei Windeln/Füttern: der Nachts/Tagsüber-Umschalter wird versteckt (man bearbeitet einen
 // bereits feststehenden Eintrag, kein Umschalten mehr nötig), die passende
 // Maske (Nacht- oder Nap-Panel) zeigt die Werte vorausgefüllt, und die
 // Fußzeile wechselt zu Aktualisieren/Abbrechen. Zwei getrennte IDs, weil
 // Nächte und Naps in unterschiedlichen Collections liegen (anders als bei
 // Füttern, wo Fläschchen/Brust dieselbe `feedings`-Collection teilen).
 function enterSchlafenEdit(entry) {
-  schlafenListScrollTop = schlafenScrollEl.scrollTop;
-  schlafenHistorieSection.style.display = 'none';
   schlafenModeToggleEl.style.display = 'none';
   schlafenSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
@@ -2929,27 +2709,25 @@ function enterSchlafenEdit(entry) {
     napEndInput.value = entry.endTime ? (entry.source === 'timer' ? formatTime(new Date(entry.endTime)) : entry.endTime) : napStartInput.value;
     napDateInput.dispatchEvent(new Event('change'));
     renderNapDuration();
-    napSaveBtn.style.display = 'none';
+    napSaveBtn.parentElement.style.display = 'none';
     napEditActions.style.display = 'flex';
   }
   schlafenScrollEl.scrollTop = 0;
 }
 
-function exitSchlafenEdit(restoreScroll) {
+function exitSchlafenEdit() {
   editingNightId = null;
   editingNapId = null;
-  schlafenSubtitleEl.textContent = 'Eintrag hinzufügen';
-  schlafenHistorieSection.style.display = 'flex';
+  schlafenSubtitleEl.textContent = 'Neuer Eintrag';
   schlafenModeToggleEl.style.display = 'flex';
   napModeToggleEl.style.display = 'flex';
   nightSaveBtn.style.display = '';
   nightEditActions.style.display = 'none';
-  napSaveBtn.style.display = '';
+  napSaveBtn.parentElement.style.display = 'flex';
   napEditActions.style.display = 'none';
   resetNightForm();
   resetNapManualForm();
   decideSchlafenDefault();
-  if (restoreScroll) schlafenScrollEl.scrollTop = schlafenListScrollTop;
 }
 // Die Cancel-/Update-Button-Listener werden erst weiter unten registriert
 // (nach der Schlafen-Historie-Sektion), weil ihre Ziel-Buttons/-Konstanten
@@ -3348,11 +3126,21 @@ nightSaveBtn.addEventListener('click', async () => {
   const isComplete = viewedNightEntry && !viewedNightEntry._open;
   const isOpen = viewedNightEntry && viewedNightEntry._open;
 
-  async function finish(mutate) {
+  // leave: eine vollständig erfasste Nacht führt zurück auf Heute (wie jeder
+  // neue Eintrag). Einschlafen und das Ändern über den Stift bleiben auf der
+  // Karte — dort geht es direkt weiter.
+  async function finish(mutate, leave) {
     if (!nightTimeIsValid()) return;
     nightSaveBtn.disabled = true;
     try {
       await mutate();
+      if (leave) {
+        nightSaveBtn.disabled = false;
+        refreshLastNightPending();
+        const wake = nightWaketimeInput.value;
+        afterNewEntrySaved(wake ? timeOnDate(new Date(), wake) : null, 'var(--schlafen)');
+        return;
+      }
       nightSaveBtn.textContent = 'Gespeichert ✓';
       setTimeout(async () => {
         await loadNightPosition();
@@ -3373,7 +3161,6 @@ nightSaveBtn.addEventListener('click', async () => {
         wakeCount
       };
       await updateDoc(doc(db, 'nightWakeups', viewedNightEntry.id), changes);
-      updateSchlafenHistoryEntry({ ...viewedNightEntry, ...changes, _type: 'night' });
       nightUnlocked = false;
     });
     return;
@@ -3389,13 +3176,9 @@ nightSaveBtn.addEventListener('click', async () => {
         wakeCount
       };
       await updateDoc(doc(db, 'nightWakeups', viewedNightEntry.id), changes);
-      // Die Nacht wechselt von "Läuft…" auf ihre echten Zeiten und kann dabei
-      // auch die Position wechseln (Bettzeit nach Mitternacht) — deshalb neu
-      // einsortieren statt nur austauschen.
-      updateSchlafenHistoryEntry({ ...viewedNightEntry, ...changes, _type: 'night' });
       openNightDocId = null;
       openNightData = null;
-    });
+    }, true);
     return;
   }
 
@@ -3439,8 +3222,7 @@ nightSaveBtn.addEventListener('click', async () => {
   await finish(async () => {
     const ref = await addDoc(collection(db, 'nightWakeups'), entry);
     if (startOnly) { openNightDocId = ref.id; openNightData = entry; }
-    addSchlafenEntryToHistory({ id: ref.id, _type: 'night', ...entry });
-  });
+  }, !startOnly);
 });
 
 // Same past-only guarantee as setupPastOnlyDateTime (Füttern/Windeln), but
@@ -3586,10 +3368,9 @@ napSaveBtn.addEventListener('click', async () => {
       createdBy: currentUser.email,
       createdAt: serverTimestamp()
     };
-    const ref = await addDoc(collection(db, 'naps'), entry);
-    addSchlafenEntryToHistory({ id: ref.id, _type: 'nap', ...entry });
-    napSaveBtn.textContent = 'Gespeichert ✓';
-    setTimeout(() => { napSaveBtn.textContent = 'Eintrag speichern'; napSaveBtn.disabled = false; }, 1400);
+    await addDoc(collection(db, 'naps'), entry);
+    napSaveBtn.disabled = false;
+    afterNewEntrySaved(timeOnDate(new Date(entry.date + 'T00:00:00'), entry.startTime), 'var(--schlafen)');
   } catch (error) {
     napSaveBtn.textContent = 'Fehler beim Speichern';
     napSaveBtn.disabled = false;
@@ -3695,7 +3476,6 @@ timerToggleBtn.addEventListener('click', async () => {
       openNapStartedAt = startedAt.getTime();
       timerInterval = setInterval(renderTimerDisplay, 1000);
       renderTimerDisplay();
-      addSchlafenEntryToHistory({ id: ref.id, _type: 'nap', ...entry });
     } else {
       // Vor dem Stop nochmal frisch nachsehen, welches Dokument offen ist —
       // die lokale ID könnte veraltet sein, falls die App zwischenzeitlich neu geladen wurde.
@@ -3713,10 +3493,8 @@ timerToggleBtn.addEventListener('click', async () => {
       openNapDocId = null;
       openNapStartedAt = null;
       renderTimerDisplay();
-      // Nur die "Läuft…"-Zeile austauschen — Startzeit und Tag bleiben gleich.
-      const base = open || { startTime: startedAt.toISOString(), source: 'timer' };
-      const updated = { ...base, id: targetId, _type: 'nap', endTime: endedAt.toISOString(), durationMinutes };
-      if (!replaceHistoryRow(document.getElementById('schlafen-entries-list'), targetId, schlafenEntryRow(updated))) loadSchlafenEntries(true);
+      timerToggleBtn.disabled = false;
+      afterNewEntrySaved(startedAt, 'var(--schlafen)');
     }
   } catch (error) {
     timerSublabel.textContent = 'Fehler: ' + error.message;
@@ -3724,18 +3502,8 @@ timerToggleBtn.addEventListener('click', async () => {
   timerToggleBtn.disabled = false;
 });
 
-// --- Schlafen: Historie (bearbeiten/löschen), zusammengeführt aus beiden
-// Collections (naps + nightWakeups) zu einer chronologischen Liste, genau
-// wie beim Füttern-Screen (Fläschchen/Brust in derselben Liste). Absteigend
-// nach Startzeit sortiert, gruppiert per Tag über dieselbe
-// analyseBusinessDateKey wie die Analyse-Auswertung weiter unten.
-const SCHLAFEN_PAGE_SIZE = 15;
-let schlafenBuffer = [];
-let schlafenEntriesLastDayKey = null;
-const schlafenSources = {
-  naps: { lastSnap: null, allLoaded: false, type: 'nap' },
-  nightWakeups: { lastSnap: null, allLoaded: false, type: 'night' }
-};
+// --- Schlafen: Zeitpunkt, Tag und Beschriftung eines Eintrags (naps +
+// nightWakeups) — gebraucht von der gemeinsamen Historie weiter unten.
 
 // Ab wann eine Bettzeit als "nach Mitternacht" gilt: alles vor 12:00 gehört
 // zum Morgen des Aufwach-Tages, nicht zum Abend davor.
@@ -3777,18 +3545,6 @@ function schlafenDayDate(entry) {
   return ts ? new Date(isoDate(ts) + 'T00:00:00') : null;
 }
 
-function schlafenDayKey(entry) {
-  const d = schlafenDayDate(entry);
-  return d ? isoDate(d) : 'unbekannt';
-}
-
-// Absteigend, zweistufig (Tag, dann Zeitpunkt) — siehe historyComesBefore.
-function compareSchlafenDesc(a, b) {
-  const ka = schlafenDayKey(a), kb = schlafenDayKey(b);
-  if (ka !== kb) return ka < kb ? 1 : -1;
-  return (schlafenBusinessTimestamp(b)?.getTime() || 0) - (schlafenBusinessTimestamp(a)?.getTime() || 0);
-}
-
 function schlafenEndTimeLabel(entry) {
   if (entry._type === 'night') return entry.wakeTime;
   if (entry.endTime === null) return null;
@@ -3813,185 +3569,8 @@ function schlafenDurationLabel(entry) {
   return m > 0 ? (h + ' Std ' + m + ' Min') : (h + ' Std');
 }
 
-async function fetchSchlafenChunk(name) {
-  const src = schlafenSources[name];
-  if (src.allLoaded) return [];
-  const q = src.lastSnap
-    ? query(collection(db, name), orderBy('createdAt', 'desc'), startAfter(src.lastSnap), limit(SCHLAFEN_PAGE_SIZE))
-    : query(collection(db, name), orderBy('createdAt', 'desc'), limit(SCHLAFEN_PAGE_SIZE));
-  const snap = await getDocs(q);
-  if (snap.docs.length < SCHLAFEN_PAGE_SIZE) src.allLoaded = true;
-  if (!snap.empty) src.lastSnap = snap.docs[snap.docs.length - 1];
-  return snap.docs.map((d) => ({ id: d.id, _type: src.type, ...d.data() }));
-}
-
-// k-way Merge über zwei Collections: solange der Puffer keine volle Seite
-// hergibt, von jeder noch nicht erschöpften Quelle einen weiteren Chunk
-// nachladen und neu nach Startzeit sortieren.
-async function refillSchlafenBuffer() {
-  while (schlafenBuffer.length < SCHLAFEN_PAGE_SIZE && (!schlafenSources.naps.allLoaded || !schlafenSources.nightWakeups.allLoaded)) {
-    const fetches = [];
-    if (!schlafenSources.naps.allLoaded) fetches.push(fetchSchlafenChunk('naps'));
-    if (!schlafenSources.nightWakeups.allLoaded) fetches.push(fetchSchlafenChunk('nightWakeups'));
-    const chunks = await Promise.all(fetches);
-    chunks.forEach((docs) => schlafenBuffer.push(...docs));
-    schlafenBuffer.sort(compareSchlafenDesc);
-  }
-}
-
-function schlafenEntryRow(entry) {
-  const ts = schlafenBusinessTimestamp(entry);
-  const isOpenNap = entry._type === 'nap' && entry.endTime === null;
-  const isOpenNight = entry._type === 'night' && entry.wakeTime == null;
-  const isOpen = isOpenNap || isOpenNight;
-  const row = document.createElement('div');
-  row.dataset.entryId = entry.id;
-  row.style.cssText = 'display:flex; align-items:center; gap:9px; padding:10px 14px; border-bottom:1px solid var(--border);';
-
-  const iconChip = document.createElement('span');
-  iconChip.style.cssText = 'width:24px; height:24px; border-radius:8px; background:var(--accent-soft); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; flex-shrink:0;';
-  iconChip.innerHTML = entry._type === 'night'
-    ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
-    : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>';
-  row.appendChild(iconChip);
-
-  const time = document.createElement('span');
-  time.textContent = ts ? formatTime(ts) : '--:--';
-  time.style.cssText = 'font-size:13px; font-weight:600; color:var(--text); width:38px; flex-shrink:0; font-variant-numeric:tabular-nums;';
-  row.appendChild(time);
-
-  const detail = document.createElement('span');
-  if (isOpen) {
-    detail.textContent = 'Läuft…';
-  } else {
-    const end = schlafenEndTimeLabel(entry);
-    const dur = schlafenDurationLabel(entry);
-    detail.textContent = (end || '--:--') + ' · ' + (dur || '–') + (entry._type === 'night' ? ' · ' + entry.wakeCount + 'x' : '');
-  }
-  // flex:1 + min-width:0 + Ellipsis statt flex-shrink:0 + separatem Spacer
-  // (wie bei Windeln/Füttern): dort ist der Detail-Text immer kurz und fix
-  // ("120 ml", "Klein"), hier kann er lang werden ("08:30 · 8 Std 40 Min ·
-  // 3x") und hätte sonst Stift/Mülleimer je nach Textlänge unterschiedlich
-  // weit nach rechts geschoben (auf Julias schmalem iPhone beobachtet) statt
-  // sie an fester Position zu halten.
-  detail.style.cssText = 'font-size:12.5px; color:var(--text-muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
-  row.appendChild(detail);
-
-  if (entry.id === schlafenJustUpdatedId) {
-    const badge = document.createElement('span');
-    badge.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--accent-strong); background:var(--accent-soft); padding:4px 9px; border-radius:999px;';
-    badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert';
-    row.appendChild(badge);
-    return row;
-  }
-
-  // Ein laufender Nap-Timer oder eine offene Nacht lassen sich nicht
-  // "bearbeiten" (kein Ende, keine Dauer) — nur löschen, falls versehentlich
-  // gestartet (siehe Füttern/Brust). Vervollständigt wird stattdessen ganz
-  // regulär über die Nachts-Karte selbst (dort erkennt loadNightPosition()
-  // den offenen Eintrag automatisch).
-  if (!isOpen) {
-    const editBtn = document.createElement('button');
-    editBtn.setAttribute('aria-label', 'Bearbeiten');
-    editBtn.style.cssText = 'border:none; background:none; color:var(--text-muted); padding:6px; cursor:pointer; display:flex;';
-    editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-    editBtn.addEventListener('click', () => enterSchlafenEdit(entry));
-    row.appendChild(editBtn);
-  }
-
-  const delBtn = document.createElement('button');
-  delBtn.setAttribute('aria-label', 'Löschen');
-  delBtn.style.cssText = 'border:none; background:none; color:var(--warn); padding:6px; cursor:pointer; display:flex;';
-  delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
-  delBtn.addEventListener('click', async () => {
-    if (!confirm('Diesen ' + (entry._type === 'night' ? 'Schlafen' : 'Nap') + '-Eintrag wirklich löschen?')) return;
-    delBtn.disabled = true;
-    try {
-      await deleteDoc(doc(db, entry._type === 'night' ? 'nightWakeups' : 'naps', entry.id));
-      removeHistoryRow(document.getElementById('schlafen-entries-list'), entry.id);
-    } catch (error) {
-      delBtn.disabled = false;
-    }
-  });
-  row.appendChild(delBtn);
-
-  return row;
-}
-
-// Die Tagesgruppe kommt aus schlafenDayDate, nicht aus analyseBusinessDateKey
-// (das Nächte über `nightEnd`, den Aufwach-Morgen, gruppiert): eine Nacht
-// gehört zu dem Abend, an dem sie begann. Innerhalb des Tages sortiert sie
-// nach ihrem echten Zeitpunkt — dadurch steht sie als spätestes Ereignis
-// immer oben, auch wenn die Bettzeit schon nach Mitternacht lag.
-function appendSchlafenEntries(docs) {
-  const list = document.getElementById('schlafen-entries-list');
-  const now = new Date();
-  docs.forEach((entry) => {
-    const ts = schlafenBusinessTimestamp(entry);
-    const dayDate = schlafenDayDate(entry);
-    const dayKey = dayDate ? isoDate(dayDate) : 'unbekannt';
-    if (dayKey !== schlafenEntriesLastDayKey) {
-      list.appendChild(historyHeaderEl(dayKey, dayDate ? dayLabel(dayDate, now) : 'Unbekanntes Datum'));
-      schlafenEntriesLastDayKey = dayKey;
-    }
-    const row = schlafenEntryRow(entry);
-    row.dataset.dayKey = dayKey;
-    row.dataset.sort = String(ts ? ts.getTime() : 0);
-    list.appendChild(row);
-  });
-  if (list.children.length === 0) list.appendChild(historyEmptyEl());
-}
-
-// Wie addFuetternEntryToHistory, siehe dort. Zusätzlich muss hier der
-// k-way-Merge-Puffer leer sein, damit "alles geladen" wirklich heißt, dass
-// nichts Älteres mehr nachkommt.
-function addSchlafenEntryToHistory(entry) {
-  const list = document.getElementById('schlafen-entries-list');
-  const ts = schlafenBusinessTimestamp(entry);
-  const dayDate = schlafenDayDate(entry);
-  const allLoaded = schlafenSources.naps.allLoaded && schlafenSources.nightWakeups.allLoaded && schlafenBuffer.length === 0;
-  if (!ts || !dayDate || !insertHistoryRow(list, schlafenEntryRow(entry), isoDate(dayDate), dayLabel(dayDate, new Date()), ts.getTime(), allLoaded)) {
-    loadSchlafenEntries(true);
-    return;
-  }
-  schlafenEntriesLastDayKey = historyLastDayKey(list);
-}
-
-function updateSchlafenHistoryEntry(entry) {
-  removeHistoryRow(document.getElementById('schlafen-entries-list'), entry.id);
-  addSchlafenEntryToHistory(entry);
-}
-
-async function loadSchlafenEntries(reset) {
-  if (reset) {
-    schlafenBuffer = [];
-    schlafenSources.naps.lastSnap = null;
-    schlafenSources.naps.allLoaded = false;
-    schlafenSources.nightWakeups.lastSnap = null;
-    schlafenSources.nightWakeups.allLoaded = false;
-    schlafenEntriesLastDayKey = null;
-    document.getElementById('schlafen-entries-list').innerHTML = '';
-  }
-  const moreBtn = document.getElementById('schlafen-entries-more');
-  moreBtn.textContent = 'Lädt…';
-  moreBtn.style.display = 'block';
-  moreBtn.disabled = true;
-  try {
-    await refillSchlafenBuffer();
-    const page = schlafenBuffer.splice(0, SCHLAFEN_PAGE_SIZE);
-    appendSchlafenEntries(page);
-  } finally {
-    const allLoaded = schlafenSources.naps.allLoaded && schlafenSources.nightWakeups.allLoaded;
-    const hasMore = schlafenBuffer.length > 0 || !allLoaded;
-    moreBtn.textContent = 'Weitere laden';
-    moreBtn.disabled = false;
-    moreBtn.style.display = hasMore ? 'block' : 'none';
-  }
-}
-document.getElementById('schlafen-entries-more').addEventListener('click', () => loadSchlafenEntries(false));
-
-nightCancelEditBtn.addEventListener('click', () => exitSchlafenEdit(true));
-napCancelEditBtn.addEventListener('click', () => exitSchlafenEdit(true));
+nightCancelEditBtn.addEventListener('click', () => leaveEntryScreen('schlafen'));
+napCancelEditBtn.addEventListener('click', () => leaveEntryScreen('schlafen'));
 
 nightUpdateBtn.addEventListener('click', async () => {
   if (!currentUser || !editingNightId || !nightTimeIsValid()) return;
@@ -4009,14 +3588,8 @@ nightUpdateBtn.addEventListener('click', async () => {
   nightUpdateBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'nightWakeups', updatedId), entry);
-    exitSchlafenEdit(false);
-    schlafenJustUpdatedId = updatedId;
-    updateSchlafenHistoryEntry({ id: updatedId, _type: 'night', ...entry });
-    schlafenScrollEl.scrollTop = schlafenListScrollTop;
-    setTimeout(() => {
-      schlafenJustUpdatedId = null;
-      replaceHistoryRow(document.getElementById('schlafen-entries-list'), updatedId, schlafenEntryRow({ id: updatedId, _type: 'night', ...entry }));
-    }, 1800);
+    exitSchlafenEdit();
+    returnToHistorieAfterUpdate({ id: updatedId, _type: 'night', ...entry });
   } catch (error) {
     nightUpdateBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { nightUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
@@ -4040,14 +3613,8 @@ napUpdateBtn.addEventListener('click', async () => {
   napUpdateBtn.disabled = true;
   try {
     await updateDoc(doc(db, 'naps', updatedId), entry);
-    exitSchlafenEdit(false);
-    schlafenJustUpdatedId = updatedId;
-    updateSchlafenHistoryEntry({ id: updatedId, _type: 'nap', ...entry });
-    schlafenScrollEl.scrollTop = schlafenListScrollTop;
-    setTimeout(() => {
-      schlafenJustUpdatedId = null;
-      replaceHistoryRow(document.getElementById('schlafen-entries-list'), updatedId, schlafenEntryRow({ id: updatedId, _type: 'nap', ...entry }));
-    }, 1800);
+    exitSchlafenEdit();
+    returnToHistorieAfterUpdate({ id: updatedId, _type: 'nap', ...entry });
   } catch (error) {
     napUpdateBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { napUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
@@ -4055,6 +3622,334 @@ napUpdateBtn.addEventListener('click', async () => {
     napUpdateBtn.disabled = false;
   }
 });
+
+// --- Historie: alle Einträge aus allen vier Collections in einer Liste ---
+// Jede Collection ist eine Quelle mit eigenem Firestore-Cursor (nach
+// createdAt absteigend). Die Chips wählen, welche Quellen mitlaufen.
+//
+// Die Quellen haben sehr unterschiedliche Dichten (etwa acht Fütterungen, aber
+// nur eine Nacht pro Tag). Deshalb wird eine Seite erst ausgegeben, wenn sie
+// sicher vollständig ist: ein Eintrag darf nur erscheinen, wenn er nicht älter
+// ist als das Älteste, was jede noch nicht erschöpfte Quelle bisher geliefert
+// hat — sonst stünde eine alte Nacht vor den noch nicht geladenen Fütterungen
+// desselben Zeitraums. Fehlt einer Quelle diese Grenze, lädt sie nach.
+const HISTORIE_PAGE_SIZE = 20;
+const historieListEl = document.getElementById('historie-list');
+const historieMoreBtn = document.getElementById('historie-more');
+const historieScrollEl = document.getElementById('historie-scroll');
+const historieSubtitleEl = document.getElementById('historie-subtitle');
+const HISTORIE_SOURCES = [
+  { name: 'feedings', cat: 'fuettern' },
+  { name: 'diaperChanges', cat: 'windeln' },
+  { name: 'naps', cat: 'schlafen', type: 'nap' },
+  { name: 'nightWakeups', cat: 'schlafen', type: 'night' }
+];
+const HISTORIE_CAT = {
+  fuettern: { soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', subtitle: 'Nur Füttern' },
+  windeln: { soft: 'var(--windeln-soft)', strong: 'var(--windeln)', subtitle: 'Nur Windeln' },
+  schlafen: { soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', subtitle: 'Nur Schlafen' }
+};
+let historieFilter = 'all';
+let historieBuffer = [];
+let historieState = {};
+let historieLastDayKey = null;
+let historieLoadToken = 0;
+let historieScrollTop = 0;
+let historieEditingEntry = null;
+let historieJustUpdatedId = null;
+
+function historieActiveSources() {
+  return HISTORIE_SOURCES.filter((s) => historieFilter === 'all' || s.cat === historieFilter);
+}
+
+function historieTs(entry) {
+  return entry._cat === 'schlafen' ? schlafenBusinessTimestamp(entry) : entryBusinessTimestamp(entry);
+}
+
+// Tag und Zeitpunkt getrennt — Nächte gehören zum Abend, an dem sie begannen
+// (siehe schlafenDayDate), alles andere zum Tag seines Zeitpunkts.
+function historieKey(entry) {
+  const ts = historieTs(entry);
+  const dayDate = entry._cat === 'schlafen' ? schlafenDayDate(entry) : (ts ? new Date(isoDate(ts) + 'T00:00:00') : null);
+  return { dayKey: dayDate ? isoDate(dayDate) : '0000-00-00', dayDate, sort: ts ? ts.getTime() : 0 };
+}
+
+function historieCompareDesc(a, b) {
+  const ka = historieKey(a), kb = historieKey(b);
+  if (ka.dayKey !== kb.dayKey) return ka.dayKey < kb.dayKey ? 1 : -1;
+  return kb.sort - ka.sort;
+}
+
+async function fetchHistorieChunk(src, token) {
+  const st = historieState[src.name];
+  const q = st.lastSnap
+    ? query(collection(db, src.name), orderBy('createdAt', 'desc'), startAfter(st.lastSnap), limit(HISTORIE_PAGE_SIZE))
+    : query(collection(db, src.name), orderBy('createdAt', 'desc'), limit(HISTORIE_PAGE_SIZE));
+  const snap = await getDocs(q);
+  if (token !== historieLoadToken) return;
+  st.fetched = true;
+  if (snap.docs.length < HISTORIE_PAGE_SIZE) st.allLoaded = true;
+  if (!snap.empty) st.lastSnap = snap.docs[snap.docs.length - 1];
+  snap.docs.forEach((d) => {
+    const entry = { id: d.id, _cat: src.cat, ...d.data() };
+    if (src.type) entry._type = src.type;
+    historieBuffer.push(entry);
+    if (!st.oldest || historieCompareDesc(entry, st.oldest) > 0) st.oldest = entry;
+  });
+}
+
+async function nextHistoriePage(token) {
+  while (true) {
+    const active = historieActiveSources().filter((s) => !historieState[s.name].allLoaded);
+    const unfetched = active.filter((s) => !historieState[s.name].fetched);
+    if (unfetched.length) {
+      await Promise.all(unfetched.map((s) => fetchHistorieChunk(s, token)));
+      if (token !== historieLoadToken) return null;
+      continue;
+    }
+    historieBuffer.sort(historieCompareDesc);
+    if (!active.length) return historieBuffer.splice(0, HISTORIE_PAGE_SIZE);
+    // Die Quelle mit der jüngsten Grenze bestimmt, bis wohin sicher ist.
+    let limiting = active[0];
+    active.forEach((s) => { if (historieCompareDesc(historieState[s.name].oldest, historieState[limiting.name].oldest) < 0) limiting = s; });
+    const boundary = historieState[limiting.name].oldest;
+    let safe = historieBuffer.findIndex((e) => historieCompareDesc(e, boundary) > 0);
+    if (safe < 0) safe = historieBuffer.length;
+    if (safe >= HISTORIE_PAGE_SIZE) return historieBuffer.splice(0, HISTORIE_PAGE_SIZE);
+    await fetchHistorieChunk(limiting, token);
+    if (token !== historieLoadToken) return null;
+  }
+}
+
+function historieAllLoaded() {
+  return historieBuffer.length === 0 && historieActiveSources().every((s) => historieState[s.name].allLoaded);
+}
+
+const HISTORIE_ICONS = {
+  bottle: '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
+  breast: '<path d="M12 4c3.2 4.1 6.4 7.8 6.4 11.4A6.4 6.4 0 1 1 5.6 15.4C5.6 11.8 8.8 8.1 12 4z"/>',
+  diaper: '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
+  night: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+  nap: '<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>'
+};
+const HISTORIE_PENCIL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const HISTORIE_TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
+
+// Laufende Timer bzw. offene Nächte haben kein Ende und keine Dauer — sie
+// lassen sich nur löschen, nicht bearbeiten (vervollständigt wird auf ihrer
+// Eintragen-Seite).
+function historieIsOpen(entry) {
+  if (entry._cat === 'fuettern') return entry.type === 'breast' && entry.endTime === null;
+  if (entry._cat === 'schlafen') return entry._type === 'nap' ? entry.endTime === null : entry.wakeTime == null;
+  return false;
+}
+
+// Hauptteil fett, Details dahinter — alles als Text, nie als HTML.
+function historieDetail(entry) {
+  const open = historieIsOpen(entry);
+  if (entry._cat === 'fuettern') {
+    if (entry.type === 'bottle') return { icon: 'bottle', main: 'Fläschchen', rest: (entry.amount || 0) + ' ml' };
+    return { icon: 'breast', main: 'Brust', rest: open ? 'Läuft…' : breastDetailText(entry) };
+  }
+  if (entry._cat === 'windeln') {
+    const sizes = [];
+    if (entry.small) sizes.push('Klein');
+    if (entry.big) sizes.push('Groß');
+    const color = entry.big && entry.color && COLOR_BY_ID[entry.color];
+    return { icon: 'diaper', main: sizes.join(' & ') || 'Windel', rest: color ? color.label : '', warn: !!(color && WARN_COLOR_IDS.includes(entry.color)) };
+  }
+  if (entry._type === 'night') {
+    if (open) return { icon: 'night', main: 'Nacht', rest: 'Läuft…' };
+    return { icon: 'night', main: 'Nacht', rest: 'bis ' + (schlafenEndTimeLabel(entry) || '--:--') + ' · ' + (schlafenDurationLabel(entry) || '–') + ' · ' + (entry.wakeCount || 0) + 'x' };
+  }
+  if (open) return { icon: 'nap', main: 'Schläfchen', rest: 'Läuft…' };
+  return { icon: 'nap', main: 'Schläfchen', rest: 'bis ' + (schlafenEndTimeLabel(entry) || '--:--') + ' · ' + (schlafenDurationLabel(entry) || '–') };
+}
+
+function historieRow(entry) {
+  const cat = HISTORIE_CAT[entry._cat];
+  const ts = historieTs(entry);
+  const info = historieDetail(entry);
+  const row = document.createElement('div');
+  row.className = 'h-row';
+  row.dataset.entryId = entry.id;
+
+  const ico = document.createElement('span');
+  ico.className = 'h-ico';
+  ico.style.background = cat.soft;
+  ico.style.color = cat.strong;
+  ico.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + HISTORIE_ICONS[info.icon] + '</svg>';
+  row.appendChild(ico);
+
+  const time = document.createElement('span');
+  time.className = 'h-time';
+  time.textContent = ts ? formatTime(ts) : '--:--';
+  row.appendChild(time);
+
+  const detail = document.createElement('span');
+  detail.className = 'h-detail';
+  const main = document.createElement('b');
+  main.textContent = info.main;
+  detail.appendChild(main);
+  if (info.rest) detail.appendChild(document.createTextNode(' · ' + info.rest));
+  if (info.warn) {
+    const warn = document.createElement('span');
+    warn.title = 'Bitte beobachten';
+    warn.style.cssText = 'display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:var(--warn); vertical-align:middle; margin-left:5px;';
+    warn.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 14.5H3.5z"/><line x1="12" y1="10.5" x2="12" y2="14"/></svg>';
+    detail.appendChild(warn);
+  }
+  row.appendChild(detail);
+
+  if (entry.id === historieJustUpdatedId) {
+    const badge = document.createElement('span');
+    badge.className = 'h-badge';
+    badge.style.background = cat.soft;
+    badge.style.color = cat.strong;
+    badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert';
+    row.appendChild(badge);
+    return row;
+  }
+
+  if (historieIsOpen(entry)) {
+    const gap = document.createElement('span');
+    gap.style.cssText = 'width:28px; flex-shrink:0;';
+    row.appendChild(gap);
+  } else {
+    const editBtn = document.createElement('button');
+    editBtn.className = 'h-btn';
+    editBtn.setAttribute('aria-label', 'Bearbeiten');
+    editBtn.innerHTML = HISTORIE_PENCIL;
+    editBtn.addEventListener('click', () => openHistorieEdit(entry));
+    row.appendChild(editBtn);
+  }
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'h-btn del';
+  delBtn.setAttribute('aria-label', 'Löschen');
+  delBtn.innerHTML = HISTORIE_TRASH;
+  delBtn.addEventListener('click', () => deleteHistorieEntry(entry, delBtn));
+  row.appendChild(delBtn);
+  return row;
+}
+
+async function deleteHistorieEntry(entry, delBtn) {
+  const label = entry._cat === 'fuettern' ? 'Fütterungs' : entry._cat === 'windeln' ? 'Windel' : (entry._type === 'night' ? 'Schlafen' : 'Nap');
+  if (!confirm('Diesen ' + label + '-Eintrag wirklich löschen?')) return;
+  const name = entry._cat === 'fuettern' ? 'feedings' : entry._cat === 'windeln' ? 'diaperChanges' : (entry._type === 'night' ? 'nightWakeups' : 'naps');
+  delBtn.disabled = true;
+  try {
+    await deleteDoc(doc(db, name, entry.id));
+    removeHistoryRow(historieListEl, entry.id);
+    if (entry._cat === 'fuettern' && entry.type === 'bottle') refreshFuetternAmountChips();
+  } catch (error) {
+    delBtn.disabled = false;
+  }
+}
+
+function appendHistorieEntries(docs) {
+  const now = new Date();
+  docs.forEach((entry) => {
+    const key = historieKey(entry);
+    if (key.dayKey !== historieLastDayKey) {
+      historieListEl.appendChild(historyHeaderEl(key.dayKey, key.dayDate ? dayLabel(key.dayDate, now) : 'Unbekanntes Datum'));
+      historieLastDayKey = key.dayKey;
+    }
+    const row = historieRow(entry);
+    row.dataset.dayKey = key.dayKey;
+    row.dataset.sort = String(key.sort);
+    historieListEl.appendChild(row);
+  });
+  if (historieListEl.children.length === 0) historieListEl.appendChild(historyEmptyEl());
+}
+
+async function loadHistorie(reset) {
+  if (reset) {
+    historieLoadToken += 1;
+    historieBuffer = [];
+    historieState = {};
+    HISTORIE_SOURCES.forEach((s) => { historieState[s.name] = { lastSnap: null, allLoaded: false, fetched: false, oldest: null }; });
+    historieLastDayKey = null;
+    historieJustUpdatedId = null;
+    historieListEl.innerHTML = '';
+    historieScrollEl.scrollTop = 0;
+  }
+  const token = historieLoadToken;
+  historieMoreBtn.textContent = 'Lädt…';
+  historieMoreBtn.style.display = 'block';
+  historieMoreBtn.disabled = true;
+  try {
+    const page = await nextHistoriePage(token);
+    if (page === null || token !== historieLoadToken) return;
+    appendHistorieEntries(page);
+  } catch (error) {
+    if (token === historieLoadToken && historieListEl.children.length === 0) {
+      historieListEl.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding:8px 14px;">Fehler beim Laden</div>';
+    }
+  } finally {
+    if (token === historieLoadToken) {
+      historieMoreBtn.textContent = 'Weitere laden';
+      historieMoreBtn.disabled = false;
+      historieMoreBtn.style.display = historieAllLoaded() ? 'none' : 'block';
+    }
+  }
+}
+historieMoreBtn.addEventListener('click', () => loadHistorie(false));
+
+document.querySelectorAll('#historie-chips .h-chip').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    const filter = chip.dataset.filter;
+    if (filter === historieFilter) return;
+    historieFilter = filter;
+    document.querySelectorAll('#historie-chips .h-chip').forEach((c) => {
+      const on = c.dataset.filter === filter;
+      c.classList.toggle('on', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    historieSubtitleEl.textContent = filter === 'all' ? 'Alle Einträge' : HISTORIE_CAT[filter].subtitle;
+    loadHistorie(true);
+  });
+});
+
+// Stift in der Historie: die Eintragen-Seite des Bereichs öffnet sich im
+// Bearbeiten-Modus. Aktualisieren und Abbrechen führen hierher zurück — an
+// dieselbe Scrollposition (leaveEntryScreen / returnToHistorieAfterUpdate).
+function openHistorieEdit(entry) {
+  historieScrollTop = historieScrollEl.scrollTop;
+  historieEditingEntry = entry;
+  showScreen(entry._cat, { edit: true });
+  if (entry._cat === 'fuettern') enterFuetternEdit(entry);
+  else if (entry._cat === 'windeln') enterWindelnEdit(entry);
+  else enterSchlafenEdit(entry);
+}
+
+// Nach dem Aktualisieren nur die eine Zeile neu einsortieren (Datum oder
+// Uhrzeit können sich geändert haben) — die Liste bleibt stehen, samt
+// Scrollposition. Das „aktualisiert"-Badge tauscht nach 1,8 s nur diese Zeile
+// zurück, ohne Neuladen.
+function returnToHistorieAfterUpdate(changes) {
+  const base = historieEditingEntry && historieEditingEntry.id === changes.id ? historieEditingEntry : {};
+  const entry = { ...base, ...changes };
+  historieEditingEntry = null;
+  historieJustUpdatedId = entry.id;
+  showScreen('historie', { keep: true });
+
+  removeHistoryRow(historieListEl, entry.id);
+  const bufferIdx = historieBuffer.findIndex((e) => e.id === entry.id);
+  if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
+  const key = historieKey(entry);
+  const inserted = insertHistoryRow(historieListEl, historieRow(entry), key.dayKey, key.dayDate ? dayLabel(key.dayDate, new Date()) : 'Unbekanntes Datum', key.sort, historieAllLoaded());
+  // Rutscht der Eintrag hinter die geladenen Seiten, kommt er mit „Weitere laden".
+  if (!inserted) historieBuffer.push(entry);
+  historieLastDayKey = historyLastDayKey(historieListEl);
+  historieScrollEl.scrollTop = historieScrollTop;
+
+  setTimeout(() => {
+    if (historieJustUpdatedId !== entry.id) return;
+    historieJustUpdatedId = null;
+    replaceHistoryRow(historieListEl, entry.id, historieRow(entry));
+  }, 1800);
+}
 
 // --- Heute (Übersicht) ---
 const WARN_COLOR_IDS = WARN_COLORS.map((c) => c.id);
@@ -4136,7 +4031,9 @@ function napEndDate(n, baseDate) {
 
 async function loadOverview() {
   const now = new Date();
-  document.getElementById('heute-date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+  const ageWeeks = profilAgeWeeks(now);
+  document.getElementById('heute-date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) +
+    (ageWeeks !== null ? ' · ' + ageWeeks + (ageWeeks === 1 ? ' Woche alt' : ' Wochen alt') : '');
 
   const timelineEvents = [];
 
@@ -4290,17 +4187,24 @@ async function loadOverview() {
   if (timelineEvents.length === 0) {
     container.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Noch keine Einträge heute</div>';
   } else {
+    const flash = pendingTimelineFlash;
+    pendingTimelineFlash = null;
+    const FLASH_SOFT = { 'var(--fuettern)': 'var(--fuettern-soft)', 'var(--windeln)': 'var(--windeln-soft)', 'var(--schlafen)': 'var(--schlafen-soft)' };
+    let flashed = false;
     container.innerHTML = timelineEvents.map((e, i) => {
       const isLast = i === timelineEvents.length - 1;
+      const doFlash = !flashed && flash && e.color === flash.color && Math.abs(e.ts.getTime() - flash.ts) < 60000;
+      if (doFlash) flashed = true;
       return '<div style="display: flex; gap: 12px;">' +
         '<div style="display: flex; flex-direction: column; align-items: center;">' +
         '<div style="width: 10px; height: 10px; border-radius: 50%; background: ' + e.color + ';"></div>' +
         (isLast ? '' : '<div style="width: 2px; flex: 1; background: var(--border); margin: 4px 0;"></div>') +
         '</div>' +
-        '<div style="padding-bottom: ' + (isLast ? '0' : '14') + 'px;">' +
+        '<div style="padding-bottom: ' + (isLast ? '0' : '14') + 'px; flex: 1; min-width: 0;">' +
+        (doFlash ? '<div class="tl-flash" style="--fl: ' + FLASH_SOFT[e.color] + ';">' : '<div>') +
         '<div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">' + formatTime(e.ts) + '</div>' +
         '<div style="font-size: 13.5px; font-weight: 600;">' + e.label + '</div>' +
-        '</div></div>';
+        '</div></div></div>';
     }).join('');
   }
   initTimelineScroll();
@@ -6178,6 +6082,339 @@ async function loadAnalyse() {
     });
   }
 }
+
+// --- Profil: Stammdaten des Babys ---
+// Vorerst nur im localStorage dieses Geräts: die Firestore-Regeln kennen noch
+// keine Collection dafür. Geburtsdatum treibt die Altersangabe auf Heute und
+// in Entwicklung.
+function readProfil() {
+  try { return JSON.parse(localStorage.getItem('babytracker.profil')) || {}; } catch (error) { return {}; }
+}
+
+function profilAgeDays(ref) {
+  const p = readProfil();
+  if (!p.birth) return null;
+  const days = Math.round((new Date(isoDate(ref) + 'T00:00:00') - new Date(p.birth + 'T00:00:00')) / 86400000);
+  return days >= 0 ? days : null;
+}
+
+function profilAgeWeeks(ref) {
+  const days = profilAgeDays(ref);
+  return days === null ? null : Math.floor(days / 7);
+}
+
+const profilNameInput = document.getElementById('profil-name');
+const profilBirthInput = document.getElementById('profil-birth');
+const profilAgeEl = document.getElementById('profil-age');
+const profilBwInput = document.getElementById('profil-bw');
+const profilBlInput = document.getElementById('profil-bl');
+const profilSaveBtn = document.getElementById('profil-save');
+let profilSex = null;
+
+function renderProfilSex() {
+  document.querySelectorAll('.profil-sex').forEach((btn) => {
+    const on = btn.dataset.sex === profilSex;
+    btn.style.background = on ? 'var(--neutral-strong)' : 'transparent';
+    btn.style.color = on ? 'white' : 'var(--text-muted)';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function renderProfilAge() {
+  const birth = profilBirthInput.value;
+  const days = birth ? Math.round((new Date(isoDate(new Date()) + 'T00:00:00') - new Date(birth + 'T00:00:00')) / 86400000) : -1;
+  profilAgeEl.textContent = days >= 0 ? Math.floor(days / 7) + ' Wo., ' + (days % 7) + ' T.' : '';
+}
+
+function loadProfilForm() {
+  const p = readProfil();
+  profilNameInput.value = p.name || '';
+  profilBirthInput.max = isoDate(new Date());
+  profilBirthInput.value = p.birth || '';
+  profilBwInput.value = p.bw || '';
+  profilBlInput.value = p.bl || '';
+  profilSex = p.sex || null;
+  renderProfilSex();
+  renderProfilAge();
+  const user = currentUser;
+  const label = user ? (user.displayName || user.email || '') : '';
+  document.getElementById('profil-avatar').textContent = label ? label.trim().charAt(0).toUpperCase() : '';
+  document.getElementById('profil-account-name').textContent = user ? (user.displayName || 'Angemeldet') : '';
+  document.getElementById('profil-account-email').textContent = user && user.email ? user.email + ' · Google' : '';
+}
+
+document.querySelectorAll('.profil-sex').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    profilSex = profilSex === btn.dataset.sex ? null : btn.dataset.sex;
+    renderProfilSex();
+  });
+});
+profilBirthInput.addEventListener('change', renderProfilAge);
+profilBirthInput.addEventListener('input', renderProfilAge);
+
+profilSaveBtn.addEventListener('click', () => {
+  const birth = profilBirthInput.value && profilBirthInput.value <= isoDate(new Date()) ? profilBirthInput.value : '';
+  const profil = {
+    name: profilNameInput.value.trim(),
+    birth,
+    sex: profilSex,
+    bw: profilBwInput.value.trim(),
+    bl: profilBlInput.value.trim()
+  };
+  try {
+    localStorage.setItem('babytracker.profil', JSON.stringify(profil));
+    profilSaveBtn.textContent = 'Gespeichert ✓';
+  } catch (error) {
+    profilSaveBtn.textContent = 'Speichern nicht möglich';
+  }
+  setTimeout(() => { profilSaveBtn.textContent = 'Änderungen speichern'; }, 1400);
+});
+
+// --- Entwicklung: Vorschau mit Beispieldaten ---
+// Noch ohne Backend. Alles hier lebt nur im Speicher und ist beim nächsten
+// Öffnen der App wieder auf den Beispielstand zurückgesetzt — der Hinweis-
+// kasten oben sagt das.
+const ENT_SAMPLE_BIRTH = '2026-06-10';
+const ENT_WHO = { // Mädchen, Monate 0–4: [P3, P50, P97]
+  w: [[2.4, 3.2, 4.0, 4.6, 5.1], [3.2, 4.2, 5.1, 5.8, 6.4], [4.2, 5.4, 6.6, 7.5, 8.2]],
+  l: [[45.6, 50.0, 53.2, 55.8, 58.0], [49.1, 53.7, 57.1, 59.8, 62.1], [52.7, 57.4, 60.9, 63.8, 66.2]],
+  h: [[31.7, 34.3, 36.0, 37.2, 38.2], [33.9, 36.5, 38.3, 39.5, 40.6], [36.1, 38.8, 40.5, 41.9, 43.0]]
+};
+const ENT_METRIC = {
+  w: { cap: 'Gewicht', title: 'Gewicht · kg', unit: 'kg', dec: 2, min: 2, max: 8, ticks: [3, 5, 7], label: 'Gewicht' },
+  l: { cap: 'Größe', title: 'Größe · cm', unit: 'cm', dec: 1, min: 44, max: 68, ticks: [48, 56, 64], label: 'Größe' },
+  h: { cap: 'Kopf', title: 'Kopfumfang · cm', unit: 'cm', dec: 1, min: 30, max: 44, ticks: [32, 36, 40], label: 'Kopfumfang' }
+};
+const entState = {
+  view: 'wachstum',
+  metric: 'w',
+  messung: null,
+  adding: false,
+  measurements: [
+    { date: '2026-06-10', w: 3.40, l: 51.0, h: 34.5, tag: 'Geburt' },
+    { date: '2026-06-17', w: 3.28, tag: 'U2' },
+    { date: '2026-07-15', w: 4.30, l: 55.0, h: 37.0, tag: 'U3' },
+    { date: '2026-08-12', w: 5.18, l: 58.0, h: 38.9 },
+    { date: '2026-09-02', w: 5.64 },
+    { date: '2026-09-07', w: 5.82, l: 60.5, h: 40.2 }
+  ],
+  next: [
+    { name: 'Laut lachen', hint: 'meist im 3.–4. Monat' },
+    { name: 'Nach Spielzeug greifen', hint: 'meist im 3.–5. Monat' },
+    { name: 'Auf den Rücken drehen', hint: 'meist im 4.–6. Monat' },
+    { name: 'Vom Rücken auf den Bauch drehen', hint: 'meist im 5.–7. Monat' }
+  ],
+  done: [
+    { name: 'Hände entdeckt', date: '2026-08-30' },
+    { name: 'Kopf sicher gehalten', date: '2026-08-18' },
+    { name: 'Erstes Lächeln', date: '2026-07-22' },
+    { name: 'Kopf in Bauchlage angehoben', date: '2026-07-08' }
+  ]
+};
+const entBodyEl = document.getElementById('entwicklung-body');
+const entSubtitleEl = document.getElementById('entwicklung-subtitle');
+const entBackEl = document.getElementById('entwicklung-back');
+
+function entEsc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function entNum(v, dec) { return v.toFixed(dec).replace('.', ','); }
+function entParse(s) { const v = parseFloat(String(s || '').replace(',', '.')); return Number.isFinite(v) ? v : null; }
+function entBirth() { return readProfil().birth || ENT_SAMPLE_BIRTH; }
+function entWeeks(dateStr) { return (new Date(dateStr + 'T00:00:00') - new Date(entBirth() + 'T00:00:00')) / (7 * 86400000); }
+function entLatest(k) { return entState.measurements.filter((m) => m[k] != null).sort((a, b) => b.date.localeCompare(a.date))[0]; }
+function entWhoAt(arr, wk) { const m = wk / 4.345; const i = Math.min(3, Math.max(0, Math.floor(m))); return arr[i] + (arr[i + 1] - arr[i]) * (m - i); }
+const ENT_ICON = (d, size) => '<svg width="' + (size || 17) + '" height="' + (size || 17) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+const ENT_PATHS = {
+  scale: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8.2 10a5.2 5.2 0 0 1 7.6 0"/><line x1="12" y1="10.6" x2="13.6" y2="8.4"/>',
+  flag: '<path d="M5 21V4"/><path d="M5 4.5c4-2 7 2 11 0v8c-4 2-7-2-11 0"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  check: '<path d="M4 12l5 5L20 6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/>'
+};
+
+function entGrowthChart(k) {
+  const M = ENT_METRIC[k];
+  const pts = entState.measurements.filter((m) => m[k] != null).map((m) => ({ wk: entWeeks(m.date), v: m[k] })).filter((p) => p.wk >= 0).sort((a, b) => a.wk - b.wk);
+  const xmax = Math.max(14, (pts.length ? pts[pts.length - 1].wk : 0) + 1.5);
+  const X = (wk) => 28 + wk / xmax * 264;
+  const Y = (v) => 118 - (Math.min(Math.max(v, M.min), M.max) - M.min) / (M.max - M.min) * 108;
+  const samples = [0, 4.345, 8.69, 13.035, 17.38].filter((w) => w < xmax).concat([xmax]);
+  const line = (arr) => samples.map((w, i) => (i ? 'L' : 'M') + X(w).toFixed(1) + ' ' + Y(entWhoAt(arr, w)).toFixed(1)).join(' ');
+  const [P3, P50, P97] = ENT_WHO[k];
+  const band = line(P97) + ' ' + samples.slice().reverse().map((w) => 'L' + X(w).toFixed(1) + ' ' + Y(entWhoAt(P3, w)).toFixed(1)).join(' ') + ' Z';
+  let s = '<svg class="e-chart" viewBox="0 0 300 142" style="display:block; width:100%; height:auto;" role="img" aria-label="' + M.title + '">';
+  s += '<path d="' + band + '" fill="var(--accent-soft)"/>';
+  s += '<path d="' + line(P97) + '" fill="none" stroke="var(--accent-light)" stroke-width="1"/><path d="' + line(P3) + '" fill="none" stroke="var(--accent-light)" stroke-width="1"/>';
+  M.ticks.forEach((tick) => {
+    s += '<line x1="28" y1="' + Y(tick) + '" x2="292" y2="' + Y(tick) + '" stroke="var(--border)" stroke-dasharray="2 3"/>';
+    s += '<text x="22" y="' + (Y(tick) + 3) + '" text-anchor="end">' + tick + '</text>';
+  });
+  s += '<line x1="28" y1="118" x2="292" y2="118" stroke="var(--border)"/>';
+  s += '<path d="' + line(P50) + '" fill="none" stroke="var(--accent-light)" stroke-width="1.2" stroke-dasharray="4 3"/>';
+  [0, 1, 2, 3, 4].forEach((mo) => {
+    const w = mo * 4.345;
+    if (w <= xmax - 1) s += '<text x="' + X(w) + '" y="134" text-anchor="' + (mo ? 'middle' : 'start') + '">' + (mo ? mo + ' Mon.' : 'Geburt') + '</text>';
+  });
+  if (pts.length) {
+    s += '<path d="' + pts.map((p, i) => (i ? 'L' : 'M') + X(p.wk).toFixed(1) + ' ' + Y(p.v).toFixed(1)).join(' ') + '" fill="none" stroke="var(--accent-strong)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    pts.slice(0, -1).forEach((p) => { s += '<circle cx="' + X(p.wk).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="3" fill="var(--surface)" stroke="var(--accent-strong)" stroke-width="1.6"/>'; });
+    const last = pts[pts.length - 1];
+    s += '<circle cx="' + X(last.wk).toFixed(1) + '" cy="' + Y(last.v).toFixed(1) + '" r="4.2" fill="var(--accent-strong)"/>';
+    s += '<text x="' + (X(last.wk) - 6).toFixed(1) + '" y="' + (Y(last.v) - 8).toFixed(1) + '" text-anchor="end" style="fill:var(--accent-strong); font-size:11px; font-weight:700;">' + entNum(last.v, M.dec) + '</text>';
+  }
+  return s + '</svg>';
+}
+
+function entSubtitle() {
+  const p = readProfil();
+  const days = profilAgeDays(new Date());
+  if (days === null) return 'Vorschau mit Beispieldaten';
+  const weeks = Math.floor(days / 7), rest = days % 7;
+  const age = weeks + (weeks === 1 ? ' Woche' : ' Wochen') + (rest ? ', ' + rest + (rest === 1 ? ' Tag' : ' Tage') : '') + ' alt';
+  return p.name ? p.name + ' · ' + age : age;
+}
+
+function renderEntwicklung() {
+  const st = entState;
+  entBackEl.style.display = st.messung ? 'block' : 'none';
+  entSubtitleEl.textContent = st.messung ? 'Messung eintragen' : entSubtitle();
+  const note = '<div class="e-note">' + ENT_ICON(ENT_PATHS.info, 14) + '<span>Vorschau: Beispieldaten, Einträge werden noch nicht gespeichert.</span></div>';
+
+  if (st.messung) {
+    const md = st.messung;
+    const row = (k) => {
+      const m = entLatest(k);
+      return '<div style="display:flex; align-items:center; gap:10px;"><div style="flex:1; min-width:0;"><div class="e-lbl">' + ENT_METRIC[k].label + '</div>' +
+        '<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">' + (m ? 'zuletzt ' + entNum(m[k], ENT_METRIC[k].dec) + ' ' + ENT_METRIC[k].unit : 'noch nicht gemessen') + '</div></div>' +
+        '<span class="e-num"><input type="text" inputmode="decimal" placeholder="–" data-ent-bind="' + k + '" value="' + entEsc(md[k]) + '"><span>' + ENT_METRIC[k].unit + '</span></span></div>';
+    };
+    const tags = ['Zuhause', 'Hebamme', 'U4'].map((tag) => '<button class="e-chip' + (md.tag === tag ? ' on' : '') + '" data-ent-act="tag" data-v="' + tag + '">' + tag + '</button>').join('');
+    entBodyEl.innerHTML = note +
+      '<div class="e-card" style="padding:20px; display:flex; flex-direction:column; gap:16px;">' +
+        '<div><div class="e-lbl">Datum</div><input type="date" max="' + isoDate(new Date()) + '" data-ent-bind="date" value="' + entEsc(md.date) + '" style="border:none; background:transparent; font-size:18px; font-weight:600; color:var(--text); padding:2px 0 0; outline:none; width:100%; font-family:inherit;"></div>' +
+        '<div style="height:1px; background:var(--border);"></div>' + row('w') + row('l') + row('h') +
+        '<div style="height:1px; background:var(--border);"></div>' +
+        '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Anlass <span style="text-transform:none; letter-spacing:0; font-weight:500;">· optional</span></div><div style="display:flex; gap:8px; flex-wrap:wrap;">' + tags + '</div></div>' +
+        '<div style="font-size:12px; color:var(--text-muted);">Leere Felder bleiben leer – eine Messung braucht nicht alle drei Werte.</div>' +
+        (md.error ? '<div style="font-size:12px; color:oklch(58% 0.17 25);">' + md.error + '</div>' : '') +
+        '<div style="display:flex; gap:10px;"><button class="e-save" style="flex:1.7" data-ent-act="saveMessung">Eintrag speichern</button><button class="e-cancel" style="flex:1" data-ent-act="closeMessung">Abbrechen</button></div>' +
+      '</div>';
+    return;
+  }
+
+  let body = '<div class="e-seg"><button class="' + (st.view === 'wachstum' ? 'on' : '') + '" data-ent-act="view" data-v="wachstum">' + ENT_ICON(ENT_PATHS.scale) + 'Wachstum</button>' +
+    '<button class="' + (st.view === 'meilensteine' ? 'on' : '') + '" data-ent-act="view" data-v="meilensteine">' + ENT_ICON(ENT_PATHS.flag) + 'Meilensteine</button></div>' + note;
+
+  if (st.view === 'wachstum') {
+    const all = st.measurements.slice().sort((a, b) => b.date.localeCompare(a.date));
+    const tiles = ['w', 'l', 'h'].map((k) => {
+      const m = entLatest(k);
+      return '<button class="e-tile' + (st.metric === k ? ' on' : '') + '" data-ent-act="metric" data-v="' + k + '"><span class="e-tile-cap">' + ENT_METRIC[k].cap + '</span><span class="e-tile-num">' + (m ? entNum(m[k], ENT_METRIC[k].dec) : '–') + '<small>' + ENT_METRIC[k].unit + '</small></span></button>';
+    }).join('');
+    let lastMonth = null;
+    const hist = all.map((m) => {
+      const d = new Date(m.date + 'T00:00:00');
+      const month = m.date.slice(0, 7);
+      const head = month !== lastMonth ? '<div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; padding:12px 14px 2px;">' + d.toLocaleDateString('de-DE', { month: 'long' }) + '</div>' : '';
+      lastMonth = month;
+      const parts = [m.w != null ? entNum(m.w, 2) + ' kg' : null, m.l != null ? entNum(m.l, 1) + ' cm' : null, m.h != null ? entNum(m.h, 1) + ' cm' : null].filter(Boolean);
+      return head + '<div class="e-row"><span style="font-size:13px; font-weight:600; width:44px; flex-shrink:0; font-variant-numeric:tabular-nums;">' + String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.</span>' +
+        (m.tag ? '<span style="font-size:12px; padding:3px 8px; border-radius:8px; flex-shrink:0; background:var(--accent-soft); color:var(--accent-strong);">' + entEsc(m.tag) + '</span>' : '') +
+        '<span style="font-size:12.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + parts.join(' · ') + '</span></div>';
+    }).join('');
+    const lastDate = all.length ? new Date(all[0].date + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }) : '';
+    body += '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Letzte Messung · ' + lastDate + '</div><div class="e-tiles">' + tiles + '</div></div>' +
+      '<div class="e-card" style="padding:16px 18px 12px; display:flex; flex-direction:column; gap:8px;"><div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px;">' +
+        '<span style="font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;">' + ENT_METRIC[st.metric].title + '</span>' +
+        '<span style="display:flex; gap:8px; font-size:10.5px; color:var(--text-muted); font-weight:600; white-space:nowrap; flex-shrink:0;"><span><i style="display:inline-block; width:10px; height:3px; border-radius:2px; margin-right:4px; vertical-align:2px; background:var(--accent-strong);"></i>Messung</span><span><i style="display:inline-block; width:10px; height:8px; border-radius:2px; margin-right:4px; background:var(--accent-soft); box-shadow:inset 0 0 0 1px var(--accent-light);"></i>WHO P3–P97</span></span>' +
+      '</div>' + entGrowthChart(st.metric) + '</div>' +
+      '<button class="e-save" data-ent-act="openMessung">' + ENT_ICON(ENT_PATHS.plus, 17) + 'Messung eintragen</button>' +
+      '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Historie</div><div class="e-card" style="overflow:hidden;">' + hist + '</div></div>';
+  } else {
+    const next = st.next.length
+      ? '<div class="e-card" style="overflow:hidden;">' + st.next.map((m, i) => '<div class="e-row" style="padding:12px 14px 12px 16px; gap:12px;"><div style="flex:1; min-width:0;"><div style="font-size:14px; font-weight:600;">' + entEsc(m.name) + '</div><div style="font-size:12px; color:var(--text-muted); margin-top:1px;">' + m.hint + '</div></div>' +
+          '<button class="e-btn2" style="padding:8px 11px; border-radius:12px; font-size:13px; flex-shrink:0;" data-ent-act="reach" data-v="' + i + '">' + ENT_ICON(ENT_PATHS.check, 14) + 'Erreicht</button></div>').join('') + '</div>'
+      : '<div style="font-size:13px; color:var(--text-muted);">Alle vorgeschlagenen Meilensteine sind erreicht.</div>';
+    const done = st.done.slice().sort((a, b) => b.date.localeCompare(a.date));
+    const timeline = done.map((m, i) => {
+      const last = i === done.length - 1;
+      const wk = Math.max(0, Math.floor(entWeeks(m.date)));
+      return '<div style="display:flex; gap:12px;"><div style="display:flex; flex-direction:column; align-items:center;"><div style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></div>' + (last ? '' : '<div style="width:2px; flex:1; background:var(--border); margin:4px 0;"></div>') + '</div>' +
+        '<div style="padding-bottom:' + (last ? 0 : 14) + 'px;"><div style="font-size:11.5px; color:var(--text-muted); font-weight:600;">' + new Date(m.date + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }) + ' · mit ' + wk + (wk === 1 ? ' Woche' : ' Wochen') + '</div>' +
+        '<div style="font-size:13.5px; font-weight:600;">' + entEsc(m.name) + '</div></div></div>';
+    }).join('');
+    const adder = st.adding
+      ? '<div class="e-card" style="padding:16px; display:flex; flex-direction:column; gap:12px;"><div class="e-lbl">Eigener Meilenstein</div>' +
+          '<input type="text" id="ent-ms-input" placeholder="z. B. Erstes Mal gebadet" style="border:none; border-bottom:1.5px solid var(--border); background:transparent; font-size:15px; font-weight:600; color:var(--text); padding:4px 2px; outline:none; font-family:inherit;">' +
+          '<div style="display:flex; gap:10px;"><button class="e-save" style="flex:1.7" data-ent-act="addMs">Heute erreicht</button><button class="e-cancel" style="flex:1" data-ent-act="cancelMs">Abbrechen</button></div></div>'
+      : '<button class="e-btn2" data-ent-act="startMs">' + ENT_ICON(ENT_PATHS.plus, 15) + 'Eigener Meilenstein</button>';
+    body += '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Als Nächstes</div>' + next + '</div>' +
+      '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Erreicht</div><div class="e-card" style="padding:16px 14px 16px 18px; display:flex; flex-direction:column;">' + timeline + '</div></div>' + adder;
+  }
+  entBodyEl.innerHTML = body;
+  if (st.adding) { const input = document.getElementById('ent-ms-input'); if (input) input.focus(); }
+}
+
+function openEntwicklung() {
+  entState.messung = null;
+  entState.adding = false;
+  renderEntwicklung();
+}
+
+function closeEntwicklungMessung() {
+  entState.messung = null;
+  renderEntwicklung();
+}
+
+entBodyEl.addEventListener('input', (e) => {
+  const key = e.target.dataset && e.target.dataset.entBind;
+  if (key && entState.messung) entState.messung[key] = e.target.value;
+});
+
+entBodyEl.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-ent-act]');
+  if (!el) return;
+  const st = entState;
+  const v = el.dataset.v;
+  switch (el.dataset.entAct) {
+    case 'view': st.view = v; st.adding = false; break;
+    case 'metric': st.metric = v; break;
+    case 'openMessung': st.messung = { date: isoDate(new Date()), w: '', l: '', h: '', tag: null, error: '' }; document.getElementById('entwicklung-scroll').scrollTop = 0; break;
+    case 'closeMessung': st.messung = null; break;
+    case 'tag': st.messung.tag = st.messung.tag === v ? null : v; break;
+    case 'saveMessung': {
+      const md = st.messung;
+      const w = entParse(md.w), l = entParse(md.l), h = entParse(md.h);
+      if (w === null && l === null && h === null) { md.error = 'Bitte mindestens einen Wert eintragen.'; break; }
+      if (!md.date || md.date > isoDate(new Date())) { md.error = 'Datum liegt in der Zukunft.'; break; }
+      const m = { date: md.date };
+      if (w !== null) m.w = w;
+      if (l !== null) m.l = l;
+      if (h !== null) m.h = h;
+      if (md.tag) m.tag = md.tag;
+      st.measurements.push(m);
+      st.metric = w !== null ? 'w' : l !== null ? 'l' : 'h';
+      st.messung = null;
+      break;
+    }
+    case 'reach': {
+      const m = st.next.splice(Number(v), 1)[0];
+      if (m) st.done.push({ name: m.name, date: isoDate(new Date()) });
+      break;
+    }
+    case 'startMs': st.adding = true; break;
+    case 'cancelMs': st.adding = false; break;
+    case 'addMs': {
+      const input = document.getElementById('ent-ms-input');
+      const name = input ? input.value.trim() : '';
+      if (!name) return;
+      st.done.push({ name, date: isoDate(new Date()) });
+      st.adding = false;
+      break;
+    }
+    default: return;
+  }
+  renderEntwicklung();
+});
 </script>
 
 <script>

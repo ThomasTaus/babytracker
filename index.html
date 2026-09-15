@@ -97,6 +97,15 @@
   #screen-fuettern .bt-stat { height: 16px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px; font-size: 11px; font-weight: 600; }
   #screen-fuettern .bt-track { position: relative; width: 64px; height: 34px; border-radius: 999px; background: var(--surface-alt); flex-shrink: 0; border: none; padding: 0; cursor: pointer; }
   #screen-fuettern .bt-knob { position: absolute; top: 3px; left: 3px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-strong); transition: left .18s ease; }
+
+  /* Profil: Geschlecht als derselbe Schieberegler wie beim Brust-Timer.
+     Noch nichts gewählt = Knopf in der Mitte, beide Beschriftungen grau. */
+  #screen-profil .pf-sex-row { display: flex; align-items: center; gap: 14px; }
+  #screen-profil .pf-sex-lbl { background: none; border: none; padding: 4px 0; cursor: pointer; font-family: inherit; font-size: 16px; font-weight: 400; color: var(--text-muted); }
+  #screen-profil .pf-sex-lbl.on { font-weight: 600; color: var(--text); }
+  #screen-profil .pf-track { position: relative; width: 64px; height: 34px; border-radius: 999px; background: var(--surface-alt); flex-shrink: 0; border: none; padding: 0; cursor: pointer; }
+  #screen-profil .pf-knob { position: absolute; top: 3px; left: 18px; width: 28px; height: 28px; border-radius: 50%; background: var(--border); transition: left .18s ease, background-color .18s ease; }
+  #screen-profil .pf-knob.set { background: var(--neutral-strong); }
   /* Zahl mit Unterstrich = antippbar. Segmente und das Feld für ein neues
      Segment sehen deshalb absichtlich gleich aus. */
   #screen-fuettern .bt-numfield { display: inline-flex; align-items: baseline; gap: 4px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px; }
@@ -1057,7 +1066,7 @@
     <nav class="tabbar" data-active="entwicklung"></nav>
   </div>
 
-  <!-- Profil: Baby-Stammdaten (vorerst nur auf diesem Gerät) und Konto -->
+  <!-- Profil: Baby-Stammdaten (Firestore, für die ganze Familie) und Konto -->
   <div id="screen-profil" style="
     --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
     --accent: oklch(35% 0.006 250);
@@ -1099,11 +1108,13 @@
           <div style="height: 1px; background: var(--border);"></div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Geschlecht</div>
-            <div style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
-              <button class="profil-sex" data-sex="f" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; font-family: inherit;">Mädchen</button>
-              <button class="profil-sex" data-sex="m" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; font-family: inherit;">Junge</button>
+            <div class="pf-sex-row">
+              <button class="pf-sex-lbl" data-sex="f" type="button">Mädchen</button>
+              <button id="profil-sex-track" class="pf-track" type="button" aria-label="Geschlecht wechseln">
+                <div id="profil-sex-knob" class="pf-knob"></div>
+              </button>
+              <button class="pf-sex-lbl" data-sex="m" type="button">Junge</button>
             </div>
-            <div style="font-size: 12px; color: var(--text-muted);">Wird für die WHO-Kurven in Entwicklung gebraucht.</div>
           </div>
           <div style="height: 1px; background: var(--border);"></div>
           <div style="display: flex; gap: 14px;">
@@ -1123,7 +1134,6 @@
             </div>
           </div>
           <button id="profil-save" style="width:100%; margin-top: 4px; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--neutral-strong); font-family: inherit;">Änderungen speichern</button>
-          <div style="font-size: 12px; color: var(--text-muted);">Wird vorerst nur auf diesem Gerät gespeichert.</div>
         </div>
       </div>
 
@@ -1157,7 +1167,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp
+  getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { scaleBand, scaleLinear, scalePoint } from "./vendor/d3/d3-scale.js";
 import { line as d3Line, area as d3Area, curveLinear } from "./vendor/d3/d3-shape.js";
@@ -1227,6 +1237,7 @@ onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
     currentUser = null;
+    stopProfilSync();
     loginScreen.style.display = 'flex';
     appEl.style.display = 'none';
     return;
@@ -1243,6 +1254,7 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   loginScreen.style.display = 'none';
   appEl.style.display = 'block';
+  startProfilSync();
   loadOverview();
   resumeOpenNapIfAny();
   resumeOpenNightIfAny();
@@ -4096,11 +4108,15 @@ function napEndDate(n, baseDate) {
   return n.source === 'timer' ? new Date(n.endTime) : timeOnDate(baseDate, n.endTime);
 }
 
-async function loadOverview() {
-  const now = new Date();
+function renderHeuteDate(now) {
   const ageWeeks = profilAgeWeeks(now);
   document.getElementById('heute-date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) +
     (ageWeeks !== null ? ' · ' + ageWeeks + (ageWeeks === 1 ? ' Woche alt' : ' Wochen alt') : '');
+}
+
+async function loadOverview() {
+  const now = new Date();
+  renderHeuteDate(now);
 
   const timelineEvents = [];
 
@@ -6151,11 +6167,84 @@ async function loadAnalyse() {
 }
 
 // --- Profil: Stammdaten des Babys ---
-// Vorerst nur im localStorage dieses Geräts: die Firestore-Regeln kennen noch
-// keine Collection dafür. Geburtsdatum treibt die Altersangabe auf Heute und
+// Ein einziges Dokument profile/baby in Firestore, für die ganze Familie
+// gleich. onSnapshot hält es live aktuell; der localStorage dient nur als
+// Zwischenspeicher, damit Heute und Entwicklung das Alter schon vor der
+// ersten Antwort zeigen. Geburtsdatum treibt die Altersangabe auf Heute und
 // in Entwicklung.
+const PROFIL_STORAGE_KEY = 'babytracker.profil';
+
+// Vor dem Umzug nach Firestore lagen Gewicht und Größe als Text unter bw/bl.
+function normalizeProfil(raw) {
+  if (!raw || typeof raw !== 'object') raw = {};
+  const num = (v) => {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+    const n = parseProfilNumber(v || '');
+    return Number.isNaN(n) ? null : n;
+  };
+  return {
+    name: typeof raw.name === 'string' ? raw.name : '',
+    birth: typeof raw.birth === 'string' ? raw.birth : '',
+    sex: raw.sex === 'f' || raw.sex === 'm' ? raw.sex : null,
+    birthWeightKg: num(raw.birthWeightKg !== undefined ? raw.birthWeightKg : raw.bw),
+    birthLengthCm: num(raw.birthLengthCm !== undefined ? raw.birthLengthCm : raw.bl)
+  };
+}
+
+function profilHasContent(p) {
+  return !!(p.name || p.birth || p.sex || p.birthWeightKg != null || p.birthLengthCm != null);
+}
+
+let profilCache = (() => {
+  try { return normalizeProfil(JSON.parse(localStorage.getItem(PROFIL_STORAGE_KEY))); } catch (error) { return normalizeProfil(null); }
+})();
+
 function readProfil() {
-  try { return JSON.parse(localStorage.getItem('babytracker.profil')) || {}; } catch (error) { return {}; }
+  return profilCache;
+}
+
+// '' → null, „3,4" → 3.4, Unlesbares → NaN
+function parseProfilNumber(text) {
+  const t = String(text).trim().replace(',', '.');
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function formatProfilNumber(n) {
+  return n === null || n === undefined ? '' : String(n).replace('.', ',');
+}
+
+function applyProfil(p) {
+  profilCache = normalizeProfil(p);
+  try { localStorage.setItem(PROFIL_STORAGE_KEY, JSON.stringify(profilCache)); } catch (error) { /* nur Zwischenspeicher */ }
+  renderHeuteDate(new Date());
+  if (currentScreen === 'profil' && !profilFormDirty) loadProfilForm();
+  if (currentScreen === 'entwicklung') renderEntwicklung();
+}
+
+const profilDocRef = () => doc(db, 'profile', 'baby');
+let profilUnsubscribe = null;
+
+function startProfilSync() {
+  stopProfilSync();
+  profilUnsubscribe = onSnapshot(profilDocRef(), (snap) => {
+    if (snap.exists()) {
+      applyProfil(snap.data());
+      return;
+    }
+    // Noch kein Dokument: was bisher nur auf diesem Gerät eingetragen war,
+    // einmalig für alle übernehmen. Nur auf eine echte Serverantwort hin, nie
+    // auf einen leeren Offline-Stand.
+    if (!snap.metadata.fromCache && profilHasContent(profilCache) && currentUser) {
+      setDoc(profilDocRef(), { ...profilCache, updatedAt: serverTimestamp(), updatedBy: currentUser.email })
+        .catch((error) => console.error('Profil übernehmen fehlgeschlagen:', error));
+    }
+  }, (error) => console.error('Profil laden fehlgeschlagen:', error));
+}
+
+function stopProfilSync() {
+  if (profilUnsubscribe) { profilUnsubscribe(); profilUnsubscribe = null; }
 }
 
 function profilAgeDays(ref) {
@@ -6176,15 +6265,18 @@ const profilAgeEl = document.getElementById('profil-age');
 const profilBwInput = document.getElementById('profil-bw');
 const profilBlInput = document.getElementById('profil-bl');
 const profilSaveBtn = document.getElementById('profil-save');
+const profilSexKnob = document.getElementById('profil-sex-knob');
 let profilSex = null;
+let profilFormDirty = false;
 
 function renderProfilSex() {
-  document.querySelectorAll('.profil-sex').forEach((btn) => {
+  document.querySelectorAll('.pf-sex-lbl').forEach((btn) => {
     const on = btn.dataset.sex === profilSex;
-    btn.style.background = on ? 'var(--neutral-strong)' : 'transparent';
-    btn.style.color = on ? 'white' : 'var(--text-muted)';
+    btn.classList.toggle('on', on);
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
+  profilSexKnob.style.left = profilSex === 'f' ? '3px' : profilSex === 'm' ? '33px' : '18px';
+  profilSexKnob.classList.toggle('set', !!profilSex);
 }
 
 function renderProfilAge() {
@@ -6198,9 +6290,10 @@ function loadProfilForm() {
   profilNameInput.value = p.name || '';
   profilBirthInput.max = isoDate(new Date());
   profilBirthInput.value = p.birth || '';
-  profilBwInput.value = p.bw || '';
-  profilBlInput.value = p.bl || '';
+  profilBwInput.value = formatProfilNumber(p.birthWeightKg);
+  profilBlInput.value = formatProfilNumber(p.birthLengthCm);
   profilSex = p.sex || null;
+  profilFormDirty = false;
   renderProfilSex();
   renderProfilAge();
   const user = currentUser;
@@ -6210,31 +6303,59 @@ function loadProfilForm() {
   document.getElementById('profil-account-email').textContent = user && user.email ? user.email + ' · Google' : '';
 }
 
-document.querySelectorAll('.profil-sex').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    profilSex = profilSex === btn.dataset.sex ? null : btn.dataset.sex;
-    renderProfilSex();
-  });
+function setProfilSex(sex) {
+  profilSex = sex;
+  profilFormDirty = true;
+  renderProfilSex();
+}
+
+// Beschriftung wählt die Seite, der Regler selbst schaltet um (noch nichts
+// gewählt → Mädchen, wie links beim Brust-Timer).
+document.querySelectorAll('.pf-sex-lbl').forEach((btn) => {
+  btn.addEventListener('click', () => setProfilSex(btn.dataset.sex));
+});
+document.getElementById('profil-sex-track').addEventListener('click', () => setProfilSex(profilSex === 'f' ? 'm' : 'f'));
+
+[profilNameInput, profilBirthInput, profilBwInput, profilBlInput].forEach((el) => {
+  el.addEventListener('input', () => { profilFormDirty = true; });
 });
 profilBirthInput.addEventListener('change', renderProfilAge);
 profilBirthInput.addEventListener('input', renderProfilAge);
 
-profilSaveBtn.addEventListener('click', () => {
-  const birth = profilBirthInput.value && profilBirthInput.value <= isoDate(new Date()) ? profilBirthInput.value : '';
-  const profil = {
-    name: profilNameInput.value.trim(),
-    birth,
-    sex: profilSex,
-    bw: profilBwInput.value.trim(),
-    bl: profilBlInput.value.trim()
-  };
-  try {
-    localStorage.setItem('babytracker.profil', JSON.stringify(profil));
-    profilSaveBtn.textContent = 'Gespeichert ✓';
-  } catch (error) {
-    profilSaveBtn.textContent = 'Speichern nicht möglich';
+let profilSaveMsgTimer = null;
+function flashProfilSaveBtn(text) {
+  profilSaveBtn.textContent = text;
+  clearTimeout(profilSaveMsgTimer);
+  profilSaveMsgTimer = setTimeout(() => { profilSaveBtn.textContent = 'Änderungen speichern'; }, 1600);
+}
+
+profilSaveBtn.addEventListener('click', async () => {
+  const birthWeightKg = parseProfilNumber(profilBwInput.value);
+  const birthLengthCm = parseProfilNumber(profilBlInput.value);
+  if (Number.isNaN(birthWeightKg) || (birthWeightKg !== null && (birthWeightKg < 0.3 || birthWeightKg > 8))) {
+    flashProfilSaveBtn('Geburtsgewicht prüfen');
+    return;
   }
-  setTimeout(() => { profilSaveBtn.textContent = 'Änderungen speichern'; }, 1400);
+  if (Number.isNaN(birthLengthCm) || (birthLengthCm !== null && (birthLengthCm < 20 || birthLengthCm > 70))) {
+    flashProfilSaveBtn('Größe bei Geburt prüfen');
+    return;
+  }
+  const birth = profilBirthInput.value && profilBirthInput.value <= isoDate(new Date()) ? profilBirthInput.value : '';
+  const profil = { name: profilNameInput.value.trim(), birth, sex: profilSex, birthWeightKg, birthLengthCm };
+
+  profilSaveBtn.disabled = true;
+  profilSaveBtn.textContent = 'Speichert…';
+  try {
+    await setDoc(profilDocRef(), { ...profil, updatedAt: serverTimestamp(), updatedBy: currentUser.email });
+    profilFormDirty = false;
+    applyProfil(profil);
+    flashProfilSaveBtn('Gespeichert ✓');
+  } catch (error) {
+    console.error('Profil speichern fehlgeschlagen:', error);
+    flashProfilSaveBtn('Speichern nicht möglich');
+  } finally {
+    profilSaveBtn.disabled = false;
+  }
 });
 
 // --- Entwicklung: Vorschau mit Beispieldaten ---

@@ -59,7 +59,7 @@
   #screen-historie .h-detail b { color: var(--text); font-weight: 600; }
   #screen-historie .h-btn { border: none; background: none; padding: 6px; cursor: pointer; display: flex; color: var(--text-muted); }
   #screen-historie .h-btn.del { color: var(--warn); }
-  /* Entwicklung (Vorschau) */
+  /* Entwicklung */
   #screen-entwicklung button { font-family: inherit; }
   #screen-entwicklung .e-seg { display: flex; background: var(--surface-alt); border-radius: 18px; padding: 5px; gap: 5px; }
   #screen-entwicklung .e-seg button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; border-radius: 14px; border: none; font-weight: 600; font-size: 14px; background: transparent; color: var(--text-muted); cursor: pointer; }
@@ -79,8 +79,6 @@
   #screen-entwicklung .e-save { width: 100%; padding: 13px 10px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; color: white; background: var(--accent-strong); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; white-space: nowrap; }
   #screen-entwicklung .e-cancel { width: 100%; padding: 13px 10px; border: 1px solid var(--border); border-radius: 14px; font-size: 15px; font-weight: 700; color: var(--text-muted); background: var(--surface); cursor: pointer; white-space: nowrap; }
   #screen-entwicklung .e-btn2 { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); font-weight: 600; font-size: 14px; cursor: pointer; }
-  #screen-entwicklung .e-chip { padding: 7px 12px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; }
-  #screen-entwicklung .e-chip.on { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); font-weight: 700; }
   #screen-entwicklung .e-num { display: inline-flex; align-items: baseline; gap: 5px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px; }
   #screen-entwicklung .e-num input { width: 48px; text-align: right; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; font-family: inherit; }
   #screen-entwicklung .e-num span { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
@@ -1041,7 +1039,7 @@
     <nav class="tabbar" data-active="heute"></nav>
   </div>
 
-  <!-- Entwicklung: vorerst Vorschau mit Beispieldaten, ohne Backend -->
+  <!-- Entwicklung: Wachstum und Meilensteine (Firestore) -->
   <div id="screen-entwicklung" style="
     --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
     --accent: oklch(72% 0.11 65); --accent-strong: oklch(50% 0.11 55); --accent-soft: oklch(94% 0.03 70); --accent-light: oklch(86% 0.06 65); --accent-ink: oklch(38% 0.07 55);
@@ -1350,7 +1348,7 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
   btn.addEventListener('click', () => {
     const where = btn.dataset.back;
     if (where === 'historie') showScreen('heute');
-    else if (where === 'entwicklung') closeEntwicklungMessung();
+    else if (where === 'entwicklung') closeEntwicklungDialog();
     else leaveEntryScreen(where, btn.classList.contains('entry-cancel'));
   });
 });
@@ -1365,6 +1363,7 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
 // eintragen" = 2. Tiefer → pushState, flacher (per Knopf in der App) →
 // history.go zurück, gleiche Tiefe (Tabwechsel) → nichts. So stapeln sich beim
 // Hin- und Herwechseln keine Einträge, und von Heute aus schließt die Taste.
+// („Meilenstein eintragen" zählt wie „Messung eintragen" als Tiefe 2.)
 let currentScreen = 'heute';
 let navDepth = 0;
 let navIgnorePops = 0;
@@ -1376,7 +1375,7 @@ function uiNavDepth() {
   if (currentScreen === 'fuettern') return editingFeedingId ? 2 : 1;
   if (currentScreen === 'windeln') return editingDiaperId ? 2 : 1;
   if (currentScreen === 'schlafen') return (editingNightId || editingNapId) ? 2 : 1;
-  if (currentScreen === 'entwicklung') return entState.messung ? 2 : 1;
+  if (currentScreen === 'entwicklung') return entDialogOpen() ? 2 : 1;
   return 1;
 }
 
@@ -1399,7 +1398,7 @@ function syncHistory() {
 // Ein Schritt zurück — dasselbe wie „‹ Zurück" auf der jeweiligen Seite.
 function navigateBackOneLevel() {
   if (['fuettern', 'windeln', 'schlafen'].includes(currentScreen)) leaveEntryScreen(currentScreen);
-  else if (currentScreen === 'entwicklung' && entState.messung) closeEntwicklungMessung();
+  else if (currentScreen === 'entwicklung' && entDialogOpen()) closeEntwicklungDialog();
   else if (currentScreen !== 'heute') showScreen('heute');
 }
 
@@ -6358,70 +6357,114 @@ profilSaveBtn.addEventListener('click', async () => {
   }
 });
 
-// --- Entwicklung: Vorschau mit Beispieldaten ---
-// Noch ohne Backend. Alles hier lebt nur im Speicher und ist beim nächsten
-// Öffnen der App wieder auf den Beispielstand zurückgesetzt — der Hinweis-
-// kasten oben sagt das.
-const ENT_SAMPLE_BIRTH = '2026-06-10';
+// --- Entwicklung: Wachstum und Meilensteine ---
+// Messungen (Collection measurements) und erreichte Meilensteine (milestones)
+// liegen in Firestore und werden bei jedem Öffnen des Bereichs neu geladen.
+// Maßgeblich ist immer das eingetragene Datum, nie createdAt.
 const ENT_WHO = { // Mädchen, Monate 0–4: [P3, P50, P97]
   w: [[2.4, 3.2, 4.0, 4.6, 5.1], [3.2, 4.2, 5.1, 5.8, 6.4], [4.2, 5.4, 6.6, 7.5, 8.2]],
   l: [[45.6, 50.0, 53.2, 55.8, 58.0], [49.1, 53.7, 57.1, 59.8, 62.1], [52.7, 57.4, 60.9, 63.8, 66.2]],
   h: [[31.7, 34.3, 36.0, 37.2, 38.2], [33.9, 36.5, 38.3, 39.5, 40.6], [36.1, 38.8, 40.5, 41.9, 43.0]]
 };
+// field = Feldname in Firestore; lo/hi = plausibler Bereich beim Speichern
 const ENT_METRIC = {
-  w: { cap: 'Gewicht', title: 'Gewicht · kg', unit: 'kg', dec: 2, min: 2, max: 8, ticks: [3, 5, 7], label: 'Gewicht' },
-  l: { cap: 'Größe', title: 'Größe · cm', unit: 'cm', dec: 1, min: 44, max: 68, ticks: [48, 56, 64], label: 'Größe' },
-  h: { cap: 'Kopf', title: 'Kopfumfang · cm', unit: 'cm', dec: 1, min: 30, max: 44, ticks: [32, 36, 40], label: 'Kopfumfang' }
+  w: { cap: 'Gewicht', title: 'Gewicht · kg', unit: 'kg', dec: 2, min: 2, max: 8, ticks: [3, 5, 7], label: 'Gewicht', field: 'weightKg', lo: 0.3, hi: 30 },
+  l: { cap: 'Größe', title: 'Größe · cm', unit: 'cm', dec: 1, min: 44, max: 68, ticks: [48, 56, 64], label: 'Größe', field: 'lengthCm', lo: 20, hi: 130 },
+  h: { cap: 'Kopf', title: 'Kopfumfang · cm', unit: 'cm', dec: 1, min: 30, max: 44, ticks: [32, 36, 40], label: 'Kopfumfang', field: 'headCm', lo: 20, hi: 60 }
 };
+// Vorschläge in der üblichen Reihenfolge. „Als Nächstes" zeigt die ersten
+// ENT_NEXT_COUNT, die noch nicht (namensgleich) als erreicht eingetragen sind.
+const ENT_SUGGESTIONS = [
+  { name: 'Erstes Lächeln', hint: 'meist im 2. Monat' },
+  { name: 'Kopf in Bauchlage angehoben', hint: 'meist im 1.–3. Monat' },
+  { name: 'Hände entdeckt', hint: 'meist im 2.–3. Monat' },
+  { name: 'Kopf sicher gehalten', hint: 'meist im 3.–4. Monat' },
+  { name: 'Laut lachen', hint: 'meist im 3.–4. Monat' },
+  { name: 'Nach Spielzeug greifen', hint: 'meist im 3.–5. Monat' },
+  { name: 'Auf den Rücken drehen', hint: 'meist im 4.–6. Monat' },
+  { name: 'Vom Rücken auf den Bauch drehen', hint: 'meist im 5.–7. Monat' },
+  { name: 'Ohne Hilfe sitzen', hint: 'meist im 6.–9. Monat' },
+  { name: 'Erster Zahn', hint: 'meist im 6.–10. Monat' },
+  { name: 'Krabbeln', hint: 'meist im 7.–10. Monat' },
+  { name: 'Hochziehen zum Stehen', hint: 'meist im 9.–12. Monat' },
+  { name: 'Erstes Wort', hint: 'meist im 10.–14. Monat' },
+  { name: 'Erste Schritte', hint: 'meist im 11.–15. Monat' }
+];
+const ENT_NEXT_COUNT = 4;
+const ENT_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 const entState = {
   view: 'wachstum',
   metric: 'w',
-  messung: null,
-  adding: false,
-  measurements: [
-    { date: '2026-06-10', w: 3.40, l: 51.0, h: 34.5, tag: 'Geburt' },
-    { date: '2026-06-17', w: 3.28, tag: 'U2' },
-    { date: '2026-07-15', w: 4.30, l: 55.0, h: 37.0, tag: 'U3' },
-    { date: '2026-08-12', w: 5.18, l: 58.0, h: 38.9 },
-    { date: '2026-09-02', w: 5.64 },
-    { date: '2026-09-07', w: 5.82, l: 60.5, h: 40.2 }
-  ],
-  next: [
-    { name: 'Laut lachen', hint: 'meist im 3.–4. Monat' },
-    { name: 'Nach Spielzeug greifen', hint: 'meist im 3.–5. Monat' },
-    { name: 'Auf den Rücken drehen', hint: 'meist im 4.–6. Monat' },
-    { name: 'Vom Rücken auf den Bauch drehen', hint: 'meist im 5.–7. Monat' }
-  ],
-  done: [
-    { name: 'Hände entdeckt', date: '2026-08-30' },
-    { name: 'Kopf sicher gehalten', date: '2026-08-18' },
-    { name: 'Erstes Lächeln', date: '2026-07-22' },
-    { name: 'Kopf in Bauchlage angehoben', date: '2026-07-08' }
-  ]
+  messung: null,      // offener Dialog „Messung eintragen"
+  meilenstein: null,  // offener Dialog „Meilenstein eintragen"
+  focusName: false,   // Namensfeld nach dem Öffnen einmal fokussieren
+  saving: false,
+  loaded: false,
+  loadError: false,
+  measurements: [],   // { id, date, w?, l?, h? }
+  done: []            // { id, name, date }
 };
+let entLoadToken = 0;
 const entBodyEl = document.getElementById('entwicklung-body');
 const entSubtitleEl = document.getElementById('entwicklung-subtitle');
 const entBackEl = document.getElementById('entwicklung-back');
 
 function entEsc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function entNum(v, dec) { return v.toFixed(dec).replace('.', ','); }
-function entParse(s) { const v = parseFloat(String(s || '').replace(',', '.')); return Number.isFinite(v) ? v : null; }
-function entBirth() { return readProfil().birth || ENT_SAMPLE_BIRTH; }
-function entWeeks(dateStr) { return (new Date(dateStr + 'T00:00:00') - new Date(entBirth() + 'T00:00:00')) / (7 * 86400000); }
+function entDialogOpen() { return !!(entState.messung || entState.meilenstein); }
+function entBirth() { return readProfil().birth || null; }
+// Nullpunkt der Diagramme: Geburt, ohne Geburtsdatum die früheste Messung
+function entOrigin() {
+  const birth = entBirth();
+  if (birth) return birth;
+  const dates = entState.measurements.map((m) => m.date).sort();
+  return dates[0] || isoDate(new Date());
+}
+function entWeeks(dateStr, origin) { return (new Date(dateStr + 'T00:00:00') - new Date((origin || entOrigin()) + 'T00:00:00')) / (7 * 86400000); }
 function entLatest(k) { return entState.measurements.filter((m) => m[k] != null).sort((a, b) => b.date.localeCompare(a.date))[0]; }
 function entWhoAt(arr, wk) { const m = wk / 4.345; const i = Math.min(3, Math.max(0, Math.floor(m))); return arr[i] + (arr[i + 1] - arr[i]) * (m - i); }
+function entNameKey(name) { return String(name).trim().toLowerCase(); }
 const ENT_ICON = (d, size) => '<svg width="' + (size || 17) + '" height="' + (size || 17) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
 const ENT_PATHS = {
   scale: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8.2 10a5.2 5.2 0 0 1 7.6 0"/><line x1="12" y1="10.6" x2="13.6" y2="8.4"/>',
   flag: '<path d="M5 21V4"/><path d="M5 4.5c4-2 7 2 11 0v8c-4 2-7-2-11 0"/>',
   plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
-  check: '<path d="M4 12l5 5L20 6"/>',
-  info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/>'
+  check: '<path d="M4 12l5 5L20 6"/>'
 };
+
+async function loadEntwicklung() {
+  const token = ++entLoadToken;
+  try {
+    const [measSnap, msSnap] = await Promise.all([getDocs(collection(db, 'measurements')), getDocs(collection(db, 'milestones'))]);
+    if (token !== entLoadToken) return;
+    entState.measurements = measSnap.docs.map((d) => {
+      const x = d.data();
+      if (!ENT_DATE_RE.test(x.date || '')) return null;
+      const m = { id: d.id, date: x.date };
+      Object.keys(ENT_METRIC).forEach((k) => {
+        const v = x[ENT_METRIC[k].field];
+        if (typeof v === 'number' && Number.isFinite(v)) m[k] = v;
+      });
+      return m;
+    }).filter(Boolean);
+    entState.done = msSnap.docs.map((d) => ({ id: d.id, name: d.data().name, date: d.data().date }))
+      .filter((m) => typeof m.name === 'string' && m.name.trim() && ENT_DATE_RE.test(m.date || ''));
+    entState.loaded = true;
+    entState.loadError = false;
+  } catch (error) {
+    if (token !== entLoadToken) return;
+    console.error('Entwicklung laden fehlgeschlagen:', error);
+    entState.loadError = true;
+  }
+  // Einen offenen Dialog nicht neu zeichnen (Fokus/Tastatur blieben sonst nicht)
+  if (currentScreen === 'entwicklung' && !entDialogOpen()) renderEntwicklung();
+}
 
 function entGrowthChart(k) {
   const M = ENT_METRIC[k];
-  const pts = entState.measurements.filter((m) => m[k] != null).map((m) => ({ wk: entWeeks(m.date), v: m[k] })).filter((p) => p.wk >= 0).sort((a, b) => a.wk - b.wk);
+  const origin = entOrigin();
+  const pts = entState.measurements.filter((m) => m[k] != null).map((m) => ({ wk: entWeeks(m.date, origin), v: m[k] })).filter((p) => p.wk >= 0).sort((a, b) => a.wk - b.wk);
   const xmax = Math.max(14, (pts.length ? pts[pts.length - 1].wk : 0) + 1.5);
   const X = (wk) => 28 + wk / xmax * 264;
   const Y = (v) => 118 - (Math.min(Math.max(v, M.min), M.max) - M.min) / (M.max - M.min) * 108;
@@ -6455,17 +6498,25 @@ function entGrowthChart(k) {
 function entSubtitle() {
   const p = readProfil();
   const days = profilAgeDays(new Date());
-  if (days === null) return 'Vorschau mit Beispieldaten';
+  if (days === null) return p.name || 'Wachstum & Meilensteine';
   const weeks = Math.floor(days / 7), rest = days % 7;
   const age = weeks + (weeks === 1 ? ' Woche' : ' Wochen') + (rest ? ', ' + rest + (rest === 1 ? ' Tag' : ' Tage') : '') + ' alt';
   return p.name ? p.name + ' · ' + age : age;
 }
 
+const ENT_DATE_INPUT_STYLE = 'border:none; background:transparent; font-size:18px; font-weight:600; color:var(--text); padding:2px 0 0; outline:none; width:100%; font-family:inherit;';
+const ENT_DIVIDER = '<div style="height:1px; background:var(--border);"></div>';
+
+function entDialogFooter(form, saveAct, closeAct) {
+  return (form.error ? '<div style="font-size:12px; color:oklch(58% 0.17 25);">' + entEsc(form.error) + '</div>' : '') +
+    '<div style="display:flex; gap:10px;"><button class="e-save" style="flex:1.7"' + (entState.saving ? ' disabled' : '') + ' data-ent-act="' + saveAct + '">' + (entState.saving ? 'Speichert…' : 'Eintrag speichern') + '</button>' +
+    '<button class="e-cancel" style="flex:1" data-ent-act="' + closeAct + '">Abbrechen</button></div>';
+}
+
 function renderEntwicklung() {
   const st = entState;
-  entBackEl.style.display = st.messung ? 'block' : 'none';
-  entSubtitleEl.textContent = st.messung ? 'Messung eintragen' : entSubtitle();
-  const note = '<div class="e-note">' + ENT_ICON(ENT_PATHS.info, 14) + '<span>Vorschau: Beispieldaten, Einträge werden noch nicht gespeichert.</span></div>';
+  entBackEl.style.display = entDialogOpen() ? 'block' : 'none';
+  entSubtitleEl.textContent = st.messung ? 'Messung eintragen' : st.meilenstein ? 'Meilenstein eintragen' : entSubtitle();
 
   if (st.messung) {
     const md = st.messung;
@@ -6475,22 +6526,42 @@ function renderEntwicklung() {
         '<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">' + (m ? 'zuletzt ' + entNum(m[k], ENT_METRIC[k].dec) + ' ' + ENT_METRIC[k].unit : 'noch nicht gemessen') + '</div></div>' +
         '<span class="e-num"><input type="text" inputmode="decimal" placeholder="–" data-ent-bind="' + k + '" value="' + entEsc(md[k]) + '"><span>' + ENT_METRIC[k].unit + '</span></span></div>';
     };
-    const tags = ['Zuhause', 'Hebamme', 'U4'].map((tag) => '<button class="e-chip' + (md.tag === tag ? ' on' : '') + '" data-ent-act="tag" data-v="' + tag + '">' + tag + '</button>').join('');
-    entBodyEl.innerHTML = note +
+    entBodyEl.innerHTML =
       '<div class="e-card" style="padding:20px; display:flex; flex-direction:column; gap:16px;">' +
-        '<div><div class="e-lbl">Datum</div><input type="date" max="' + isoDate(new Date()) + '" data-ent-bind="date" value="' + entEsc(md.date) + '" style="border:none; background:transparent; font-size:18px; font-weight:600; color:var(--text); padding:2px 0 0; outline:none; width:100%; font-family:inherit;"></div>' +
-        '<div style="height:1px; background:var(--border);"></div>' + row('w') + row('l') + row('h') +
-        '<div style="height:1px; background:var(--border);"></div>' +
-        '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Anlass <span style="text-transform:none; letter-spacing:0; font-weight:500;">· optional</span></div><div style="display:flex; gap:8px; flex-wrap:wrap;">' + tags + '</div></div>' +
+        '<div><div class="e-lbl">Datum</div><input type="date" max="' + isoDate(new Date()) + '" data-ent-bind="date" value="' + entEsc(md.date) + '" style="' + ENT_DATE_INPUT_STYLE + '"></div>' +
+        ENT_DIVIDER + row('w') + row('l') + row('h') + ENT_DIVIDER +
         '<div style="font-size:12px; color:var(--text-muted);">Leere Felder bleiben leer – eine Messung braucht nicht alle drei Werte.</div>' +
-        (md.error ? '<div style="font-size:12px; color:oklch(58% 0.17 25);">' + md.error + '</div>' : '') +
-        '<div style="display:flex; gap:10px;"><button class="e-save" style="flex:1.7" data-ent-act="saveMessung">Eintrag speichern</button><button class="e-cancel" style="flex:1" data-ent-act="closeMessung">Abbrechen</button></div>' +
+        entDialogFooter(md, 'saveMessung', 'closeDialog') +
       '</div>';
     return;
   }
 
+  if (st.meilenstein) {
+    const ms = st.meilenstein;
+    const nameField = ms.fixed
+      ? '<div style="font-size:18px; font-weight:600; padding-top:2px;">' + entEsc(ms.name) + '</div>' + (ms.hint ? '<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">' + entEsc(ms.hint) + '</div>' : '')
+      : '<input type="text" id="ent-ms-name" maxlength="80" autocomplete="off" placeholder="z. B. Erstes Mal gebadet" data-ent-bind="name" value="' + entEsc(ms.name) + '" style="' + ENT_DATE_INPUT_STYLE + '">';
+    entBodyEl.innerHTML =
+      '<div class="e-card" style="padding:20px; display:flex; flex-direction:column; gap:16px;">' +
+        '<div><div class="e-lbl">Meilenstein</div>' + nameField + '</div>' + ENT_DIVIDER +
+        '<div><div class="e-lbl">Erreicht am</div><input type="date" max="' + isoDate(new Date()) + '" data-ent-bind="date" value="' + entEsc(ms.date) + '" style="' + ENT_DATE_INPUT_STYLE + '"></div>' +
+        entDialogFooter(ms, 'saveMeilenstein', 'closeDialog') +
+      '</div>';
+    if (st.focusName) {
+      st.focusName = false;
+      const input = document.getElementById('ent-ms-name');
+      if (input) input.focus();
+    }
+    return;
+  }
+
   let body = '<div class="e-seg"><button class="' + (st.view === 'wachstum' ? 'on' : '') + '" data-ent-act="view" data-v="wachstum">' + ENT_ICON(ENT_PATHS.scale) + 'Wachstum</button>' +
-    '<button class="' + (st.view === 'meilensteine' ? 'on' : '') + '" data-ent-act="view" data-v="meilensteine">' + ENT_ICON(ENT_PATHS.flag) + 'Meilensteine</button></div>' + note;
+    '<button class="' + (st.view === 'meilensteine' ? 'on' : '') + '" data-ent-act="view" data-v="meilensteine">' + ENT_ICON(ENT_PATHS.flag) + 'Meilensteine</button></div>';
+
+  if (!st.loaded) {
+    entBodyEl.innerHTML = body + '<div style="font-size:13px; color:var(--text-muted);">' + (st.loadError ? 'Daten konnten nicht geladen werden.' : 'Wird geladen…') + '</div>';
+    return;
+  }
 
   if (st.view === 'wachstum') {
     const all = st.measurements.slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -6506,57 +6577,142 @@ function renderEntwicklung() {
       lastMonth = month;
       const parts = [m.w != null ? entNum(m.w, 2) + ' kg' : null, m.l != null ? entNum(m.l, 1) + ' cm' : null, m.h != null ? entNum(m.h, 1) + ' cm' : null].filter(Boolean);
       return head + '<div class="e-row"><span style="font-size:13px; font-weight:600; width:44px; flex-shrink:0; font-variant-numeric:tabular-nums;">' + String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.</span>' +
-        (m.tag ? '<span style="font-size:12px; padding:3px 8px; border-radius:8px; flex-shrink:0; background:var(--accent-soft); color:var(--accent-strong);">' + entEsc(m.tag) + '</span>' : '') +
         '<span style="font-size:12.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + parts.join(' · ') + '</span></div>';
     }).join('');
-    const lastDate = all.length ? new Date(all[0].date + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }) : '';
-    body += '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Letzte Messung · ' + lastDate + '</div><div class="e-tiles">' + tiles + '</div></div>' +
+    const lastDate = all.length ? ' · ' + new Date(all[0].date + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }) : '';
+    body += '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Letzte Messung' + lastDate + '</div><div class="e-tiles">' + tiles + '</div></div>' +
       '<div class="e-card" style="padding:16px 18px 12px; display:flex; flex-direction:column; gap:8px;"><div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px;">' +
         '<span style="font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;">' + ENT_METRIC[st.metric].title + '</span>' +
         '<span style="display:flex; gap:8px; font-size:10.5px; color:var(--text-muted); font-weight:600; white-space:nowrap; flex-shrink:0;"><span><i style="display:inline-block; width:10px; height:3px; border-radius:2px; margin-right:4px; vertical-align:2px; background:var(--accent-strong);"></i>Messung</span><span><i style="display:inline-block; width:10px; height:8px; border-radius:2px; margin-right:4px; background:var(--accent-soft); box-shadow:inset 0 0 0 1px var(--accent-light);"></i>WHO P3–P97</span></span>' +
       '</div>' + entGrowthChart(st.metric) + '</div>' +
       '<button class="e-save" data-ent-act="openMessung">' + ENT_ICON(ENT_PATHS.plus, 17) + 'Messung eintragen</button>' +
-      '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Historie</div><div class="e-card" style="overflow:hidden;">' + hist + '</div></div>';
+      '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Historie</div>' +
+        (hist ? '<div class="e-card" style="overflow:hidden;">' + hist + '</div>' : '<div style="font-size:13px; color:var(--text-muted);">Noch keine Messungen eingetragen.</div>') +
+      '</div>';
   } else {
-    const next = st.next.length
-      ? '<div class="e-card" style="overflow:hidden;">' + st.next.map((m, i) => '<div class="e-row" style="padding:12px 14px 12px 16px; gap:12px;"><div style="flex:1; min-width:0;"><div style="font-size:14px; font-weight:600;">' + entEsc(m.name) + '</div><div style="font-size:12px; color:var(--text-muted); margin-top:1px;">' + m.hint + '</div></div>' +
-          '<button class="e-btn2" style="padding:8px 11px; border-radius:12px; font-size:13px; flex-shrink:0;" data-ent-act="reach" data-v="' + i + '">' + ENT_ICON(ENT_PATHS.check, 14) + 'Erreicht</button></div>').join('') + '</div>'
+    const doneKeys = new Set(st.done.map((m) => entNameKey(m.name)));
+    const nextIdx = ENT_SUGGESTIONS.map((m, i) => i).filter((i) => !doneKeys.has(entNameKey(ENT_SUGGESTIONS[i].name))).slice(0, ENT_NEXT_COUNT);
+    const next = nextIdx.length
+      ? '<div class="e-card" style="overflow:hidden;">' + nextIdx.map((i) => {
+          const m = ENT_SUGGESTIONS[i];
+          return '<div class="e-row" style="padding:12px 14px 12px 16px; gap:12px;"><div style="flex:1; min-width:0;"><div style="font-size:14px; font-weight:600;">' + entEsc(m.name) + '</div><div style="font-size:12px; color:var(--text-muted); margin-top:1px;">' + entEsc(m.hint) + '</div></div>' +
+            '<button class="e-btn2" style="padding:8px 11px; border-radius:12px; font-size:13px; flex-shrink:0;" data-ent-act="reach" data-v="' + i + '">' + ENT_ICON(ENT_PATHS.check, 14) + 'Erreicht</button></div>';
+        }).join('') + '</div>'
       : '<div style="font-size:13px; color:var(--text-muted);">Alle vorgeschlagenen Meilensteine sind erreicht.</div>';
-    const done = st.done.slice().sort((a, b) => b.date.localeCompare(a.date));
+    const birth = entBirth();
+    const done = st.done.slice().sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
     const timeline = done.map((m, i) => {
       const last = i === done.length - 1;
-      const wk = Math.max(0, Math.floor(entWeeks(m.date)));
+      const wk = birth ? Math.max(0, Math.floor(entWeeks(m.date, birth))) : null;
       return '<div style="display:flex; gap:12px;"><div style="display:flex; flex-direction:column; align-items:center;"><div style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></div>' + (last ? '' : '<div style="width:2px; flex:1; background:var(--border); margin:4px 0;"></div>') + '</div>' +
-        '<div style="padding-bottom:' + (last ? 0 : 14) + 'px;"><div style="font-size:11.5px; color:var(--text-muted); font-weight:600;">' + new Date(m.date + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }) + ' · mit ' + wk + (wk === 1 ? ' Woche' : ' Wochen') + '</div>' +
+        '<div style="padding-bottom:' + (last ? 0 : 14) + 'px;"><div style="font-size:11.5px; color:var(--text-muted); font-weight:600;">' + new Date(m.date + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }) + (wk !== null ? ' · mit ' + wk + (wk === 1 ? ' Woche' : ' Wochen') : '') + '</div>' +
         '<div style="font-size:13.5px; font-weight:600;">' + entEsc(m.name) + '</div></div></div>';
     }).join('');
-    const adder = st.adding
-      ? '<div class="e-card" style="padding:16px; display:flex; flex-direction:column; gap:12px;"><div class="e-lbl">Eigener Meilenstein</div>' +
-          '<input type="text" id="ent-ms-input" placeholder="z. B. Erstes Mal gebadet" style="border:none; border-bottom:1.5px solid var(--border); background:transparent; font-size:15px; font-weight:600; color:var(--text); padding:4px 2px; outline:none; font-family:inherit;">' +
-          '<div style="display:flex; gap:10px;"><button class="e-save" style="flex:1.7" data-ent-act="addMs">Heute erreicht</button><button class="e-cancel" style="flex:1" data-ent-act="cancelMs">Abbrechen</button></div></div>'
-      : '<button class="e-btn2" data-ent-act="startMs">' + ENT_ICON(ENT_PATHS.plus, 15) + 'Eigener Meilenstein</button>';
-    body += '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Als Nächstes</div>' + next + '</div>' +
-      '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Erreicht</div><div class="e-card" style="padding:16px 14px 16px 18px; display:flex; flex-direction:column;">' + timeline + '</div></div>' + adder;
+    body += '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Als Nächstes</div>' + next +
+        '<button class="e-btn2" data-ent-act="startMs">' + ENT_ICON(ENT_PATHS.plus, 15) + 'Eigener Meilenstein</button></div>' +
+      '<div style="display:flex; flex-direction:column; gap:10px;"><div class="e-lbl">Erreicht</div>' +
+        (timeline ? '<div class="e-card" style="padding:16px 14px 16px 18px; display:flex; flex-direction:column;">' + timeline + '</div>' : '<div style="font-size:13px; color:var(--text-muted);">Noch keine Meilensteine eingetragen.</div>') +
+      '</div>';
   }
   entBodyEl.innerHTML = body;
-  if (st.adding) { const input = document.getElementById('ent-ms-input'); if (input) input.focus(); }
 }
 
 function openEntwicklung() {
   entState.messung = null;
-  entState.adding = false;
+  entState.meilenstein = null;
   renderEntwicklung();
+  loadEntwicklung();
 }
 
-function closeEntwicklungMessung() {
+function closeEntwicklungDialog() {
   entState.messung = null;
+  entState.meilenstein = null;
   renderEntwicklung();
   syncHistory();
 }
 
+function entOpenDialog(key, form) {
+  entState[key] = form;
+  document.getElementById('entwicklung-scroll').scrollTop = 0;
+}
+
+// Nach dem Speichern: Dialog zu, Übersicht zeigt den neuen Stand. Ist man
+// inzwischen woanders (Zurück-Taste während des Speicherns), nichts zeichnen.
+function entFinishSave() {
+  if (currentScreen !== 'entwicklung') return;
+  renderEntwicklung();
+  syncHistory();
+}
+
+async function saveEntMessung() {
+  const md = entState.messung;
+  if (!md || entState.saving) return;
+  const vals = {};
+  for (const k of ['w', 'l', 'h']) {
+    const v = parseProfilNumber(md[k]);
+    if (v === null) continue;
+    if (Number.isNaN(v) || v < ENT_METRIC[k].lo || v > ENT_METRIC[k].hi) { md.error = ENT_METRIC[k].label + ' prüfen.'; renderEntwicklung(); return; }
+    vals[k] = v;
+  }
+  if (!Object.keys(vals).length) md.error = 'Bitte mindestens einen Wert eintragen.';
+  else if (!ENT_DATE_RE.test(md.date || '')) md.error = 'Bitte ein Datum wählen.';
+  else if (md.date > isoDate(new Date())) md.error = 'Datum liegt in der Zukunft.';
+  else md.error = '';
+  if (md.error) { renderEntwicklung(); return; }
+
+  const data = { date: md.date, createdBy: currentUser.email, createdAt: serverTimestamp() };
+  Object.keys(vals).forEach((k) => { data[ENT_METRIC[k].field] = vals[k]; });
+  entState.saving = true;
+  renderEntwicklung();
+  try {
+    const ref = await addDoc(collection(db, 'measurements'), data);
+    entState.measurements.push({ id: ref.id, date: md.date, ...vals });
+    entState.metric = vals.w !== undefined ? 'w' : vals.l !== undefined ? 'l' : 'h';
+    if (entState.messung === md) entState.messung = null;
+  } catch (error) {
+    console.error('Messung speichern fehlgeschlagen:', error);
+    md.error = 'Speichern nicht möglich. Bitte noch einmal versuchen.';
+  } finally {
+    entState.saving = false;
+  }
+  entFinishSave();
+}
+
+async function saveEntMeilenstein() {
+  const ms = entState.meilenstein;
+  if (!ms || entState.saving) return;
+  const name = String(ms.name || '').trim();
+  if (!name) ms.error = 'Bitte einen Namen eintragen.';
+  else if (entState.done.some((m) => entNameKey(m.name) === entNameKey(name))) ms.error = 'Dieser Meilenstein ist schon eingetragen.';
+  else if (!ENT_DATE_RE.test(ms.date || '')) ms.error = 'Bitte ein Datum wählen.';
+  else if (ms.date > isoDate(new Date())) ms.error = 'Datum liegt in der Zukunft.';
+  else ms.error = '';
+  if (ms.error) { renderEntwicklung(); return; }
+
+  entState.saving = true;
+  renderEntwicklung();
+  try {
+    const ref = await addDoc(collection(db, 'milestones'), { name, date: ms.date, createdBy: currentUser.email, createdAt: serverTimestamp() });
+    entState.done.push({ id: ref.id, name, date: ms.date });
+    entState.view = 'meilensteine';
+    if (entState.meilenstein === ms) entState.meilenstein = null;
+  } catch (error) {
+    console.error('Meilenstein speichern fehlgeschlagen:', error);
+    ms.error = 'Speichern nicht möglich. Bitte noch einmal versuchen.';
+  } finally {
+    entState.saving = false;
+  }
+  entFinishSave();
+}
+
 entBodyEl.addEventListener('input', (e) => {
   const key = e.target.dataset && e.target.dataset.entBind;
-  if (key && entState.messung) entState.messung[key] = e.target.value;
+  const form = entState.messung || entState.meilenstein;
+  if (key && form) form[key] = e.target.value;
+});
+
+entBodyEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'ent-ms-name') { e.preventDefault(); saveEntMeilenstein(); }
 });
 
 entBodyEl.addEventListener('click', (e) => {
@@ -6565,41 +6721,22 @@ entBodyEl.addEventListener('click', (e) => {
   const st = entState;
   const v = el.dataset.v;
   switch (el.dataset.entAct) {
-    case 'view': st.view = v; st.adding = false; break;
+    case 'view': st.view = v; break;
     case 'metric': st.metric = v; break;
-    case 'openMessung': st.messung = { date: isoDate(new Date()), w: '', l: '', h: '', tag: null, error: '' }; document.getElementById('entwicklung-scroll').scrollTop = 0; break;
-    case 'closeMessung': st.messung = null; break;
-    case 'tag': st.messung.tag = st.messung.tag === v ? null : v; break;
-    case 'saveMessung': {
-      const md = st.messung;
-      const w = entParse(md.w), l = entParse(md.l), h = entParse(md.h);
-      if (w === null && l === null && h === null) { md.error = 'Bitte mindestens einen Wert eintragen.'; break; }
-      if (!md.date || md.date > isoDate(new Date())) { md.error = 'Datum liegt in der Zukunft.'; break; }
-      const m = { date: md.date };
-      if (w !== null) m.w = w;
-      if (l !== null) m.l = l;
-      if (h !== null) m.h = h;
-      if (md.tag) m.tag = md.tag;
-      st.measurements.push(m);
-      st.metric = w !== null ? 'w' : l !== null ? 'l' : 'h';
-      st.messung = null;
-      break;
-    }
+    case 'openMessung': entOpenDialog('messung', { date: isoDate(new Date()), w: '', l: '', h: '', error: '' }); break;
     case 'reach': {
-      const m = st.next.splice(Number(v), 1)[0];
-      if (m) st.done.push({ name: m.name, date: isoDate(new Date()) });
+      const m = ENT_SUGGESTIONS[Number(v)];
+      if (!m) return;
+      entOpenDialog('meilenstein', { name: m.name, hint: m.hint, fixed: true, date: isoDate(new Date()), error: '' });
       break;
     }
-    case 'startMs': st.adding = true; break;
-    case 'cancelMs': st.adding = false; break;
-    case 'addMs': {
-      const input = document.getElementById('ent-ms-input');
-      const name = input ? input.value.trim() : '';
-      if (!name) return;
-      st.done.push({ name, date: isoDate(new Date()) });
-      st.adding = false;
+    case 'startMs':
+      entOpenDialog('meilenstein', { name: '', fixed: false, date: isoDate(new Date()), error: '' });
+      st.focusName = true;
       break;
-    }
+    case 'closeDialog': closeEntwicklungDialog(); return;
+    case 'saveMessung': saveEntMessung(); return;
+    case 'saveMeilenstein': saveEntMeilenstein(); return;
     default: return;
   }
   renderEntwicklung();

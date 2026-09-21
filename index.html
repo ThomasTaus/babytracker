@@ -316,7 +316,13 @@
               </svg>
               <span style="font-weight: 700; font-size: 14px;">Füttern</span>
             </div>
-            <span id="fuettern-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
+            <div style="display: flex; align-items: center;">
+              <div id="fuettern-running-badge" style="display: none; align-items: center; gap: 5px; background: var(--fuettern-soft); color: var(--fuettern-strong); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
+                <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--fuettern-strong); display: inline-block;"></span>
+                läuft
+              </div>
+              <span id="fuettern-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
+            </div>
           </div>
           <div id="fuettern-detail" style="font-size: 13.5px;"></div>
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
@@ -4129,15 +4135,28 @@ async function loadOverview() {
 
   // Füttern
   try {
-    const [lastFeeding, todayFeedingsRaw] = await Promise.all([getMostRecentByBusinessTime('feedings', fuetternIsFinished), getTodayDocs('feedings')]);
+    const [openFeeding, lastFeeding, todayFeedingsRaw] = await Promise.all([findOpenFeeding(), getMostRecentByBusinessTime('feedings', fuetternIsFinished), getTodayDocs('feedings')]);
     const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now) && fuetternIsFinished(f));
-    if (lastFeeding && entryBusinessTimestamp(lastFeeding)) {
-      document.getElementById('fuettern-ago').textContent = timeAgo(entryBusinessTimestamp(lastFeeding));
+    // Läuft gerade ein Brust-Timer, ist "vor x Stunden" die falsche Auskunft:
+    // sie bezöge sich auf die vorletzte, abgeschlossene Mahlzeit. Stattdessen
+    // dasselbe "läuft"-Abzeichen wie in der Schlafen-Kachel, und darunter die
+    // laufende Mahlzeit statt der zuletzt beendeten.
+    const fuetternBadge = document.getElementById('fuettern-running-badge');
+    const fuetternAgoEl = document.getElementById('fuettern-ago');
+    if (openFeeding) {
+      fuetternBadge.style.display = 'flex';
+      fuetternAgoEl.textContent = '';
+      const elapsedMin = Math.max(0, Math.round((Date.now() - new Date(openFeeding.startTime).getTime()) / 60000));
+      document.getElementById('fuettern-detail').textContent = 'Stillt seit ' + formatTime(new Date(openFeeding.startTime)) + ' · ' + elapsedMin + ' Min';
+    } else if (lastFeeding && entryBusinessTimestamp(lastFeeding)) {
+      fuetternBadge.style.display = 'none';
+      fuetternAgoEl.textContent = timeAgo(entryBusinessTimestamp(lastFeeding));
       document.getElementById('fuettern-detail').textContent = lastFeeding.type === 'bottle'
         ? 'Fläschchen · ' + lastFeeding.amount + ' ml'
         : 'Brust · ' + lastFeeding.minutes + ' Min';
     } else {
-      document.getElementById('fuettern-ago').textContent = '';
+      fuetternBadge.style.display = 'none';
+      fuetternAgoEl.textContent = '';
       document.getElementById('fuettern-detail').textContent = 'Noch kein Eintrag';
     }
     const totalMl = todayFeedings.filter((f) => f.type === 'bottle').reduce((sum, f) => sum + (f.amount || 0), 0);

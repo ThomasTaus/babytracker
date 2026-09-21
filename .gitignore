@@ -11,3 +11,9 @@ node_modules/
 
 # Local admin/testing scripts (run against the live bot account) — not for the public repo
 admin-scripts/
+
+# Test-Harness: lokale Kopie der App mit ausgetauschter Firebase-Anbindung.
+# Wird vor jedem Test erzeugt und danach geloescht - nie committen.
+index.test.html
+test-firebase-stub.js
+*.test.html

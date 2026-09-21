@@ -4146,8 +4146,7 @@ async function loadOverview() {
     if (openFeeding) {
       fuetternBadge.style.display = 'flex';
       fuetternAgoEl.textContent = '';
-      const elapsedMin = Math.max(0, Math.round((Date.now() - new Date(openFeeding.startTime).getTime()) / 60000));
-      document.getElementById('fuettern-detail').textContent = 'Stillt seit ' + formatTime(new Date(openFeeding.startTime)) + ' · ' + elapsedMin + ' Min';
+      document.getElementById('fuettern-detail').textContent = 'Stillt seit ' + formatTime(new Date(openFeeding.startTime));
     } else if (lastFeeding && entryBusinessTimestamp(lastFeeding)) {
       fuetternBadge.style.display = 'none';
       fuetternAgoEl.textContent = timeAgo(entryBusinessTimestamp(lastFeeding));

@@ -6400,10 +6400,13 @@ const ENT_X_STEPS = [1 / 7, 2 / 7, 3 / 7, 1, 2, ENT_MONTH, 2 * ENT_MONTH, 3 * EN
 const ENT_X_SPANS = 5;
 // field = Feldname in Firestore; lo/hi = plausibler Bereich beim Speichern
 const ENT_METRIC = {
-  w: { cap: 'Gewicht', title: 'Gewicht · kg', unit: 'kg', dec: 2, min: 2, max: 8, ticks: [3, 5, 7], label: 'Gewicht', field: 'weightKg', lo: 0.3, hi: 30 },
-  l: { cap: 'Größe', title: 'Größe · cm', unit: 'cm', dec: 1, min: 44, max: 68, ticks: [48, 56, 64], label: 'Größe', field: 'lengthCm', lo: 20, hi: 130 },
-  h: { cap: 'Kopf', title: 'Kopfumfang · cm', unit: 'cm', dec: 1, min: 30, max: 44, ticks: [32, 36, 40], label: 'Kopfumfang', field: 'headCm', lo: 20, hi: 60 }
+  w: { cap: 'Gewicht', title: 'Gewicht · kg', unit: 'kg', dec: 2, label: 'Gewicht', field: 'weightKg', lo: 0.3, hi: 30 },
+  l: { cap: 'Größe', title: 'Größe · cm', unit: 'cm', dec: 1, label: 'Größe', field: 'lengthCm', lo: 20, hi: 130 },
+  h: { cap: 'Kopf', title: 'Kopfumfang · cm', unit: 'cm', dec: 1, label: 'Kopfumfang', field: 'headCm', lo: 20, hi: 60 }
 };
+const ENT_Y_TICKS = 3;   // angestrebte Zahl der Gitterlinien
+const ENT_Y_PAD = 0.1;   // Luft über und unter den Werten, Anteil der Spanne
+const ENT_Y_GAP = 0.08;  // Mindestabstand der äußersten Gitterlinie zum Rahmen
 // Vorschläge in der üblichen Reihenfolge. „Als Nächstes" zeigt die ersten
 // ENT_NEXT_COUNT, die noch nicht (namensgleich) als erreicht eingetragen sind.
 const ENT_SUGGESTIONS = [
@@ -6462,6 +6465,38 @@ function entXLabel(wk, step) {
   if (step < 1) return String(Math.round(wk * 7));
   if (step < ENT_MONTH) return String(Math.round(wk));
   return String(Math.round(wk / ENT_MONTH));
+}
+// Schrittweite der Werteachse: 1, 2 oder 5 mal Zehnerpotenz – die davon, die
+// der gewünschten Schrittweite am nächsten kommt (geometrisch, sonst gewänne
+// bei 3,2 immer die 2).
+function entNiceStep(raw) {
+  if (!(raw > 0)) return 1;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  return [1, 2, 5, 10].map((f) => f * pow).reduce((best, c) =>
+    Math.abs(Math.log(c / raw)) < Math.abs(Math.log(best / raw)) ? c : best);
+}
+// Werteachse aus dem, was im sichtbaren Zeitraum vorkommt (WHO-Band und
+// Messwerte), mit Luft nach oben und unten: Das Band soll den Rahmen nicht
+// berühren und über dem letzten Punkt muss seine Wertbeschriftung passen.
+// Die Grenzen selbst sind krumm – runde Zahlen stehen an den Gitterlinien,
+// sonst räumte die Achse Platz frei, in dem gar keine Daten liegen.
+function entYAxis(lo, hi) {
+  const pad = Math.max((hi - lo) * ENT_Y_PAD, 0.05);
+  let min = lo - pad;
+  let max = hi + pad;
+  const step = entNiceStep((max - min) / ENT_Y_TICKS);
+  // Wo die äußerste Gitterlinie landet, ist Zufall; klebt sie am Rahmen,
+  // fällt ihre Beschriftung mit der Grundlinie zusammen. Dann die Grenze
+  // so weit nachziehen, dass ENT_Y_GAP Abstand bleibt.
+  const low = Math.ceil(min / step + 1e-9) * step;
+  const high = Math.floor(max / step - 1e-9) * step;
+  if (low <= high) {
+    if (low - min < (max - min) * ENT_Y_GAP) min = (low - ENT_Y_GAP * max) / (1 - ENT_Y_GAP);
+    if (max - high < (max - min) * ENT_Y_GAP) max = (high - ENT_Y_GAP * min) / (1 - ENT_Y_GAP);
+  }
+  const ticks = [];
+  for (let i = Math.ceil(min / step + 1e-9); i * step < max - 1e-9; i++) ticks.push(i * step);
+  return { min, max, ticks, dec: step >= 1 ? 0 : step >= 0.1 ? 1 : 2 };
 }
 function entXUnit(step) {
   if (step < 1) return 'Alter in Tagen';
@@ -6525,17 +6560,21 @@ function entGrowthChart(k) {
   const axis = entXAxis(Math.max(0, entWeeks(isoDate(new Date()), origin), pts.length ? pts[pts.length - 1].wk : 0));
   const xmax = axis.xmax;
   const X = (wk) => 28 + wk / xmax * 264;
-  const Y = (v) => 118 - (Math.min(Math.max(v, M.min), M.max) - M.min) / (M.max - M.min) * 108;
+  // Stützstellen an den Monatsgrenzen: dazwischen sind die WHO-Kurven gerade,
+  // die Randwerte der Achse stecken also sicher in dieser Liste.
   const samples = [0, 1, 2, 3, 4].map((mo) => mo * ENT_MONTH).filter((w) => w < xmax).concat([xmax]);
-  const line = (arr) => samples.map((w, i) => (i ? 'L' : 'M') + X(w).toFixed(1) + ' ' + Y(entWhoAt(arr, w)).toFixed(1)).join(' ');
   const [P3, P50, P97] = ENT_WHO[k];
+  const seen = samples.map((w) => entWhoAt(P3, w)).concat(samples.map((w) => entWhoAt(P97, w)), pts.map((p) => p.v));
+  const yA = entYAxis(Math.min.apply(null, seen), Math.max.apply(null, seen));
+  const Y = (v) => 118 - (v - yA.min) / (yA.max - yA.min) * 108;
+  const line = (arr) => samples.map((w, i) => (i ? 'L' : 'M') + X(w).toFixed(1) + ' ' + Y(entWhoAt(arr, w)).toFixed(1)).join(' ');
   const band = line(P97) + ' ' + samples.slice().reverse().map((w) => 'L' + X(w).toFixed(1) + ' ' + Y(entWhoAt(P3, w)).toFixed(1)).join(' ') + ' Z';
   let s = '<div><svg class="e-chart" viewBox="0 0 300 142" style="display:block; width:100%; height:auto;" role="img" aria-label="' + M.title + '">';
   s += '<path d="' + band + '" fill="var(--accent-soft)"/>';
   s += '<path d="' + line(P97) + '" fill="none" stroke="var(--accent-light)" stroke-width="1"/><path d="' + line(P3) + '" fill="none" stroke="var(--accent-light)" stroke-width="1"/>';
-  M.ticks.forEach((tick) => {
-    s += '<line x1="28" y1="' + Y(tick) + '" x2="292" y2="' + Y(tick) + '" stroke="var(--border)" stroke-dasharray="2 3"/>';
-    s += '<text x="22" y="' + (Y(tick) + 3) + '" text-anchor="end">' + tick + '</text>';
+  yA.ticks.forEach((tick) => {
+    s += '<line x1="28" y1="' + Y(tick).toFixed(1) + '" x2="292" y2="' + Y(tick).toFixed(1) + '" stroke="var(--border)" stroke-dasharray="2 3"/>';
+    s += '<text x="22" y="' + (Y(tick) + 3).toFixed(1) + '" text-anchor="end">' + entNum(tick, yA.dec) + '</text>';
   });
   s += '<line x1="28" y1="118" x2="292" y2="118" stroke="var(--border)"/>';
   s += '<path d="' + line(P50) + '" fill="none" stroke="var(--accent-light)" stroke-width="1.2" stroke-dasharray="4 3"/>';
@@ -6548,7 +6587,12 @@ function entGrowthChart(k) {
     pts.slice(0, -1).forEach((p) => { s += '<circle cx="' + X(p.wk).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="3" fill="var(--surface)" stroke="var(--accent-strong)" stroke-width="1.6"/>'; });
     const last = pts[pts.length - 1];
     s += '<circle cx="' + X(last.wk).toFixed(1) + '" cy="' + Y(last.v).toFixed(1) + '" r="4.2" fill="var(--accent-strong)"/>';
-    s += '<text x="' + (X(last.wk) - 6).toFixed(1) + '" y="' + (Y(last.v) - 8).toFixed(1) + '" text-anchor="end" style="fill:var(--accent-strong); font-size:11px; font-weight:700;">' + entNum(last.v, M.dec) + '</text>';
+    // Die Wertbeschriftung steht links vom Punkt. Sitzt der Punkt nah am
+    // linken Rand – etwa eine Messung direkt bei der Geburt –, läge sie über
+    // den Zahlen der Werteachse; dann nach rechts kippen.
+    const lx = X(last.wk);
+    const lRight = lx < 52;
+    s += '<text x="' + (lx + (lRight ? 6 : -6)).toFixed(1) + '" y="' + (Y(last.v) - 8).toFixed(1) + '" text-anchor="' + (lRight ? 'start' : 'end') + '" style="fill:var(--accent-strong); font-size:11px; font-weight:700;">' + entNum(last.v, M.dec) + '</text>';
   }
   return s + '</svg><div class="e-axis-unit">' + entXUnit(axis.step) + '</div></div>';
 }

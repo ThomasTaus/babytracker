@@ -5841,7 +5841,11 @@ function renderAnalyseOverview() {
   // Abgepumpt steht nur in der Zeile, wenn im Ausschnitt überhaupt abgepumpt
   // wurde — sonst trüge die Übersicht eine Zahl, die niemanden betrifft.
   const fPump = fb ? fb.pumpMl / fb.daysElapsed : fuettern.avgPumpMlExact;
-  const fPumpText = fuettern.totalPumpMl > 0 ? ' · ' + analyseRound(fPump) + ' ml ' + pre + 'Abgepumpt' : '';
+  // Eigene Zeile statt Mittelpunkt: Abgepumptes gehört nicht zu dem, was das
+  // Baby getrunken hat. flex-basis:100% erzwingt den Umbruch im Flex-Kasten.
+  const fPumpText = fuettern.totalPumpMl > 0
+    ? '<span style="flex-basis:100%;">' + analyseRound(fPump) + ' ml ' + pre + 'Abgepumpt</span>'
+    : '';
 
   const wb = i >= 0 ? windeln.perDay[i] : null;
   const wCount = wb ? wb.total / wb.daysElapsed : windeln.avgPerDayExact;
@@ -5860,7 +5864,7 @@ function renderAnalyseOverview() {
       { bar: 'var(--fuettern)', soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)' },
       svgSparkline(fuettern.perDay, (d) => (d.bottleCount + d.breastCount) / d.daysElapsed, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)', i),
       pre + analyseCount(fCount, single), 'Fütterungen' + perDay,
-      analyseRound(fMl) + ' ml ' + pre + 'Trinkmenge · ' + analyseRound(fMin) + ' Min. ' + pre + 'Stillzeit (Brust)' + fPumpText) +
+      analyseRound(fMl) + ' ml ' + pre + 'Trinkmenge · ' + analyseRound(fMin) + ' Min. ' + pre + 'Stillzeit' + fPumpText) +
 
     analyseOvCard('windeln', 'Windeln',
       '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',

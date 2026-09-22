@@ -5395,6 +5395,10 @@ function computeFuetternAnalysis(days, feedMap) {
     const docs = feedMap[i].filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f));
     const bottle = docs.filter((f) => f.type === 'bottle');
     const breast = docs.filter((f) => f.type === 'breast');
+    // Abpumpen läuft neben den Mahlzeiten her: eigene Reihe, die weder in die
+    // Anzahl noch in den Abstand eingeht. Einträge ohne Menge (noch
+    // unvollständig oder von vor der Mengenpflicht) tragen nichts bei.
+    const pumped = feedMap[i].filter((f) => f.type === 'pump' && !f.pendingAmount && Number(f.amount) > 0);
     return {
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
       weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
@@ -5406,6 +5410,8 @@ function computeFuetternAnalysis(days, feedMap) {
       // Seitenbalance rechnet nur mit dem, was tatsächlich zugeordnet ist.
       breastLeftMin: breast.reduce((s, f) => s + (Number(f.leftMinutes) || 0), 0),
       breastRightMin: breast.reduce((s, f) => s + (Number(f.rightMinutes) || 0), 0),
+      pumpMl: pumped.reduce((s, f) => s + (Number(f.amount) || 0), 0),
+      pumpCount: pumped.length,
       intervalH: analyseIntervalH(docs)
     };
   });
@@ -5418,6 +5424,7 @@ function computeFuetternAnalysis(days, feedMap) {
   const totalLeftMin = perDay.reduce((s, d) => s + d.breastLeftMin, 0);
   const totalRightMin = perDay.reduce((s, d) => s + d.breastRightMin, 0);
   const totalSideMin = totalLeftMin + totalRightMin;
+  const totalPumpMl = perDay.reduce((s, d) => s + d.pumpMl, 0);
 
   const avgIntervalH = analyseIntervalH(feedMap.flat().filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f)));
 
@@ -5442,6 +5449,9 @@ function computeFuetternAnalysis(days, feedMap) {
     avgBreastMinExact: totalBreastMin / totalDays,
     avgBreastLeftMinExact: totalLeftMin / totalDays,
     avgBreastRightMinExact: totalRightMin / totalDays,
+    avgPumpMl: analyseRound(totalPumpMl / totalDays),
+    avgPumpMlExact: totalPumpMl / totalDays,
+    totalPumpMl,
     // Anteil der linken Seite am Ausschnitt. Ein Anteil ist ein Verhältnis und
     // wird deshalb nicht über daysElapsed normiert. Ohne eine einzige
     // Seitenangabe gibt es keinen Anteil — dann null statt 0.
@@ -5828,6 +5838,10 @@ function renderAnalyseOverview() {
   const fCount = fb ? (fb.bottleCount + fb.breastCount) / fb.daysElapsed : fuettern.avgPerDayExact;
   const fMl = fb ? fb.bottleMl / fb.daysElapsed : fuettern.avgBottleMlExact;
   const fMin = fb ? fb.breastMin / fb.daysElapsed : fuettern.avgBreastMinExact;
+  // Abgepumpt steht nur in der Zeile, wenn im Ausschnitt überhaupt abgepumpt
+  // wurde — sonst trüge die Übersicht eine Zahl, die niemanden betrifft.
+  const fPump = fb ? fb.pumpMl / fb.daysElapsed : fuettern.avgPumpMlExact;
+  const fPumpText = fuettern.totalPumpMl > 0 ? ' · ' + analyseRound(fPump) + ' ml ' + pre + 'Abgepumpt' : '';
 
   const wb = i >= 0 ? windeln.perDay[i] : null;
   const wCount = wb ? wb.total / wb.daysElapsed : windeln.avgPerDayExact;
@@ -5846,7 +5860,7 @@ function renderAnalyseOverview() {
       { bar: 'var(--fuettern)', soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)' },
       svgSparkline(fuettern.perDay, (d) => (d.bottleCount + d.breastCount) / d.daysElapsed, 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)', i),
       pre + analyseCount(fCount, single), 'Fütterungen' + perDay,
-      analyseRound(fMl) + ' ml ' + pre + 'Trinkmenge · ' + analyseRound(fMin) + ' Min. ' + pre + 'Stillzeit (Brust)') +
+      analyseRound(fMl) + ' ml ' + pre + 'Trinkmenge · ' + analyseRound(fMin) + ' Min. ' + pre + 'Stillzeit (Brust)' + fPumpText) +
 
     analyseOvCard('windeln', 'Windeln',
       '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
@@ -5965,6 +5979,16 @@ const FUETTERN_CHARTS = {
     type: 'area',
     title: 'Trinkmenge (Fläschchen)',
     series: [{ key: 'ml', label: 'Trinkmenge', color: FUETTERN_COLOR, value: (d) => d.bottleMl / d.daysElapsed, mean: (a) => a.avgBottleMlExact }],
+    headline: (v) => 'Ø ' + analyseRound(v) + ' ml / Tag',
+    tipValue: (v) => analyseRound(v) + ' ml',
+    detail: (v) => analyseRound(v) + ' ml'
+  },
+  // Steht neben der Trinkmenge, weil beide in ml zählen — und bewusst vor
+  // Stilldauer/Seitenbalance, die aneinander hängen.
+  'fu-pump': {
+    type: 'area',
+    title: 'Abgepumpte Menge',
+    series: [{ key: 'ml', label: 'Abgepumpt', color: FUETTERN_COLOR, value: (d) => d.pumpMl / d.daysElapsed, mean: (a) => a.avgPumpMlExact }],
     headline: (v) => 'Ø ' + analyseRound(v) + ' ml / Tag',
     tipValue: (v) => analyseRound(v) + ' ml',
     detail: (v) => analyseRound(v) + ' ml'
@@ -6132,7 +6156,7 @@ const ANALYSE_SECTION_UI = {
   fuettern: {
     hostId: 'analyse-view-fuettern',
     charts: FUETTERN_CHARTS,
-    order: ['fu-anzahl', 'fu-menge', 'fu-still', 'fu-seite'],
+    order: ['fu-anzahl', 'fu-menge', 'fu-pump', 'fu-still', 'fu-seite'],
     tileClass: 'a-stat-row',
     tileColor: 'var(--fuettern-strong)',
     tiles: [

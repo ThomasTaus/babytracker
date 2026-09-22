@@ -750,6 +750,10 @@
                bis dahin unvollständig und wird hier abgeschlossen. -->
           <div id="pump-finish-block" style="display: none; flex-direction: column; gap: 14px;">
             <div style="height: 1px; background: var(--border);"></div>
+            <div style="display: flex; gap: 9px; align-items: flex-start; border-radius: 14px; padding: 11px 13px; font-size: 12px; line-height: 1.45; background: var(--accent-soft); color: var(--accent-strong);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16.5" x2="12" y2="16.6"/></svg>
+              <span>Dieser Eintrag ist noch ohne Menge. Erst ergänzen — danach ist ein neuer Abpump-Eintrag möglich.</span>
+            </div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
                 <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
@@ -1459,7 +1463,10 @@ function showScreen(target, opts = {}) {
     if (openNapDocId) setNapMode('timer');
   }
   if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); else resetWindelnForm(); }
-  if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); else prepareFuetternForNewEntry(); refreshFuetternAmountChips(); }
+  // Beim Öffnen von Füttern den Abpump-Stand frisch aus Firestore holen: der
+  // Timer kann auf dem anderen Gerät gelaufen sein, und eine App, die schon
+  // offen war, wüsste sonst nichts von dem unvollständigen Eintrag.
+  if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); else { prepareFuetternForNewEntry(); resumePumpFromServer(); } refreshFuetternAmountChips(); }
   if (screens[target] && ['fuettern', 'windeln', 'schlafen'].includes(target)) screens[target].firstElementChild.scrollTop = 0;
   syncHistory();
 }
@@ -1745,6 +1752,12 @@ let breastMode = 'manual';
 let pumpMode = 'manual';
 let pumpLeft = true;
 let pumpRight = true;
+// Gestoppt, aber noch ohne Menge: der Eintrag steht schon in Firestore und
+// wartet auf die Mengenangabe (`pendingAmount: true`). Steht hier oben, weil
+// setPumpMode schon beim Laden darauf schaut.
+let pendingPumpDocId = null;
+let pendingPumpStartedAt = null;
+let pendingPumpEndedAt = null;
 
 // Seit Abpumpen dazugekommen ist, teilen sich drei Einträge die Zeile — daher
 // kleinere Schrift und schmalere Innenabstände als bei zwei.
@@ -2473,6 +2486,8 @@ function setPumpMode(mode) {
   feedPumpTimerBtn.setAttribute('style', breastSegStyle(mode === 'timer'));
   pumpManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
   pumpTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
+  // Ein unvollständiger Eintrag hat Vorrang vor der Modus-Wahl.
+  renderPumpFinishState();
 }
 feedPumpManualBtn.addEventListener('click', () => setPumpMode('manual'));
 feedPumpTimerBtn.addEventListener('click', () => setPumpMode('timer'));
@@ -2616,7 +2631,7 @@ function pumpEntryFromForm() {
 }
 
 pumpSaveBtn.addEventListener('click', async () => {
-  if (!currentUser || !pumpEntryIsValid()) return;
+  if (!currentUser || pendingPumpDocId || !pumpEntryIsValid()) return;
   pumpSaveBtn.disabled = true;
   try {
     const entry = { ...pumpEntryFromForm(), createdBy: currentUser.email, createdAt: serverTimestamp() };
@@ -2637,11 +2652,6 @@ pumpSaveBtn.addEventListener('click', async () => {
 let openPumpDocId = null;
 let openPumpStartedAt = null;
 let pumpTimerInterval = null;
-// Gestoppt, aber noch ohne Menge: der Eintrag steht schon in Firestore und
-// wartet auf die Mengenangabe (`pendingAmount: true`).
-let pendingPumpDocId = null;
-let pendingPumpStartedAt = null;
-let pendingPumpEndedAt = null;
 
 async function findOpenPumping() {
   const q = query(collection(db, 'feedings'), where('type', '==', 'pump'), where('endTime', '==', null));
@@ -2662,14 +2672,43 @@ async function findPendingPumping() {
   return { id: d.id, ...d.data() };
 }
 
+// Solange ein Eintrag ohne Menge offen ist, gibt es keinen neuen: weder über
+// den Timer noch von Hand. Deshalb verschwinden Manuell/Timer-Umschalter und
+// die manuelle Maske, bis er vervollständigt (oder gelöscht) ist — sonst
+// entstünde ein zweiter Eintrag, während der erste liegen bleibt.
 function renderPumpFinishState() {
-  const pending = !!pendingPumpDocId;
+  // Beim Bearbeiten eines anderen Eintrags gilt die Sperre nicht — dort
+  // bestimmt refreshPumpPanelForEditState, was zu sehen ist.
+  const pending = !!pendingPumpDocId && !editingFeedingId;
   pumpFinishBlock.style.display = pending ? 'flex' : 'none';
   pumpTimerToggleBtn.style.display = pending ? 'none' : 'flex';
-  pumpTimerRefreshBtn.style.display = pending ? 'none' : 'flex';
+  if (pending) {
+    pumpModeToggle.style.display = 'none';
+    pumpManualPanel.style.display = 'none';
+    pumpTimerPanel.style.display = 'flex';
+  } else if (!editingFeedingId) {
+    pumpModeToggle.style.display = 'flex';
+    pumpManualPanel.style.display = pumpMode === 'manual' ? 'flex' : 'none';
+    pumpTimerPanel.style.display = pumpMode === 'timer' ? 'flex' : 'none';
+  }
   if (!pending) return;
   const ready = pumpAmountIsValid(pumpTimerAmountInput, pumpTimerAmountErrorEl, false) && !!pumpSideValue();
   pumpFinishSaveBtn.style.background = ready ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+}
+
+// Holt den Stand vom Server und schlägt einen laufenden oder unvollständigen
+// Vorgang auf — auch wenn er auf dem anderen Gerät entstanden ist.
+async function resumePumpFromServer() {
+  try {
+    await syncPumpState();
+  } catch (error) {
+    return;
+  }
+  if (editingFeedingId) return;
+  if (openPumpDocId || pendingPumpDocId) {
+    setFeedType('pump');
+    setPumpMode('timer');
+  }
 }
 pumpTimerAmountInput.addEventListener('input', () => {
   pumpAmountIsValid(pumpTimerAmountInput, pumpTimerAmountErrorEl, true);
@@ -2744,6 +2783,7 @@ pumpTimerRefreshBtn.addEventListener('click', async () => {
 
 pumpTimerToggleBtn.addEventListener('click', async () => {
   if (!currentUser) return;
+  if (!openPumpDocId && pendingPumpDocId) return;
   if (!openPumpDocId && !pumpSideValue()) { pumpSideErrorEl.style.display = 'block'; return; }
   pumpTimerToggleBtn.disabled = true;
   try {
@@ -2814,6 +2854,15 @@ pumpFinishSaveBtn.addEventListener('click', async () => {
   const startedAt = new Date(pendingPumpStartedAt);
   pumpFinishSaveBtn.disabled = true;
   try {
+    // Das andere Gerät kann den Eintrag inzwischen vervollständigt haben —
+    // dann nicht die dort eingetragene Menge überschreiben, sondern nur den
+    // Stand nachziehen.
+    const stillPending = await findPendingPumping();
+    if (!stillPending || stillPending.id !== finishedId) {
+      await syncPumpState();
+      pumpFinishSaveBtn.disabled = false;
+      return;
+    }
     await updateDoc(doc(db, 'feedings', finishedId), {
       amount: Number(pumpTimerAmountInput.value),
       side: pumpSideValue(),

@@ -450,18 +450,25 @@
       </div>
 
       <div style="display: flex; background: var(--surface-alt); border-radius: 18px; padding: 5px; gap: 5px;">
-        <button id="feed-bottle-btn" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <button id="feed-bottle-btn" style="flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px; padding:11px 2px; border-radius:14px; border:none; font-weight:600; font-size:13px; white-space:nowrap; cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
             <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
             <line x1="9" y1="12" x2="15" y2="12"/>
           </svg>
           Fläschchen
         </button>
-        <button id="feed-breast-btn" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <button id="feed-breast-btn" style="flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px; padding:11px 2px; border-radius:14px; border:none; font-weight:600; font-size:13px; white-space:nowrap; cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
             <path d="M12 4c3.2 4.1 6.4 7.8 6.4 11.4A6.4 6.4 0 1 1 5.6 15.4C5.6 11.8 8.8 8.1 12 4z"/>
           </svg>
           Brust
+        </button>
+        <button id="feed-pump-btn" style="flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px; padding:11px 2px; border-radius:14px; border:none; font-weight:600; font-size:13px; white-space:nowrap; cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+            <path d="M5.5 4h13c0 4-3 5.6-3.5 7v8a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-8C8.5 9.6 5.5 8 5.5 4z"/>
+            <line x1="9.5" y1="11" x2="14.5" y2="11"/>
+          </svg>
+          Abpumpen
         </button>
       </div>
 
@@ -616,6 +623,105 @@
             </button>
           </div>
           <button id="breast-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); margin-top:4px;">Start</button>
+        </div>
+      </div>
+
+      <!-- Abpumpen: wie Brust ein Manuell/Timer-Umschalter, aber ohne Segmente.
+           Die Seitenwahl steht in beiden Modi an derselben Stelle — sie gehört
+           zum Eintrag, nicht zur Erfassungsart, und springt beim Umschalten
+           deshalb nicht. Links/Rechts sind wie Klein/Groß bei Windeln zwei
+           unabhängige Schalter: beide an heißt „beide Seiten". -->
+      <div id="pump-panel" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 14px;">
+        <div id="pump-mode-toggle" style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
+          <button id="feed-pump-manual-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Manuell</button>
+          <button id="feed-pump-timer-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Timer</button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Seite</div>
+        <div style="display: flex; gap: 10px; margin-top: -6px;">
+          <button id="pump-side-left" type="button">
+            <span style="font-size: 14.5px; font-weight: 600; flex: 1; text-align: left;">Links</span>
+            <span class="check-badge" style="width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+            </span>
+          </button>
+          <button id="pump-side-right" type="button">
+            <span style="font-size: 14.5px; font-weight: 600; flex: 1; text-align: left;">Rechts</span>
+            <span class="check-badge" style="width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+            </span>
+          </button>
+        </div>
+        <div id="pump-side-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Mindestens eine Seite wählen.</div>
+
+        <div id="pump-manual-panel" style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+              <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
+            </svg>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Datum</div>
+              <input id="pump-date" type="date" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; font-family: inherit;">
+            </div>
+          </div>
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="display: flex; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+                <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
+              </svg>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Start</div>
+                <input id="pump-start" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+                <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
+              </svg>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende</div>
+                <input id="pump-end" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
+              </div>
+            </div>
+          </div>
+          <div id="pump-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">Dauer</div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 22px; padding: 2px 0; margin-top: -8px;">
+            <button id="pump-dur-dec" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <div style="text-align: center; min-width: 90px;">
+              <div id="pump-dur-display" style="font-size: 18px; font-weight: 600; line-height: 1;">–</div>
+            </div>
+            <button id="pump-dur-inc" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <div id="pump-save-row" style="display: flex; gap: 10px;">
+            <button id="pump-save" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); white-space: nowrap;">Eintrag speichern</button>
+            <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          </div>
+          <div id="fuettern-pump-edit-actions" style="display: none; gap: 10px;">
+            <button id="fuettern-pump-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+            <button id="fuettern-pump-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          </div>
+        </div>
+
+        <div id="pump-timer-panel" style="display: none; flex-direction: column; gap: 14px;">
+          <div style="height: 1px; background: var(--border);"></div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 2px 0 4px;">
+            <div id="pump-timer-display" style="font-family: 'Fredoka', sans-serif; font-size: 32px; font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums;">00:00:00</div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: -4px;">
+              <div id="pump-timer-sublabel" style="font-size: 12px; color: var(--text-muted);">Bereit zum Start</div>
+              <button id="pump-timer-refresh-btn" title="Status aktualisieren" style="border:none; background:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex; align-items:center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5"/></svg>
+              </button>
+            </div>
+            <button id="pump-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); margin-top:4px;">Start</button>
+          </div>
         </div>
       </div>
 
@@ -1492,6 +1598,7 @@ function setupPastOnlyDateTime(dateInput, timeInput, nowBtn, errorEl) {
 // --- Füttern screen logic ---
 const feedBottleBtn = document.getElementById('feed-bottle-btn');
 const feedBreastBtn = document.getElementById('feed-breast-btn');
+const feedPumpBtn = document.getElementById('feed-pump-btn');
 const bottlePanel = document.getElementById('bottle-panel');
 const breastPanel = document.getElementById('breast-panel');
 const amountInput = document.getElementById('amount-input');
@@ -1546,14 +1653,48 @@ const breastRightTimeEl = document.getElementById('breast-right-time');
 const breastLeftStatEl = document.getElementById('breast-left-stat');
 const breastRightStatEl = document.getElementById('breast-right-stat');
 
+// Abpumpen: eigener Manuell/Timer-Umschalter wie bei Brust, aber ohne
+// Segmente — ein Abpumpvorgang ist Start, Ende und die Seite(n).
+const pumpPanel = document.getElementById('pump-panel');
+const pumpModeToggle = document.getElementById('pump-mode-toggle');
+const feedPumpManualBtn = document.getElementById('feed-pump-manual-btn');
+const feedPumpTimerBtn = document.getElementById('feed-pump-timer-btn');
+const pumpManualPanel = document.getElementById('pump-manual-panel');
+const pumpTimerPanel = document.getElementById('pump-timer-panel');
+const pumpSideLeftBtn = document.getElementById('pump-side-left');
+const pumpSideRightBtn = document.getElementById('pump-side-right');
+const pumpSideErrorEl = document.getElementById('pump-side-error');
+const pumpDateInput = document.getElementById('pump-date');
+const pumpStartInput = document.getElementById('pump-start');
+const pumpEndInput = document.getElementById('pump-end');
+const pumpTimeError = document.getElementById('pump-time-error');
+const pumpDurDisplay = document.getElementById('pump-dur-display');
+const pumpDurDecBtn = document.getElementById('pump-dur-dec');
+const pumpDurIncBtn = document.getElementById('pump-dur-inc');
+const pumpSaveBtn = document.getElementById('pump-save');
+const fuetternPumpEditActions = document.getElementById('fuettern-pump-edit-actions');
+const fuetternPumpUpdateBtn = document.getElementById('fuettern-pump-update');
+const fuetternPumpCancelEditBtn = document.getElementById('fuettern-pump-cancel-edit');
+const pumpTimerDisplay = document.getElementById('pump-timer-display');
+const pumpTimerSublabel = document.getElementById('pump-timer-sublabel');
+const pumpTimerToggleBtn = document.getElementById('pump-timer-toggle-btn');
+const pumpTimerRefreshBtn = document.getElementById('pump-timer-refresh-btn');
+
 let feedType = 'bottle';
 let editingFeedingId = null;
 let breastMode = 'manual';
+// Oben bei den anderen Modus-Variablen, nicht erst im Abpump-Block weiter
+// unten: setFeedType('bottle') läuft schon beim Laden und würde sonst in die
+// temporale Totzone der let-Deklaration greifen.
+let pumpMode = 'manual';
+let pumpLeft = true;
+let pumpRight = true;
 
+// Seit Abpumpen dazugekommen ist, teilen sich drei Einträge die Zeile — daher
+// kleinere Schrift und schmalere Innenabstände als bei zwei.
 function segStyle(active) {
-  return active
-    ? 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: var(--accent); color: white;'
-    : 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: transparent; color: var(--text-muted);';
+  const base = 'flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px; padding:11px 2px; border-radius:14px; border:none; font-weight:600; font-size:13px; white-space:nowrap; cursor:pointer; ';
+  return base + (active ? 'background: var(--accent); color: white;' : 'background: transparent; color: var(--text-muted);');
 }
 
 function breastSegStyle(active) {
@@ -1596,20 +1737,25 @@ function updateFuetternChromeForState() {
   if (feedType !== 'bottle') fuetternTimeErrorEl.style.display = 'none';
   refreshBottlePanelForEditState();
   refreshBreastPanelForEditState();
+  refreshPumpPanelForEditState();
 }
 
 function setFeedType(type) {
   feedType = type;
   feedBottleBtn.setAttribute('style', segStyle(type === 'bottle'));
   feedBreastBtn.setAttribute('style', segStyle(type === 'breast'));
+  feedPumpBtn.setAttribute('style', segStyle(type === 'pump'));
   bottlePanel.style.display = type === 'bottle' ? 'flex' : 'none';
   breastPanel.style.display = type === 'breast' ? 'flex' : 'none';
+  pumpPanel.style.display = type === 'pump' ? 'flex' : 'none';
   updateFuetternChromeForState();
 }
 feedBottleBtn.addEventListener('click', () => setFeedType('bottle'));
 feedBreastBtn.addEventListener('click', () => setFeedType('breast'));
+feedPumpBtn.addEventListener('click', () => setFeedType('pump'));
 setFeedType('bottle');
 setBreastMode('manual');
+setPumpMode('manual');
 
 function chipStyle(selected) {
   return selected
@@ -2089,11 +2235,17 @@ async function syncFeedingState() {
   return open;
 }
 
+// Beide Timer werden abgeglichen; aufgeschlagen wird höchstens einer — der
+// Brust-Timer zuerst, weil er das Baby betrifft und nicht die Vorratshaltung.
 async function resumeOpenFeedingIfAny() {
-  const open = await syncFeedingState();
+  const [open, openPump] = await Promise.all([syncFeedingState(), syncPumpState()]);
   if (open) {
     setFeedType('breast');
     setBreastMode('timer');
+    showScreen('fuettern');
+  } else if (openPump) {
+    setFeedType('pump');
+    setPumpMode('timer');
     showScreen('fuettern');
   } else {
     applyBreastStartSide();
@@ -2194,6 +2346,295 @@ breastTimerToggleBtn.addEventListener('click', async () => {
   breastTimerToggleBtn.disabled = false;
 });
 
+// --- Abpumpen -----------------------------------------------------------
+// Gespeichert wird in derselben 'feedings'-Collection, unterschieden über
+// type: 'pump'. Abgepumpte Milch ist aber keine Mahlzeit des Babys, deshalb
+// zählt so ein Eintrag weder auf Heute noch in der Analyse mit (siehe
+// fuetternIsMeal) — er erscheint nur in der Historie.
+function pumpCardStyle(active) {
+  return active
+    ? 'flex:1; display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; cursor:pointer; font-family: inherit; background: var(--accent-soft); color: var(--accent-strong); border: 1.5px solid var(--accent);'
+    : 'flex:1; display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; cursor:pointer; font-family: inherit; background: var(--surface); color: var(--text-muted); border: 1.5px solid var(--border);';
+}
+
+// 'both', wenn beide Seiten an sind — ohne Seite gibt es nichts zu speichern.
+function pumpSideValue() {
+  if (pumpLeft && pumpRight) return 'both';
+  if (pumpLeft) return 'left';
+  if (pumpRight) return 'right';
+  return null;
+}
+
+function setPumpMode(mode) {
+  pumpMode = mode;
+  feedPumpManualBtn.setAttribute('style', breastSegStyle(mode === 'manual'));
+  feedPumpTimerBtn.setAttribute('style', breastSegStyle(mode === 'timer'));
+  pumpManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
+  pumpTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
+}
+feedPumpManualBtn.addEventListener('click', () => setPumpMode('manual'));
+feedPumpTimerBtn.addEventListener('click', () => setPumpMode('timer'));
+
+// Beim Bearbeiten eines Abpump-Eintrags gibt es wie bei Brust keinen
+// Manuell/Timer-Umschalter mehr, sondern Aktualisieren/Abbrechen in der Karte.
+function refreshPumpPanelForEditState() {
+  const editing = !!editingFeedingId;
+  pumpModeToggle.style.display = editing ? 'none' : 'flex';
+  pumpSaveBtn.parentElement.style.display = editing ? 'none' : 'flex';
+  fuetternPumpEditActions.style.display = editing ? 'flex' : 'none';
+  if (editing) setPumpMode('manual');
+}
+
+function renderPumpSides() {
+  pumpSideLeftBtn.setAttribute('style', pumpCardStyle(pumpLeft));
+  pumpSideRightBtn.setAttribute('style', pumpCardStyle(pumpRight));
+  pumpSideLeftBtn.querySelector('.check-badge').style.background = pumpLeft ? 'var(--accent)' : 'var(--border)';
+  pumpSideRightBtn.querySelector('.check-badge').style.background = pumpRight ? 'var(--accent)' : 'var(--border)';
+  if (pumpSideValue()) pumpSideErrorEl.style.display = 'none';
+  renderPumpDuration();
+  renderPumpTimerDisplay();
+}
+
+// Während ein Timer läuft, wandert die geänderte Seite sofort nach Firestore —
+// sonst ginge sie beim Schließen der App verloren.
+async function togglePumpSide(which) {
+  if (which === 'left') pumpLeft = !pumpLeft; else pumpRight = !pumpRight;
+  renderPumpSides();
+  if (!openPumpDocId || !pumpSideValue()) return;
+  try {
+    await updateDoc(doc(db, 'feedings', openPumpDocId), { side: pumpSideValue() });
+  } catch (error) {
+    pumpTimerSublabel.textContent = 'Seite nicht gespeichert';
+  }
+}
+pumpSideLeftBtn.addEventListener('click', () => togglePumpSide('left'));
+pumpSideRightBtn.addEventListener('click', () => togglePumpSide('right'));
+
+// Manuell: Start und Ende stehen im Eintrag, die Dauer ist daraus abgeleitet
+// und verstellt über den Stepper das Ende — wie bei Schlafen → Tagsüber, nur
+// in 5-Minuten-Schritten, weil Abpumpen selten länger als eine halbe Stunde
+// dauert.
+const PUMP_DUR_STEP = 5;
+
+function pumpDurationMinutes() {
+  return Math.max(0, parseMinutes(pumpEndInput.value) - parseMinutes(pumpStartInput.value));
+}
+
+function renderPumpDuration() {
+  const minutes = pumpDurationMinutes();
+  pumpDurDisplay.textContent = minutes > 0 ? minutes + ' Min' : '–';
+  const ready = minutes > 0 && !!pumpSideValue();
+  pumpSaveBtn.style.background = ready ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+  fuetternPumpUpdateBtn.style.background = ready ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+  return minutes;
+}
+
+function stepPumpDuration(deltaMin) {
+  const startMin = parseMinutes(pumpStartInput.value);
+  const currentMin = Math.max(0, parseMinutes(pumpEndInput.value) - startMin);
+  const nextMin = Math.max(0, Math.min(23 * 60 + 55, currentMin + deltaMin));
+  const endMin = (startMin + nextMin) % 1440;
+  pumpEndInput.value = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+  pumpEndInput.dispatchEvent(new Event('change', { bubbles: true }));
+  renderPumpDuration();
+}
+wireHoldRepeat(pumpDurDecBtn, () => stepPumpDuration(-PUMP_DUR_STEP));
+wireHoldRepeat(pumpDurIncBtn, () => stepPumpDuration(PUMP_DUR_STEP));
+
+// Vorbelegung wie beim Schläfchen: eine halbe Stunde zurück, aber nie über
+// Mitternacht hinaus — das Datumsfeld daneben zeigt ja weiterhin heute.
+function pumpDefaultTimes() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0);
+  return {
+    start: formatTime(new Date(Math.max(midnight.getTime(), now.getTime() - 30 * 60000))),
+    end: formatTime(now)
+  };
+}
+
+function resetPumpManualForm() {
+  const def = pumpDefaultTimes();
+  pumpDateInput.value = isoDate(new Date());
+  pumpStartInput.value = def.start;
+  pumpEndInput.value = def.end;
+  pumpLeft = true;
+  pumpRight = true;
+  pumpSideErrorEl.style.display = 'none';
+  pumpDateInput.dispatchEvent(new Event('change'));
+  renderPumpSides();
+}
+
+pumpDateInput.value = isoDate(new Date());
+pumpStartInput.value = pumpDefaultTimes().start;
+pumpEndInput.value = pumpDefaultTimes().end;
+pumpStartInput.addEventListener('input', renderPumpDuration);
+pumpEndInput.addEventListener('input', renderPumpDuration);
+const pumpTimeIsValid = setupPastOnlyDateTimeRange(pumpDateInput, pumpStartInput, pumpEndInput, pumpTimeError);
+
+function pumpEntryIsValid() {
+  if (!pumpSideValue()) {
+    pumpSideErrorEl.style.display = 'block';
+    return false;
+  }
+  if (!pumpTimeIsValid()) return false;
+  return pumpDurationMinutes() > 0;
+}
+
+function pumpEntryFromForm() {
+  const minutes = pumpDurationMinutes();
+  return {
+    type: 'pump',
+    amount: null,
+    minutes,
+    durationMinutes: minutes,
+    side: pumpSideValue(),
+    date: pumpDateInput.value,
+    time: pumpStartInput.value,
+    startTime: pumpStartInput.value,
+    endTime: pumpEndInput.value,
+    source: 'manual'
+  };
+}
+
+pumpSaveBtn.addEventListener('click', async () => {
+  if (!currentUser || !pumpEntryIsValid()) return;
+  pumpSaveBtn.disabled = true;
+  try {
+    const entry = { ...pumpEntryFromForm(), createdBy: currentUser.email, createdAt: serverTimestamp() };
+    await addDoc(collection(db, 'feedings'), entry);
+    pumpSaveBtn.disabled = false;
+    resetPumpManualForm();
+    afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--fuettern)');
+  } catch (error) {
+    pumpSaveBtn.textContent = 'Fehler beim Speichern';
+    pumpSaveBtn.disabled = false;
+  }
+});
+
+// --- Abpump-Timer: gleiches Muster wie der Brust-Timer (Zustand lebt in
+// Firestore, damit ein Schließen der App nichts verliert), nur ohne
+// Seitenwechsel mit Zwischenständen — die Seite gilt für den ganzen Vorgang. ---
+let openPumpDocId = null;
+let openPumpStartedAt = null;
+let pumpTimerInterval = null;
+
+async function findOpenPumping() {
+  const q = query(collection(db, 'feedings'), where('type', '==', 'pump'), where('endTime', '==', null));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
+}
+
+function renderPumpTimerDisplay() {
+  const running = !!openPumpDocId;
+  const sec = running ? Math.max(0, Math.floor((Date.now() - openPumpStartedAt) / 1000)) : 0;
+  pumpTimerDisplay.textContent = formatClock(sec);
+  if (running) {
+    pumpTimerSublabel.textContent = 'Pumpt seit ' + formatTime(new Date(openPumpStartedAt));
+    pumpTimerToggleBtn.textContent = 'Stop';
+    pumpTimerToggleBtn.style.background = 'var(--stop)';
+  } else {
+    pumpTimerSublabel.textContent = pumpSideValue() ? 'Bereit zum Start' : 'Mindestens eine Seite wählen';
+    pumpTimerToggleBtn.textContent = 'Start';
+    pumpTimerToggleBtn.style.background = pumpSideValue() ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+  }
+}
+
+async function syncPumpState() {
+  const open = await findOpenPumping();
+  if (open) {
+    openPumpDocId = open.id;
+    openPumpStartedAt = new Date(open.startTime).getTime();
+    pumpLeft = open.side === 'both' || open.side === 'left';
+    pumpRight = open.side === 'both' || open.side === 'right';
+    if (!pumpTimerInterval) pumpTimerInterval = setInterval(renderPumpTimerDisplay, 1000);
+  } else {
+    if (pumpTimerInterval) { clearInterval(pumpTimerInterval); pumpTimerInterval = null; }
+    openPumpDocId = null;
+    openPumpStartedAt = null;
+  }
+  renderPumpSides();
+  return open;
+}
+
+pumpTimerRefreshBtn.addEventListener('click', async () => {
+  pumpTimerRefreshBtn.disabled = true;
+  try {
+    await syncPumpState();
+  } catch (error) {
+    pumpTimerSublabel.textContent = 'Aktualisieren fehlgeschlagen';
+  }
+  pumpTimerRefreshBtn.disabled = false;
+});
+
+pumpTimerToggleBtn.addEventListener('click', async () => {
+  if (!currentUser) return;
+  if (!openPumpDocId && !pumpSideValue()) { pumpSideErrorEl.style.display = 'block'; return; }
+  pumpTimerToggleBtn.disabled = true;
+  try {
+    if (!openPumpDocId) {
+      const startedAt = new Date();
+      // date/time werden schon beim Start gesetzt: entryBusinessTimestamp hat
+      // für Timer-Einträge keinen Sonderfall, sonst fiele der laufende
+      // Eintrag in der Historie aus der Sortierung.
+      const entry = {
+        type: 'pump',
+        amount: null,
+        minutes: null,
+        durationMinutes: null,
+        side: pumpSideValue(),
+        date: isoDate(startedAt),
+        time: formatTime(startedAt),
+        startTime: startedAt.toISOString(),
+        endTime: null,
+        source: 'timer',
+        createdBy: currentUser.email,
+        createdAt: serverTimestamp()
+      };
+      const ref = await addDoc(collection(db, 'feedings'), entry);
+      openPumpDocId = ref.id;
+      openPumpStartedAt = startedAt.getTime();
+      pumpTimerInterval = setInterval(renderPumpTimerDisplay, 1000);
+      renderPumpTimerDisplay();
+    } else {
+      // Der Stand aus Firestore gewinnt: ein zweites Gerät kann den Vorgang
+      // inzwischen begonnen oder die Seite geändert haben.
+      const open = await findOpenPumping();
+      const targetId = open ? open.id : openPumpDocId;
+      const startedAt = open ? new Date(open.startTime) : new Date(openPumpStartedAt);
+      const endedAt = new Date();
+      const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
+      await updateDoc(doc(db, 'feedings', targetId), {
+        endTime: endedAt.toISOString(),
+        durationMinutes,
+        minutes: durationMinutes,
+        side: pumpSideValue()
+      });
+      clearInterval(pumpTimerInterval);
+      pumpTimerInterval = null;
+      openPumpDocId = null;
+      openPumpStartedAt = null;
+      renderPumpTimerDisplay();
+      pumpTimerToggleBtn.disabled = false;
+      afterNewEntrySaved(startedAt, 'var(--fuettern)');
+    }
+  } catch (error) {
+    pumpTimerSublabel.textContent = 'Fehler: ' + error.message;
+  }
+  pumpTimerToggleBtn.disabled = false;
+});
+
+renderPumpSides();
+
+// Historie-Text eines Abpump-Eintrags: Dauer, dahinter die Seite(n).
+function pumpDetailText(entry) {
+  const minutes = entry.minutes || entry.durationMinutes || 0;
+  const side = entry.side === 'both' ? 'L & R' : entry.side === 'left' ? 'nur L' : entry.side === 'right' ? 'nur R' : null;
+  return minutes + ' Min' + (side ? ' · ' + side : '');
+}
+
 // --- Füttern: Bearbeiten aus der gemeinsamen Historie ---
 const fuetternSubtitleEl = document.getElementById('fuettern-subtitle');
 const fuetternTimeNowBtn = document.getElementById('fuettern-time-now');
@@ -2213,6 +2654,9 @@ function resetFuetternForm() {
   breastStartInput.value = breastDefaultStartTime();
   breastDateInput.dispatchEvent(new Event('change'));
   resetBreastSegments();
+
+  setPumpMode('manual');
+  resetPumpManualForm();
 }
 
 // Über das „+" auf Heute kommt man immer für einen Eintrag von jetzt: Datum
@@ -2229,9 +2673,20 @@ function prepareFuetternForNewEntry() {
     breastStartInput.value = breastDefaultStartTime();
     breastDateInput.dispatchEvent(new Event('change'));
   }
+  if (!openPumpDocId) {
+    const def = pumpDefaultTimes();
+    pumpDateInput.value = isoDate(new Date());
+    pumpStartInput.value = def.start;
+    pumpEndInput.value = def.end;
+    pumpDateInput.dispatchEvent(new Event('change'));
+    renderPumpDuration();
+  }
   if (openFeedingDocId) {
     setFeedType('breast');
     setBreastMode('timer');
+  } else if (openPumpDocId) {
+    setFeedType('pump');
+    setPumpMode('timer');
   }
 }
 
@@ -2257,6 +2712,14 @@ function breastSegmentsFromEntry(entry) {
   return minutes > 0 ? [{ side: null, minutes }] : [];
 }
 
+// Zeitfeld aus einem Eintrag: manuelle Einträge tragen "HH:MM", Timer-Einträge
+// einen ISO-Zeitstempel. Ohne beides bleibt der Ersatzwert.
+function fuetternTimeFieldValue(value, fallback) {
+  if (value && /^\d{2}:\d{2}$/.test(value)) return value;
+  if (value) return formatTime(new Date(value));
+  return fallback || null;
+}
+
 // Legacy-Einträge (nur `time`+`minutes`) sowie Timer-Einträge (ISO-Zeitstempel
 // in startTime/endTime) müssen beim Bearbeiten genauso sauber vorbefüllt werden
 // wie neue manuelle Einträge (bloße "HH:MM"-Strings) — daher die Fallunterscheidung.
@@ -2271,6 +2734,25 @@ function enterFuetternEdit(entry) {
     fuetternDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
     fuetternTimeInput.value = entry.time || formatTime(new Date());
     fuetternDateInput.dispatchEvent(new Event('change'));
+  } else if (entry.type === 'pump') {
+    const entryTs = entryBusinessTimestamp(entry);
+    pumpDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
+    pumpStartInput.value = fuetternTimeFieldValue(entry.startTime, entry.time) || formatTime(new Date());
+    // Ein Timer-Eintrag bringt ein ISO-Ende mit, ein manueller "HH:MM"; fehlt
+    // beides (abgebrochener Timer), wird das Ende aus der Dauer gerechnet.
+    const endVal = fuetternTimeFieldValue(entry.endTime, null);
+    if (endVal) {
+      pumpEndInput.value = endVal;
+    } else {
+      const startMin = parseMinutes(pumpStartInput.value);
+      const endMin = (startMin + (Math.round(Number(entry.minutes)) || 0)) % 1440;
+      pumpEndInput.value = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+    }
+    pumpLeft = entry.side === 'both' || entry.side === 'left' || !entry.side;
+    pumpRight = entry.side === 'both' || entry.side === 'right' || !entry.side;
+    pumpSideErrorEl.style.display = 'none';
+    pumpDateInput.dispatchEvent(new Event('change'));
+    renderPumpSides();
   } else {
     const entryTs = entryBusinessTimestamp(entry);
     breastDateInput.value = entry.date || (entryTs ? isoDate(entryTs) : isoDate(new Date()));
@@ -2300,6 +2782,7 @@ function exitFuetternEdit() {
 }
 fuetternBottleCancelEditBtn.addEventListener('click', () => leaveEntryScreen('fuettern'));
 fuetternBreastCancelEditBtn.addEventListener('click', () => leaveEntryScreen('fuettern'));
+fuetternPumpCancelEditBtn.addEventListener('click', () => leaveEntryScreen('fuettern'));
 
 async function handleFuetternUpdate(triggerBtn) {
   if (!currentUser || !editingFeedingId) return;
@@ -2318,6 +2801,9 @@ async function handleFuetternUpdate(triggerBtn) {
       endTime: null,
       source: null
     };
+  } else if (feedType === 'pump') {
+    if (!pumpEntryIsValid()) return;
+    entry = pumpEntryFromForm();
   } else {
     if (!breastEntryIsValid()) return;
     // Beim Bearbeiten wird ein Timer-Eintrag zu einem manuellen: die Sekunden
@@ -2339,6 +2825,7 @@ async function handleFuetternUpdate(triggerBtn) {
 }
 fuetternBottleUpdateBtn.addEventListener('click', () => handleFuetternUpdate(fuetternBottleUpdateBtn));
 fuetternBreastUpdateBtn.addEventListener('click', () => handleFuetternUpdate(fuetternBreastUpdateBtn));
+fuetternPumpUpdateBtn.addEventListener('click', () => handleFuetternUpdate(fuetternPumpUpdateBtn));
 
 // Historie-Text einer Brust-Fütterung: Gesamtdauer, dahinter die Aufteilung.
 // Einträge ohne Seitenangabe (etwa noch nicht nachgetragene) zeigen nur die
@@ -3403,21 +3890,23 @@ function stepNapDuration(deltaMin) {
   napEndInput.dispatchEvent(new Event('change', { bubbles: true }));
   renderNapDuration();
 }
-function wireNapDurStepper(btn, deltaMin) {
+// Ein Tippen zählt einmal, Gedrückthalten wiederholt — dieselbe Mechanik
+// nutzt der Dauer-Stepper beim Abpumpen.
+function wireHoldRepeat(btn, action) {
   let holdTimeout = null;
   let holdInterval = null;
   const stop = () => { clearTimeout(holdTimeout); clearInterval(holdInterval); holdTimeout = null; holdInterval = null; };
   btn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    stepNapDuration(deltaMin);
-    holdTimeout = setTimeout(() => { holdInterval = setInterval(() => stepNapDuration(deltaMin), 150); }, 450);
+    action();
+    holdTimeout = setTimeout(() => { holdInterval = setInterval(action, 150); }, 450);
   });
   btn.addEventListener('pointerup', stop);
   btn.addEventListener('pointerleave', stop);
   btn.addEventListener('pointercancel', stop);
 }
-wireNapDurStepper(napDurDecBtn, -15);
-wireNapDurStepper(napDurIncBtn, 15);
+wireHoldRepeat(napDurDecBtn, () => stepNapDuration(-15));
+wireHoldRepeat(napDurIncBtn, () => stepNapDuration(15));
 napDateInput.value = isoDate(new Date());
 // "1 hour ago" must not be allowed to wrap past today's midnight — e.g. at
 // 00:12 it would otherwise compute "23:12", which under napDateInput's
@@ -3820,6 +4309,7 @@ function historieAllLoaded() {
 const HISTORIE_ICONS = {
   bottle: '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
   breast: '<path d="M12 4c3.2 4.1 6.4 7.8 6.4 11.4A6.4 6.4 0 1 1 5.6 15.4C5.6 11.8 8.8 8.1 12 4z"/>',
+  pump: '<path d="M5.5 4h13c0 4-3 5.6-3.5 7v8a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-8C8.5 9.6 5.5 8 5.5 4z"/><line x1="9.5" y1="11" x2="14.5" y2="11"/>',
   diaper: '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
   night: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
   nap: '<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>'
@@ -3831,7 +4321,7 @@ const HISTORIE_TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="no
 // lassen sich nur löschen, nicht bearbeiten (vervollständigt wird auf ihrer
 // Eintragen-Seite).
 function historieIsOpen(entry) {
-  if (entry._cat === 'fuettern') return entry.type === 'breast' && entry.endTime === null;
+  if (entry._cat === 'fuettern') return (entry.type === 'breast' || entry.type === 'pump') && entry.endTime === null;
   if (entry._cat === 'schlafen') return entry._type === 'nap' ? entry.endTime === null : entry.wakeTime == null;
   return false;
 }
@@ -3841,6 +4331,7 @@ function historieDetail(entry) {
   const open = historieIsOpen(entry);
   if (entry._cat === 'fuettern') {
     if (entry.type === 'bottle') return { icon: 'bottle', main: 'Fläschchen', rest: (entry.amount || 0) + ' ml' };
+    if (entry.type === 'pump') return { icon: 'pump', main: 'Abpumpen', rest: open ? 'Läuft…' : pumpDetailText(entry) };
     return { icon: 'breast', main: 'Brust', rest: open ? 'Läuft…' : breastDetailText(entry) };
   }
   if (entry._cat === 'windeln') {
@@ -3926,7 +4417,7 @@ function historieRow(entry) {
 }
 
 async function deleteHistorieEntry(entry, delBtn) {
-  const label = entry._cat === 'fuettern' ? 'Fütterungs' : entry._cat === 'windeln' ? 'Windel' : (entry._type === 'night' ? 'Schlafen' : 'Nap');
+  const label = entry._cat === 'fuettern' ? (entry.type === 'pump' ? 'Abpump' : 'Fütterungs') : entry._cat === 'windeln' ? 'Windel' : (entry._type === 'night' ? 'Schlafen' : 'Nap');
   if (!confirm('Diesen ' + label + '-Eintrag wirklich löschen?')) return;
   const name = entry._cat === 'fuettern' ? 'feedings' : entry._cat === 'windeln' ? 'diaperChanges' : (entry._type === 'night' ? 'nightWakeups' : 'naps');
   delBtn.disabled = true;
@@ -4105,9 +4596,12 @@ function entryIsToday(doc, now) {
 // recent batch and re-sort by actual business timestamp instead of trusting
 // Firestore's createdAt order directly.
 // `predicate`, when given, filters out docs that shouldn't count as "the most
-// recent entry" yet — e.g. a still-running Brust-Timer (no duration until stopped).
+// recent entry" yet — e.g. a still-running Brust-Timer (no duration until
+// stopped) or ein Abpump-Eintrag, der gar keine Mahlzeit ist. Das Fenster ist
+// deshalb größer als die eine gesuchte Zeile: sonst bliebe nach dem Filtern
+// unter Umständen nichts übrig.
 async function getMostRecentByBusinessTime(name, predicate) {
-  const snap = await getDocs(query(collection(db, name), orderBy('createdAt', 'desc'), limit(8)));
+  const snap = await getDocs(query(collection(db, name), orderBy('createdAt', 'desc'), limit(12)));
   if (snap.empty) return null;
   let docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   if (predicate) docs = docs.filter(predicate);
@@ -4136,8 +4630,9 @@ async function loadOverview() {
 
   // Füttern
   try {
-    const [openFeeding, lastFeeding, todayFeedingsRaw] = await Promise.all([findOpenFeeding(), getMostRecentByBusinessTime('feedings', fuetternIsFinished), getTodayDocs('feedings')]);
-    const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now) && fuetternIsFinished(f));
+    const fuetternCountsAsMeal = (f) => fuetternIsMeal(f) && fuetternIsFinished(f);
+    const [openFeeding, lastFeeding, todayFeedingsRaw] = await Promise.all([findOpenFeeding(), getMostRecentByBusinessTime('feedings', fuetternCountsAsMeal), getTodayDocs('feedings')]);
+    const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now) && fuetternCountsAsMeal(f));
     // Läuft gerade ein Brust-Timer, ist "vor x Stunden" die falsche Auskunft:
     // sie bezöge sich auf die vorletzte, abgeschlossene Mahlzeit. Stattdessen
     // dasselbe "läuft"-Abzeichen wie in der Schlafen-Kachel, und darunter die
@@ -4573,7 +5068,14 @@ function outlierDayLabel(day) { return day.isToday ? analyseProseTodayLabel : da
 // sobald er gestoppt wurde — sonst würde ein offener Timer die Anzahl/Summe
 // verfälschen, obwohl seine Dauer noch gar nicht feststeht.
 function fuetternIsFinished(f) {
-  return !(f.type === 'breast' && f.endTime === null);
+  return !((f.type === 'breast' || f.type === 'pump') && f.endTime === null);
+}
+
+// Abgepumpte Milch ist keine Mahlzeit: Abpump-Einträge teilen sich zwar die
+// 'feedings'-Collection, zählen aber weder auf Heute noch in der Analyse mit —
+// sonst stünde im Tagesbalken doppelt, was das Baby einmal getrunken hat.
+function fuetternIsMeal(f) {
+  return f.type !== 'pump';
 }
 
 // Mittlerer Abstand zwischen aufeinanderfolgenden Einträgen, in Stunden.
@@ -4590,7 +5092,7 @@ function analyseIntervalH(docs) {
 
 function computeFuetternAnalysis(days, feedMap) {
   const perDay = days.map((d, i) => {
-    const docs = feedMap[i].filter(fuetternIsFinished);
+    const docs = feedMap[i].filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f));
     const bottle = docs.filter((f) => f.type === 'bottle');
     const breast = docs.filter((f) => f.type === 'breast');
     return {
@@ -4617,7 +5119,7 @@ function computeFuetternAnalysis(days, feedMap) {
   const totalRightMin = perDay.reduce((s, d) => s + d.breastRightMin, 0);
   const totalSideMin = totalLeftMin + totalRightMin;
 
-  const avgIntervalH = analyseIntervalH(feedMap.flat().filter(fuetternIsFinished));
+  const avgIntervalH = analyseIntervalH(feedMap.flat().filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f)));
 
   const bottlePct = totalCount > 0 ? analyseRound(totalBottle / totalCount * 100) : 0;
   const breastPct = totalCount > 0 ? 100 - bottlePct : 0;

@@ -1466,7 +1466,7 @@ function showScreen(target, opts = {}) {
   // Beim Öffnen von Füttern den Abpump-Stand frisch aus Firestore holen: der
   // Timer kann auf dem anderen Gerät gelaufen sein, und eine App, die schon
   // offen war, wüsste sonst nichts von dem unvollständigen Eintrag.
-  if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); else { prepareFuetternForNewEntry(); resumePumpFromServer(); } refreshFuetternAmountChips(); }
+  if (target === 'fuettern') { if (editingFeedingId) exitFuetternEdit(false); else { prepareFuetternForNewEntry(); resumeFuetternFromServer(); } refreshFuetternAmountChips(); }
   if (screens[target] && ['fuettern', 'windeln', 'schlafen'].includes(target)) screens[target].firstElementChild.scrollTop = 0;
   syncHistory();
 }
@@ -2696,16 +2696,23 @@ function renderPumpFinishState() {
   pumpFinishSaveBtn.style.background = ready ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
 }
 
-// Holt den Stand vom Server und schlägt einen laufenden oder unvollständigen
-// Vorgang auf — auch wenn er auf dem anderen Gerät entstanden ist.
-async function resumePumpFromServer() {
+// Holt beim Öffnen der Füttern-Seite den Stand beider Timer vom Server und
+// schlägt einen laufenden oder unvollständigen Vorgang auf — auch wenn er auf
+// dem anderen Gerät entstanden ist. Reihenfolge wie beim App-Start: die Brust
+// geht vor, sie betrifft das Baby und nicht die Vorratshaltung.
+async function resumeFuetternFromServer() {
+  let openBreast = null;
+  let openPump = null;
   try {
-    await syncPumpState();
+    [openBreast, openPump] = await Promise.all([syncFeedingState(), syncPumpState()]);
   } catch (error) {
     return;
   }
   if (editingFeedingId) return;
-  if (openPumpDocId || pendingPumpDocId) {
+  if (openBreast) {
+    setFeedType('breast');
+    setBreastMode('timer');
+  } else if (openPump) {
     setFeedType('pump');
     setPumpMode('timer');
   }
@@ -3482,6 +3489,17 @@ async function decideSchlafenDefault() {
     openNightData = null;
   }
 
+  // Den Nap-Timer ebenso frisch holen: er kann auf dem anderen Gerät gestartet
+  // worden sein, nachdem diese App schon geladen war. Ohne das entschiede die
+  // Heuristik unten auf einem veralteten Stand. Schlägt die Abfrage fehl,
+  // bleibt der bisherige Stand stehen — anders als bei der Nacht, wo ein
+  // Fehlschlag den offenen Eintrag bewusst verwirft.
+  try {
+    await syncNapState();
+  } catch (error) {
+    /* Stand unverändert lassen */
+  }
+
   // Kommt man über die Erinnerung aus der Übersicht, ist die Frage schon
   // beantwortet: es geht um die fehlende letzte Nacht. Das schlägt auch einen
   // laufenden Nap-Timer, sonst führte die Erinnerung ins Tagsüber-Panel.
@@ -3496,7 +3514,7 @@ async function decideSchlafenDefault() {
     return;
   }
 
-  if (openNapDocId) { setSchlafenMode('day'); await refreshLastNightPending(); return; }
+  if (openNapDocId) { setSchlafenMode('day'); setNapMode('timer'); await refreshLastNightPending(); return; }
 
   let mode = 'night';
   if (!openNightDocId) {

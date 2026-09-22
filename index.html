@@ -2779,7 +2779,7 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
       const startedAt = open ? new Date(open.startTime) : new Date(openPumpStartedAt);
       // Stop beendet nur die Zeitmessung. Die Menge steht erst jetzt fest, und
       // ohne sie ist der Eintrag unvollständig — er bleibt offen, bis sie
-      // nachgetragen ist (in der Historie als „abschließen").
+      // nachgetragen ist (in der Historie als „unvollständig").
       const endedAt = new Date();
       const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
       await updateDoc(doc(db, 'feedings', targetId), {
@@ -4549,7 +4549,7 @@ function historieDetail(entry) {
   const open = historieIsOpen(entry);
   if (entry._cat === 'fuettern') {
     if (entry.type === 'bottle') return { icon: 'bottle', main: 'Fläschchen', rest: (entry.amount || 0) + ' ml' };
-    if (entry.type === 'pump') return { icon: 'pump', main: 'Abpumpen', rest: !open ? pumpDetailText(entry) : (entry.endTime === null ? 'Läuft…' : 'abschließen') };
+    if (entry.type === 'pump') return { icon: 'pump', main: 'Abpumpen', rest: !open ? pumpDetailText(entry) : (entry.endTime === null ? 'Läuft…' : 'unvollständig') };
     return { icon: 'breast', main: 'Brust', rest: open ? 'Läuft…' : breastDetailText(entry) };
   }
   if (entry._cat === 'windeln') {

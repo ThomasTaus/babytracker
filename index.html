@@ -4951,6 +4951,20 @@ async function loadOverview() {
         label: f.type === 'bottle' ? 'Fläschchen · ' + f.amount + ' ml' : 'Brust · ' + f.minutes + ' Min'
       });
     });
+    // Abpumpen gehört in den Zeitverlauf, aber nicht in die Zahlen darüber:
+    // die Kachel zählt Mahlzeiten des Babys. Unvollständige Einträge (Timer
+    // gestoppt, Menge fehlt noch) tauchen erst auf, wenn sie fertig sind.
+    todayFeedingsRaw
+      .filter((f) => f.type === 'pump' && entryIsToday(f, now) && fuetternIsFinished(f) && !f.pendingAmount)
+      .forEach((f) => {
+        const ts = entryBusinessTimestamp(f);
+        if (!ts) return;
+        timelineEvents.push({
+          ts,
+          color: 'var(--fuettern)',
+          label: 'Abpumpen · ' + (f.amount ? f.amount + ' ml' : (f.minutes || 0) + ' Min')
+        });
+      });
   } catch (error) {
     document.getElementById('fuettern-detail').textContent = 'Fehler beim Laden';
   }

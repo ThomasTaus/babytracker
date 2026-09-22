@@ -700,6 +700,29 @@
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
           </div>
+
+          <div style="height: 1px; background: var(--border);"></div>
+
+          <!-- Menge zuletzt: im Ablauf weiß man sie erst, wenn das Fläschchen
+               vor einem steht. Pflichtangabe, ohne sie bleibt Speichern grau. -->
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+              <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
+              <line x1="9" y1="12" x2="15" y2="12"/>
+            </svg>
+            <div style="min-width: 0; flex: 1;">
+              <label for="pump-amount" style="display:block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Menge</label>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px;">
+                <div style="display: flex; align-items: baseline; gap: 3px;">
+                  <input id="pump-amount" type="number" inputmode="numeric" min="1" max="500" step="1" placeholder="–" style="width: 34px; text-align: right; font-family: 'Work Sans', sans-serif; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0;">
+                  <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">ml</span>
+                </div>
+                <div id="pump-amount-chips" style="display: flex; gap: 6px;"></div>
+              </div>
+              <div id="pump-amount-error" style="display: none; padding: 4px 0 0; font-size: 12px; color: var(--warn);">Menge muss zwischen 1 und 500 ml liegen.</div>
+            </div>
+          </div>
+
           <div id="pump-save-row" style="display: flex; gap: 10px;">
             <button id="pump-save" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); white-space: nowrap;">Eintrag speichern</button>
             <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
@@ -721,6 +744,30 @@
               </button>
             </div>
             <button id="pump-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); margin-top:4px;">Start</button>
+          </div>
+
+          <!-- Nach dem Stop: die Menge steht erst jetzt fest, der Eintrag ist
+               bis dahin unvollständig und wird hier abgeschlossen. -->
+          <div id="pump-finish-block" style="display: none; flex-direction: column; gap: 14px;">
+            <div style="height: 1px; background: var(--border);"></div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+                <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
+                <line x1="9" y1="12" x2="15" y2="12"/>
+              </svg>
+              <div style="min-width: 0; flex: 1;">
+                <label for="pump-timer-amount" style="display:block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Menge</label>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px;">
+                  <div style="display: flex; align-items: baseline; gap: 3px;">
+                    <input id="pump-timer-amount" type="number" inputmode="numeric" min="1" max="500" step="1" placeholder="–" style="width: 34px; text-align: right; font-family: 'Work Sans', sans-serif; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0;">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">ml</span>
+                  </div>
+                  <div id="pump-timer-amount-chips" style="display: flex; gap: 6px;"></div>
+                </div>
+                <div id="pump-timer-amount-error" style="display: none; padding: 4px 0 0; font-size: 12px; color: var(--warn);">Menge muss zwischen 1 und 500 ml liegen.</div>
+              </div>
+            </div>
+            <button id="pump-finish-save" style="width: 100%; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); white-space: nowrap;">Eintrag speichern</button>
           </div>
         </div>
       </div>
@@ -1379,6 +1426,7 @@ onAuthStateChanged(auth, async (user) => {
   resumeOpenNightIfAny();
   resumeOpenFeedingIfAny();
   refreshFuetternAmountChips();
+  refreshPumpAmountChips();
 });
 
 // --- Tab navigation ---
@@ -1675,10 +1723,18 @@ const pumpSaveBtn = document.getElementById('pump-save');
 const fuetternPumpEditActions = document.getElementById('fuettern-pump-edit-actions');
 const fuetternPumpUpdateBtn = document.getElementById('fuettern-pump-update');
 const fuetternPumpCancelEditBtn = document.getElementById('fuettern-pump-cancel-edit');
+const pumpAmountInput = document.getElementById('pump-amount');
+const pumpAmountChipsEl = document.getElementById('pump-amount-chips');
+const pumpAmountErrorEl = document.getElementById('pump-amount-error');
 const pumpTimerDisplay = document.getElementById('pump-timer-display');
 const pumpTimerSublabel = document.getElementById('pump-timer-sublabel');
 const pumpTimerToggleBtn = document.getElementById('pump-timer-toggle-btn');
 const pumpTimerRefreshBtn = document.getElementById('pump-timer-refresh-btn');
+const pumpFinishBlock = document.getElementById('pump-finish-block');
+const pumpFinishSaveBtn = document.getElementById('pump-finish-save');
+const pumpTimerAmountInput = document.getElementById('pump-timer-amount');
+const pumpTimerAmountChipsEl = document.getElementById('pump-timer-amount-chips');
+const pumpTimerAmountErrorEl = document.getElementById('pump-timer-amount-error');
 
 let feedType = 'bottle';
 let editingFeedingId = null;
@@ -1784,9 +1840,12 @@ function buildChips(container, values, unit, input) {
 // die Standard-Karte bestehen, damit die Cards nicht bei jedem Laden
 // hin- und herspringen. Angezeigt wird am Ende immer der Größe nach sortiert.
 const DEFAULT_BOTTLE_AMOUNTS = [20, 40, 80, 100];
+// Abpumpen lernt getrennt von Fläschchen: beim Abpumpen kommen andere Mengen
+// zusammen als beim Füttern, und beide Reihen würden sich sonst verfälschen.
+const DEFAULT_PUMP_AMOUNTS = [40, 60, 80, 100];
 let fuetternAmountChips = DEFAULT_BOTTLE_AMOUNTS.slice();
 
-async function computeFuetternAmountChips() {
+async function computeAmountChips(feedingType, defaults) {
   try {
     const start = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
     const docs = await getAnalyseRangeDocs('feedings', start);
@@ -1794,30 +1853,30 @@ async function computeFuetternAmountChips() {
     const freq = new Map();
     let n = 0;
     docs.forEach((doc) => {
-      if (doc.type !== 'bottle' || !doc.amount) return;
+      if (doc.type !== feedingType || !doc.amount) return;
       const ts = entryBusinessTimestamp(doc);
       if (!ts || ts.getTime() < cutoff) return;
       n++;
       const rounded = Math.round(doc.amount / 10) * 10;
       freq.set(rounded, (freq.get(rounded) || 0) + 1);
     });
-    if (n < 3) return DEFAULT_BOTTLE_AMOUNTS.slice();
+    if (n < 3) return defaults.slice();
 
-    const candidates = new Set([...DEFAULT_BOTTLE_AMOUNTS, ...freq.keys()]);
+    const candidates = new Set([...defaults, ...freq.keys()]);
     const ranked = [...candidates].map((value) => ({
       value,
       count: freq.get(value) || 0,
-      isDefault: DEFAULT_BOTTLE_AMOUNTS.includes(value)
+      isDefault: defaults.includes(value)
     }));
     ranked.sort((a, b) => b.count - a.count || (b.isDefault - a.isDefault) || a.value - b.value);
     return ranked.slice(0, 4).map((c) => c.value).sort((a, b) => a - b);
   } catch (error) {
-    return DEFAULT_BOTTLE_AMOUNTS.slice();
+    return defaults.slice();
   }
 }
 
 async function refreshFuetternAmountChips() {
-  fuetternAmountChips = await computeFuetternAmountChips();
+  fuetternAmountChips = await computeAmountChips('bottle', DEFAULT_BOTTLE_AMOUNTS);
   buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
 }
 
@@ -2238,12 +2297,12 @@ async function syncFeedingState() {
 // Beide Timer werden abgeglichen; aufgeschlagen wird höchstens einer — der
 // Brust-Timer zuerst, weil er das Baby betrifft und nicht die Vorratshaltung.
 async function resumeOpenFeedingIfAny() {
-  const [open, openPump] = await Promise.all([syncFeedingState(), syncPumpState()]);
+  const [open, openOrPendingPump] = await Promise.all([syncFeedingState(), syncPumpState()]);
   if (open) {
     setFeedType('breast');
     setBreastMode('timer');
     showScreen('fuettern');
-  } else if (openPump) {
+  } else if (openOrPendingPump) {
     setFeedType('pump');
     setPumpMode('timer');
     showScreen('fuettern');
@@ -2357,6 +2416,49 @@ function pumpCardStyle(active) {
     : 'flex:1; display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; cursor:pointer; font-family: inherit; background: var(--surface); color: var(--text-muted); border: 1.5px solid var(--border);';
 }
 
+// Menge ist beim Abpumpen Pflicht — anders als beim Fläschchen gibt es keinen
+// sinnvollen Eintrag ohne sie. Dieselbe Prüfung für beide Mengenfelder
+// (Manuell und der Abschluss nach dem Timer).
+let pumpAmountChips = DEFAULT_PUMP_AMOUNTS.slice();
+
+function pumpAmountIsValid(input, errorEl, showError) {
+  const raw = String(input.value).trim();
+  const v = Number(raw);
+  const invalid = raw === '' || !Number.isFinite(v) || v <= 0 || v > 500;
+  // Nur die Aufrufe mit showError fassen den Hinweis an — sonst würde ihn die
+  // nächste reine Zustandsprüfung gleich wieder ausblenden.
+  if (showError) errorEl.style.display = invalid && raw !== '' ? 'block' : 'none';
+  return !invalid;
+}
+
+// Wie buildChips, aber mit Rückmeldung: ein Tippen auf eine Menge muss auch
+// den Speichern-Knopf wieder freigeben (ein gesetzter Wert löst kein
+// input-Ereignis aus).
+function buildPumpChips(container, input, afterPick) {
+  container.innerHTML = '';
+  pumpAmountChips.forEach((v) => {
+    const chip = document.createElement('div');
+    chip.textContent = String(v);
+    chip.setAttribute('style', chipStyle(String(input.value) === String(v)));
+    chip.addEventListener('click', () => {
+      input.value = v;
+      buildPumpChips(container, input, afterPick);
+      afterPick();
+    });
+    container.appendChild(chip);
+  });
+}
+
+function renderPumpAmountChips() {
+  buildPumpChips(pumpAmountChipsEl, pumpAmountInput, renderPumpDuration);
+  buildPumpChips(pumpTimerAmountChipsEl, pumpTimerAmountInput, renderPumpFinishState);
+}
+
+async function refreshPumpAmountChips() {
+  pumpAmountChips = await computeAmountChips('pump', DEFAULT_PUMP_AMOUNTS);
+  renderPumpAmountChips();
+}
+
 // 'both', wenn beide Seiten an sind — ohne Seite gibt es nichts zu speichern.
 function pumpSideValue() {
   if (pumpLeft && pumpRight) return 'both';
@@ -2400,9 +2502,10 @@ function renderPumpSides() {
 async function togglePumpSide(which) {
   if (which === 'left') pumpLeft = !pumpLeft; else pumpRight = !pumpRight;
   renderPumpSides();
-  if (!openPumpDocId || !pumpSideValue()) return;
+  const liveId = openPumpDocId || pendingPumpDocId;
+  if (!liveId || !pumpSideValue()) return;
   try {
-    await updateDoc(doc(db, 'feedings', openPumpDocId), { side: pumpSideValue() });
+    await updateDoc(doc(db, 'feedings', liveId), { side: pumpSideValue() });
   } catch (error) {
     pumpTimerSublabel.textContent = 'Seite nicht gespeichert';
   }
@@ -2423,11 +2526,16 @@ function pumpDurationMinutes() {
 function renderPumpDuration() {
   const minutes = pumpDurationMinutes();
   pumpDurDisplay.textContent = minutes > 0 ? minutes + ' Min' : '–';
-  const ready = minutes > 0 && !!pumpSideValue();
+  const ready = minutes > 0 && !!pumpSideValue() && pumpAmountIsValid(pumpAmountInput, pumpAmountErrorEl, false);
   pumpSaveBtn.style.background = ready ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
   fuetternPumpUpdateBtn.style.background = ready ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
   return minutes;
 }
+pumpAmountInput.addEventListener('input', () => {
+  pumpAmountIsValid(pumpAmountInput, pumpAmountErrorEl, true);
+  renderPumpAmountChips();
+  renderPumpDuration();
+});
 
 function stepPumpDuration(deltaMin) {
   const startMin = parseMinutes(pumpStartInput.value);
@@ -2461,6 +2569,9 @@ function resetPumpManualForm() {
   pumpLeft = true;
   pumpRight = true;
   pumpSideErrorEl.style.display = 'none';
+  pumpAmountInput.value = '';
+  pumpAmountErrorEl.style.display = 'none';
+  renderPumpAmountChips();
   pumpDateInput.dispatchEvent(new Event('change'));
   renderPumpSides();
 }
@@ -2478,6 +2589,10 @@ function pumpEntryIsValid() {
     return false;
   }
   if (!pumpTimeIsValid()) return false;
+  if (!pumpAmountIsValid(pumpAmountInput, pumpAmountErrorEl, true)) {
+    pumpAmountErrorEl.style.display = 'block';
+    return false;
+  }
   return pumpDurationMinutes() > 0;
 }
 
@@ -2485,7 +2600,7 @@ function pumpEntryFromForm() {
   const minutes = pumpDurationMinutes();
   return {
     type: 'pump',
-    amount: null,
+    amount: Number(pumpAmountInput.value),
     minutes,
     durationMinutes: minutes,
     side: pumpSideValue(),
@@ -2493,7 +2608,10 @@ function pumpEntryFromForm() {
     time: pumpStartInput.value,
     startTime: pumpStartInput.value,
     endTime: pumpEndInput.value,
-    source: 'manual'
+    source: 'manual',
+    // Ein von Hand gespeicherter Eintrag ist immer vollständig; steht hier
+    // auch beim Abschließen eines Timer-Eintrags über die Bearbeiten-Maske.
+    pendingAmount: false
   };
 }
 
@@ -2505,6 +2623,7 @@ pumpSaveBtn.addEventListener('click', async () => {
     await addDoc(collection(db, 'feedings'), entry);
     pumpSaveBtn.disabled = false;
     resetPumpManualForm();
+    refreshPumpAmountChips();
     afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--fuettern)');
   } catch (error) {
     pumpSaveBtn.textContent = 'Fehler beim Speichern';
@@ -2518,6 +2637,11 @@ pumpSaveBtn.addEventListener('click', async () => {
 let openPumpDocId = null;
 let openPumpStartedAt = null;
 let pumpTimerInterval = null;
+// Gestoppt, aber noch ohne Menge: der Eintrag steht schon in Firestore und
+// wartet auf die Mengenangabe (`pendingAmount: true`).
+let pendingPumpDocId = null;
+let pendingPumpStartedAt = null;
+let pendingPumpEndedAt = null;
 
 async function findOpenPumping() {
   const q = query(collection(db, 'feedings'), where('type', '==', 'pump'), where('endTime', '==', null));
@@ -2527,8 +2651,41 @@ async function findOpenPumping() {
   return { id: d.id, ...d.data() };
 }
 
+// Eigenes Merkmal statt `amount == null`: Abpump-Einträge aus der Zeit vor der
+// Mengenpflicht tragen ebenfalls kein amount und dürfen nicht plötzlich als
+// unvollständig gelten.
+async function findPendingPumping() {
+  const q = query(collection(db, 'feedings'), where('type', '==', 'pump'), where('pendingAmount', '==', true));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
+}
+
+function renderPumpFinishState() {
+  const pending = !!pendingPumpDocId;
+  pumpFinishBlock.style.display = pending ? 'flex' : 'none';
+  pumpTimerToggleBtn.style.display = pending ? 'none' : 'flex';
+  pumpTimerRefreshBtn.style.display = pending ? 'none' : 'flex';
+  if (!pending) return;
+  const ready = pumpAmountIsValid(pumpTimerAmountInput, pumpTimerAmountErrorEl, false) && !!pumpSideValue();
+  pumpFinishSaveBtn.style.background = ready ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+}
+pumpTimerAmountInput.addEventListener('input', () => {
+  pumpAmountIsValid(pumpTimerAmountInput, pumpTimerAmountErrorEl, true);
+  renderPumpAmountChips();
+  renderPumpFinishState();
+});
+
 function renderPumpTimerDisplay() {
   const running = !!openPumpDocId;
+  const pending = !!pendingPumpDocId;
+  if (pending) {
+    pumpTimerDisplay.textContent = formatClock(Math.max(0, Math.round((pendingPumpEndedAt - pendingPumpStartedAt) / 1000)));
+    pumpTimerSublabel.textContent = formatTime(new Date(pendingPumpStartedAt)) + ' – ' + formatTime(new Date(pendingPumpEndedAt));
+    renderPumpFinishState();
+    return;
+  }
   const sec = running ? Math.max(0, Math.floor((Date.now() - openPumpStartedAt) / 1000)) : 0;
   pumpTimerDisplay.textContent = formatClock(sec);
   if (running) {
@@ -2540,10 +2697,26 @@ function renderPumpTimerDisplay() {
     pumpTimerToggleBtn.textContent = 'Start';
     pumpTimerToggleBtn.style.background = pumpSideValue() ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
   }
+  renderPumpFinishState();
+}
+
+function setPendingPump(entry) {
+  pendingPumpDocId = entry ? entry.id : null;
+  pendingPumpStartedAt = entry ? new Date(entry.startTime).getTime() : null;
+  pendingPumpEndedAt = entry ? new Date(entry.endTime).getTime() : null;
+  if (entry) {
+    pumpLeft = entry.side === 'both' || entry.side === 'left';
+    pumpRight = entry.side === 'both' || entry.side === 'right';
+    pumpTimerAmountInput.value = '';
+    pumpTimerAmountErrorEl.style.display = 'none';
+    renderPumpAmountChips();
+  }
 }
 
 async function syncPumpState() {
   const open = await findOpenPumping();
+  const pending = open ? null : await findPendingPumping();
+  setPendingPump(pending);
   if (open) {
     openPumpDocId = open.id;
     openPumpStartedAt = new Date(open.startTime).getTime();
@@ -2556,7 +2729,7 @@ async function syncPumpState() {
     openPumpStartedAt = null;
   }
   renderPumpSides();
-  return open;
+  return open || pending;
 }
 
 pumpTimerRefreshBtn.addEventListener('click', async () => {
@@ -2604,21 +2777,25 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
       const open = await findOpenPumping();
       const targetId = open ? open.id : openPumpDocId;
       const startedAt = open ? new Date(open.startTime) : new Date(openPumpStartedAt);
+      // Stop beendet nur die Zeitmessung. Die Menge steht erst jetzt fest, und
+      // ohne sie ist der Eintrag unvollständig — er bleibt offen, bis sie
+      // nachgetragen ist (in der Historie als „abschließen").
       const endedAt = new Date();
       const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
       await updateDoc(doc(db, 'feedings', targetId), {
         endTime: endedAt.toISOString(),
         durationMinutes,
         minutes: durationMinutes,
-        side: pumpSideValue()
+        side: pumpSideValue(),
+        pendingAmount: true
       });
       clearInterval(pumpTimerInterval);
       pumpTimerInterval = null;
       openPumpDocId = null;
       openPumpStartedAt = null;
+      setPendingPump({ id: targetId, startTime: startedAt.toISOString(), endTime: endedAt.toISOString(), side: pumpSideValue() });
       renderPumpTimerDisplay();
       pumpTimerToggleBtn.disabled = false;
-      afterNewEntrySaved(startedAt, 'var(--fuettern)');
     }
   } catch (error) {
     pumpTimerSublabel.textContent = 'Fehler: ' + error.message;
@@ -2626,13 +2803,46 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
   pumpTimerToggleBtn.disabled = false;
 });
 
+pumpFinishSaveBtn.addEventListener('click', async () => {
+  if (!currentUser || !pendingPumpDocId) return;
+  if (!pumpSideValue()) { pumpSideErrorEl.style.display = 'block'; return; }
+  if (!pumpAmountIsValid(pumpTimerAmountInput, pumpTimerAmountErrorEl, true)) {
+    pumpTimerAmountErrorEl.style.display = 'block';
+    return;
+  }
+  const finishedId = pendingPumpDocId;
+  const startedAt = new Date(pendingPumpStartedAt);
+  pumpFinishSaveBtn.disabled = true;
+  try {
+    await updateDoc(doc(db, 'feedings', finishedId), {
+      amount: Number(pumpTimerAmountInput.value),
+      side: pumpSideValue(),
+      pendingAmount: false
+    });
+    setPendingPump(null);
+    pumpLeft = true;
+    pumpRight = true;
+    renderPumpTimerDisplay();
+    renderPumpSides();
+    refreshPumpAmountChips();
+    pumpFinishSaveBtn.disabled = false;
+    afterNewEntrySaved(startedAt, 'var(--fuettern)');
+  } catch (error) {
+    pumpFinishSaveBtn.textContent = 'Fehler beim Speichern';
+    setTimeout(() => { pumpFinishSaveBtn.textContent = 'Eintrag speichern'; }, 1600);
+    pumpFinishSaveBtn.disabled = false;
+  }
+});
+
+renderPumpAmountChips();
 renderPumpSides();
 
-// Historie-Text eines Abpump-Eintrags: Dauer, dahinter die Seite(n).
+// Historie-Text eines Abpump-Eintrags: Menge, Dauer, dahinter die Seite(n).
+// Ältere Einträge aus der Zeit vor der Mengenpflicht tragen keine Menge.
 function pumpDetailText(entry) {
   const minutes = entry.minutes || entry.durationMinutes || 0;
   const side = entry.side === 'both' ? 'L & R' : entry.side === 'left' ? 'nur L' : entry.side === 'right' ? 'nur R' : null;
-  return minutes + ' Min' + (side ? ' · ' + side : '');
+  return (entry.amount ? entry.amount + ' ml · ' : '') + minutes + ' Min' + (side ? ' · ' + side : '');
 }
 
 // --- Füttern: Bearbeiten aus der gemeinsamen Historie ---
@@ -2673,7 +2883,7 @@ function prepareFuetternForNewEntry() {
     breastStartInput.value = breastDefaultStartTime();
     breastDateInput.dispatchEvent(new Event('change'));
   }
-  if (!openPumpDocId) {
+  if (!openPumpDocId && !pendingPumpDocId) {
     const def = pumpDefaultTimes();
     pumpDateInput.value = isoDate(new Date());
     pumpStartInput.value = def.start;
@@ -2684,7 +2894,7 @@ function prepareFuetternForNewEntry() {
   if (openFeedingDocId) {
     setFeedType('breast');
     setBreastMode('timer');
-  } else if (openPumpDocId) {
+  } else if (openPumpDocId || pendingPumpDocId) {
     setFeedType('pump');
     setPumpMode('timer');
   }
@@ -2751,6 +2961,11 @@ function enterFuetternEdit(entry) {
     pumpLeft = entry.side === 'both' || entry.side === 'left' || !entry.side;
     pumpRight = entry.side === 'both' || entry.side === 'right' || !entry.side;
     pumpSideErrorEl.style.display = 'none';
+    // Alteinträge von vor der Mengenpflicht haben keine Menge — sie muss beim
+    // Bearbeiten nachgetragen werden, sonst bleibt Aktualisieren grau.
+    pumpAmountInput.value = entry.amount ? String(entry.amount) : '';
+    pumpAmountErrorEl.style.display = 'none';
+    renderPumpAmountChips();
     pumpDateInput.dispatchEvent(new Event('change'));
     renderPumpSides();
   } else {
@@ -4321,7 +4536,10 @@ const HISTORIE_TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="no
 // lassen sich nur löschen, nicht bearbeiten (vervollständigt wird auf ihrer
 // Eintragen-Seite).
 function historieIsOpen(entry) {
-  if (entry._cat === 'fuettern') return (entry.type === 'breast' || entry.type === 'pump') && entry.endTime === null;
+  // Ein gestoppter Abpump-Timer ohne Menge zählt ebenfalls als offen: er wird
+  // auf der Füttern-Seite abgeschlossen, nicht hier bearbeitet.
+  if (entry._cat === 'fuettern' && entry.type === 'pump') return entry.endTime === null || entry.pendingAmount === true;
+  if (entry._cat === 'fuettern') return entry.type === 'breast' && entry.endTime === null;
   if (entry._cat === 'schlafen') return entry._type === 'nap' ? entry.endTime === null : entry.wakeTime == null;
   return false;
 }
@@ -4331,7 +4549,7 @@ function historieDetail(entry) {
   const open = historieIsOpen(entry);
   if (entry._cat === 'fuettern') {
     if (entry.type === 'bottle') return { icon: 'bottle', main: 'Fläschchen', rest: (entry.amount || 0) + ' ml' };
-    if (entry.type === 'pump') return { icon: 'pump', main: 'Abpumpen', rest: open ? 'Läuft…' : pumpDetailText(entry) };
+    if (entry.type === 'pump') return { icon: 'pump', main: 'Abpumpen', rest: !open ? pumpDetailText(entry) : (entry.endTime === null ? 'Läuft…' : 'abschließen') };
     return { icon: 'breast', main: 'Brust', rest: open ? 'Läuft…' : breastDetailText(entry) };
   }
   if (entry._cat === 'windeln') {
@@ -4425,6 +4643,7 @@ async function deleteHistorieEntry(entry, delBtn) {
     await deleteDoc(doc(db, name, entry.id));
     removeHistoryRow(historieListEl, entry.id);
     if (entry._cat === 'fuettern' && entry.type === 'bottle') refreshFuetternAmountChips();
+    if (entry._cat === 'fuettern' && entry.type === 'pump') { refreshPumpAmountChips(); syncPumpState(); }
   } catch (error) {
     delBtn.disabled = false;
   }

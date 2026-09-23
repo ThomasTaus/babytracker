@@ -133,7 +133,9 @@
   .bd-val { position: relative; display: inline-flex; align-items: baseline; gap: 4px; margin-top: 3px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px; cursor: text; }
   .bd-val:focus-within { border-bottom-color: var(--accent-strong); }
   .bd-val input { font-family: inherit; font-size: 18px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; margin: 0; font-variant-numeric: tabular-nums; }
-  .bd-time input { width: 58px; text-align: center; }
+  /* Android zeichnet im Zeitfeld einen eigenen Pfeil — ohne die Breite dafür
+     wird die Uhrzeit abgeschnitten. */
+  .bd-time input { width: 84px; text-align: center; }
   .bd-time input::-webkit-calendar-picker-indicator { display: none; }
   .bd-time.empty input, .bd-time.empty input::-webkit-datetime-edit { color: transparent; }
   .bd-now { display: none; position: absolute; left: 0; right: 0; top: 0; text-align: center; font-size: 18px; font-weight: 500; color: var(--text-muted); pointer-events: none; }

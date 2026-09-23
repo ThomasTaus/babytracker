@@ -91,6 +91,82 @@
   #screen-entwicklung .e-num { display: inline-flex; align-items: baseline; gap: 5px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px; }
   #screen-entwicklung .e-num input { width: 48px; text-align: right; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; font-family: inherit; }
   #screen-entwicklung .e-num span { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  /* Gesundheit */
+  #screen-gesundheit button, #screen-gesundheit input, #screen-gesundheit textarea { font-family: inherit; }
+  #gesundheit-scroll > * { flex-shrink: 0; }
+  #screen-gesundheit .g-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 2px; margin: -14px 0 -16px -4px; padding: 4px 10px 4px 2px; border: none; background: none; border-radius: 8px; color: var(--text-muted); font-size: 14px; font-weight: 600; cursor: pointer; }
+  #screen-gesundheit .g-lbl { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  #screen-gesundheit .g-sec { display: flex; flex-direction: column; gap: 10px; }
+  #screen-gesundheit .g-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+  #screen-gesundheit .g-empty { font-size: 13px; color: var(--text-muted); }
+  #screen-gesundheit .g-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: none; border-bottom: 1px solid var(--border); background: none; width: 100%; text-align: left; color: inherit; font-size: inherit; }
+  #screen-gesundheit .g-row:last-child { border-bottom: none; }
+  #screen-gesundheit button.g-row { cursor: pointer; }
+  #screen-gesundheit button.g-row:active { background: var(--accent-soft); }
+  #screen-gesundheit .g-rtime { font-size: 13px; font-weight: 600; width: 44px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  #screen-gesundheit .g-rmain { flex: 1; min-width: 0; }
+  #screen-gesundheit .g-rname { display: block; font-size: 14px; font-weight: 600; }
+  #screen-gesundheit .g-rsub { display: block; font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #screen-gesundheit .g-muted .g-rname, #screen-gesundheit .g-muted .g-rtime { color: var(--text-muted); }
+  #screen-gesundheit .g-chev { flex-shrink: 0; color: var(--text-muted); display: flex; }
+  #screen-gesundheit .g-medico { width: 34px; height: 34px; border-radius: 11px; background: var(--accent-soft); color: var(--accent-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #screen-gesundheit .g-muted .g-medico { background: var(--surface-alt); color: var(--text-muted); }
+  #screen-gesundheit .g-dots { display: flex; gap: 5px; margin-top: 7px; }
+  #screen-gesundheit .g-dots i { width: 9px; height: 9px; border-radius: 50%; display: block; background: var(--accent); }
+  #screen-gesundheit .g-dots i.miss { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); }
+  #screen-gesundheit .g-dots i.none { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); opacity: .35; }
+  #screen-gesundheit .g-dots i.open { background: transparent; box-shadow: inset 0 0 0 1.5px var(--accent); }
+  #screen-gesundheit .g-dots i.half { background: linear-gradient(90deg, var(--accent) 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px var(--accent); }
+  /* Fällig = gefüllter Knopf „Abhaken", erledigt = grüner Chip „Gegeben" —
+     Farbe und Wort unterscheiden sich, damit man es auf einen Blick sieht. */
+  .med-give { display: inline-flex; align-items: center; gap: 5px; border: none; border-radius: 11px; padding: 7px 11px; font-size: 12.5px; font-weight: 700; background: var(--gesundheit-strong, var(--accent-strong)); color: white; white-space: nowrap; flex-shrink: 0; cursor: pointer; font-family: inherit; }
+  .med-give:disabled { opacity: .6; }
+  #screen-gesundheit .g-done { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px; background: oklch(94% 0.03 150); color: oklch(42% 0.09 150); white-space: nowrap; flex-shrink: 0; }
+  #screen-gesundheit .g-later { font-size: 11.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+  #screen-gesundheit .g-save { width: 100%; padding: 13px 10px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; color: white; background: var(--accent-strong); display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; cursor: pointer; }
+  #screen-gesundheit .g-save:disabled, #screen-gesundheit .g-del:disabled { opacity: .6; cursor: default; }
+  #screen-gesundheit .g-del { width: 100%; padding: 13px 10px; border: 1px solid var(--border); border-radius: 14px; font-size: 15px; font-weight: 700; color: var(--warn); background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+  #screen-gesundheit .g-del.plain { color: var(--text); }
+  #screen-gesundheit .g-err { font-size: 12px; color: var(--warn); font-weight: 600; }
+  #screen-gesundheit .g-fcard { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  #screen-gesundheit .g-fsep { height: 1px; background: var(--border); }
+  #screen-gesundheit .g-flbl { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  #screen-gesundheit .g-flbl small { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; }
+  #screen-gesundheit .g-fcol { display: flex; flex-direction: column; gap: 9px; }
+  #screen-gesundheit .g-ftext { border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; }
+  #screen-gesundheit .g-farea { border: none; background: transparent; font-size: 14px; line-height: 1.4; color: var(--text); padding: 3px 0 0; outline: none; width: 100%; resize: none; min-height: 40px; }
+  #screen-gesundheit .g-ftext::placeholder, #screen-gesundheit .g-farea::placeholder { color: var(--text-muted); font-weight: 500; }
+  #screen-gesundheit .g-num { display: inline-flex; align-items: baseline; gap: 5px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px; }
+  #screen-gesundheit .g-num:focus-within, #screen-gesundheit .g-timef:focus-within { border-bottom-color: var(--accent-strong); }
+  #screen-gesundheit .g-num input { width: 44px; text-align: right; font-size: 17px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; -moz-appearance: textfield; }
+  #screen-gesundheit .g-num input::-webkit-outer-spin-button, #screen-gesundheit .g-num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  #screen-gesundheit .g-num small { font-size: 12.5px; color: var(--text-muted); font-weight: 600; }
+  #screen-gesundheit .g-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  #screen-gesundheit .g-chip { padding: 7px 11px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); white-space: nowrap; cursor: pointer; }
+  #screen-gesundheit .g-chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); font-weight: 700; }
+  #screen-gesundheit .g-chip.day { width: 38px; padding: 7px 0; text-align: center; }
+  #screen-gesundheit .g-timef { display: inline-flex; align-items: center; gap: 2px; border-bottom: 1.5px solid var(--border); padding: 0 2px 3px 5px; }
+  /* Android zeichnet im Zeitfeld einen eigenen Pfeil — 84px wie beim Timer-Beginn. */
+  #screen-gesundheit .g-timef input { width: 84px; text-align: center; font-size: 18px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; font-variant-numeric: tabular-nums; }
+  #screen-gesundheit .g-timef input::-webkit-calendar-picker-indicator { display: none; }
+  #screen-gesundheit .g-x { width: 24px; height: 24px; border-radius: 50%; border: none; padding: 0; background: var(--surface-alt); color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  #screen-gesundheit .g-addtime { display: inline-flex; align-items: center; gap: 5px; border: 1.5px dashed var(--border); background: none; border-radius: 11px; padding: 6px 10px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
+  #screen-gesundheit .g-fnote { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+  #screen-gesundheit .g-fdate { border: none; background: transparent; font-size: 16px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; }
+  #screen-gesundheit .g-fdate:disabled { color: var(--text-muted); }
+  #screen-gesundheit .g-pencil { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border: none; border-radius: 12px; background: var(--accent-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  /* Gesperrte Ansicht: gleiches Raster wie der Editor, alle Werte wie der
+     Beschreibungstext — klein, normal, grau. */
+  #screen-gesundheit .g-vfield { display: flex; flex-direction: column; gap: 5px; }
+  #screen-gesundheit .g-vval { font-size: 14px; font-weight: 400; line-height: 1.4; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  #screen-gesundheit .g-pair { display: flex; gap: 14px; }
+  #screen-gesundheit .g-pair > div { flex: 1; min-width: 0; }
+  #screen-gesundheit .g-nachtragen { padding: 5px 10px; font-size: 12px; }
+  /* Heute: Hinweiszeile unter dem Kopf, solange eine Gabe fällig ist */
+  .med-hint { display: flex; align-items: center; gap: 10px; background: var(--gesundheit-soft); color: var(--gesundheit-ink); border-radius: 14px; padding: 9px 9px 9px 13px; }
+  .med-hint-t { flex: 1; min-width: 0; line-height: 1.3; }
+  .med-hint-t b { display: block; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .med-hint-t span { font-size: 11.5px; font-weight: 600; opacity: .8; }
   #screen-historie .h-badge { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px; margin-right: 6px; flex-shrink: 0; }
 
   /* Brust: Links/Rechts. Der Seitenwechsel im Timer ist bewusst ein kleiner
@@ -303,6 +379,7 @@
     --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250); --fuettern-soft: oklch(93% 0.025 250);
     --windeln: #39ABAB; --windeln-soft: #DFF2F2;
     --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9; --schlafen-ink: #3A306E;
+    --gesundheit-strong: oklch(52% 0.14 355); --gesundheit-soft: oklch(94% 0.03 355); --gesundheit-ink: oklch(40% 0.1 355);
     --ok: oklch(58% 0.11 150);
     --warn: oklch(58% 0.17 25);
     --surface: oklch(99% 0.002 250);
@@ -330,6 +407,9 @@
           </div>
         </div>
       </div>
+
+      <!-- Fällige Medikamente (Gesundheit), gebaut von renderHeuteMedHints() -->
+      <div id="heute-med-hints" style="display: none; flex-direction: column; gap: 8px;"></div>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--fuettern); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
@@ -1290,6 +1370,20 @@
     <nav class="tabbar" data-active="entwicklung"></nav>
   </div>
 
+  <!-- Gesundheit: Medikamente und ihre Gaben (Firestore). Kopf, Zurück und
+       Inhalt baut renderGesundheit() je nach Unterseite. -->
+  <div id="screen-gesundheit" style="
+    --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
+    --accent: oklch(66% 0.12 355); --accent-strong: oklch(52% 0.14 355); --accent-soft: oklch(94% 0.03 355); --accent-ink: oklch(40% 0.1 355); --warn: oklch(58% 0.17 25);
+    --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
+    --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
+    height: 100vh; max-width: 480px; margin: 0 auto;
+    color: var(--text); display: none; flex-direction: column;
+  ">
+    <div id="gesundheit-scroll" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 32px 24px 16px; display: flex; flex-direction: column; gap: 22px;"></div>
+    <nav class="tabbar" data-active="gesundheit"></nav>
+  </div>
+
   <!-- Profil: Baby-Stammdaten (Firestore, für die ganze Familie) und Konto -->
   <div id="screen-profil" style="
     --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
@@ -1462,6 +1556,7 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) {
     currentUser = null;
     stopProfilSync();
+    stopMedSync();
     loginScreen.style.display = 'flex';
     appEl.style.display = 'none';
     return;
@@ -1479,6 +1574,7 @@ onAuthStateChanged(auth, async (user) => {
   loginScreen.style.display = 'none';
   appEl.style.display = 'block';
   startProfilSync();
+  startMedSync();
   loadOverview();
   resumeOpenNapIfAny();
   resumeOpenNightIfAny();
@@ -1496,6 +1592,7 @@ const screens = {
   analyse: document.getElementById('screen-analyse'),
   historie: document.getElementById('screen-historie'),
   entwicklung: document.getElementById('screen-entwicklung'),
+  gesundheit: document.getElementById('screen-gesundheit'),
   profil: document.getElementById('screen-profil')
 };
 
@@ -1509,6 +1606,7 @@ function showScreen(target, opts = {}) {
   if (target === 'analyse') loadAnalyse();
   if (target === 'historie' && !opts.keep) loadHistorie(true);
   if (target === 'entwicklung') openEntwicklung();
+  if (target === 'gesundheit') openGesundheit();
   if (target === 'profil') loadProfilForm();
   if (opts.edit) return;
   if (target === 'schlafen') {
@@ -1531,6 +1629,7 @@ const TABBAR_ITEMS = [
   ['heute', 'Heute', '<rect x="3.5" y="5" width="17" height="15" rx="3"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>'],
   ['analyse', 'Analyse', '<line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3.6" height="8" rx="1"/><rect x="10.2" y="7" width="3.6" height="13" rx="1"/><rect x="14.4" y="10" width="3.6" height="10" rx="1"/>'],
   ['entwicklung', 'Entwicklung', '<path d="M12 21v-8.5"/><path d="M12 12.5c0-4.4 3-7.5 8-7.5 0 5-3.2 7.5-8 7.5z"/><path d="M12 15c0-3.3-2.4-5.5-7-5.5 0 3.6 2.6 5.5 7 5.5z"/>'],
+  ['gesundheit', 'Gesundheit', '<path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/>'],
   ['profil', 'Profil', '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c1.2-3.6 3.9-5.5 7.2-5.5s6 1.9 7.2 5.5"/>']
 ];
 document.querySelectorAll('.tabbar').forEach((nav) => {
@@ -1606,6 +1705,8 @@ function uiNavDepth() {
   if (currentScreen === 'windeln') return editingDiaperId ? 2 : 1;
   if (currentScreen === 'schlafen') return (editingNightId || editingNapId) ? 2 : 1;
   if (currentScreen === 'entwicklung') return entDialogOpen() ? 2 : 1;
+  // Übersicht 1, Medikament/Neu/Gabe 2, Editor oder Gabe aus dem Medikament 3
+  if (currentScreen === 'gesundheit') return 1 + medState.stack.length;
   return 1;
 }
 
@@ -1629,6 +1730,7 @@ function syncHistory() {
 function navigateBackOneLevel() {
   if (['fuettern', 'windeln', 'schlafen'].includes(currentScreen)) leaveEntryScreen(currentScreen);
   else if (currentScreen === 'entwicklung' && entDialogOpen()) closeEntwicklungDialog();
+  else if (currentScreen === 'gesundheit' && medState.stack.length) medBack();
   else if (currentScreen !== 'heute') showScreen('heute');
 }
 
@@ -7923,6 +8025,611 @@ entBodyEl.addEventListener('click', (e) => {
   }
   renderEntwicklung();
   syncHistory();
+});
+
+// --- Gesundheit: Medikamente und Gaben ---
+// medications {name, desc, amount, unit, freq, every?, days?, times[], start,
+// end|null}; medicationDoses {medId, date, slot, time, amount, unit, name}.
+// Fachliche Zeit einer Gabe ist date + time, nie createdAt.
+// slot = geplante Uhrzeit, '' = Tagesgabe ohne feste Uhrzeit, null = Gabe
+// außer der Reihe (bei Bedarf oder zusätzlich). Gaben zu einem Termin haben
+// eine feste Dokument-ID aus Medikament, Tag und Termin: tippen zwei Eltern
+// gleichzeitig „Abhaken", entsteht trotzdem nur eine Gabe.
+const MED_UNITS = ['Tropfen', 'ml', 'Tablette', 'Stück'];
+const MED_FREQ = [['daily', 'Täglich'], ['interval', 'Alle x Tage'], ['weekdays', 'Wochentage'], ['asNeeded', 'Bei Bedarf']];
+const MED_WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const MED_WD_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const MED_TIME_RE = /^\d{2}:\d{2}$/;
+// Wie weit zurück Gaben live mitgelesen werden (Punkte der letzten 7 Tage,
+// „Letzte Gaben"). Ältere lädt die Medikament-Seite einmalig nach.
+const MED_RECENT_DAYS = 14;
+const MED_PATHS = {
+  heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/>',
+  drop: '<path d="M12 3.5c3 3.6 5.5 6.6 5.5 9.9a5.5 5.5 0 0 1-11 0c0-3.3 2.5-6.3 5.5-9.9z"/>',
+  pill: '<rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-45 12 12)"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/>',
+  syringe: '<path d="M17 3l4 4"/><path d="M19 5l-9.5 9.5"/><path d="M14 6l4 4-8.5 8.5H5.5v-4z"/><path d="M5.5 18.5L3 21"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  chev: '<path d="M9 6l6 6-6 6"/>',
+  back: '<path d="M15 18l-6-6 6-6"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  x: '<line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/>',
+  pause: '<line x1="9" y1="6" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="18"/>',
+  play: '<path d="M8 5.5v13l10-6.5z"/>',
+  pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  trash: ENT_PATHS.trash
+};
+const MED_ICON = (k, size, w, color) => '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="' + (color || 'currentColor') + '" stroke-width="' + (w || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + MED_PATHS[k] + '</svg>';
+
+const medState = {
+  meds: [],       // aus onSnapshot
+  doses: [],      // Gaben der letzten MED_RECENT_DAYS Tage, aus onSnapshot
+  older: {},      // medId -> ältere Gaben, einmalig nachgeladen
+  loaded: false,
+  loadError: false,
+  saving: false,
+  // Unterseiten übereinander: {v:'med', id} · {v:'edit', id, f} · {v:'new', f} · {v:'dose', f}
+  stack: []
+};
+let medUnsubs = [];
+let medDosesSince = null;
+const medBodyEl = document.getElementById('gesundheit-scroll');
+
+function medToday() { return isoDate(new Date()); }
+function medNowHM() { return formatTime(new Date()); }
+function medAddDays(iso, k) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + k); return isoDate(d); }
+function medDayDiff(a, b) { return Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 86400000); }
+function medWeekday(iso) { return new Date(iso + 'T12:00:00').getDay(); }
+function medNum(n) { return String(n).replace('.', ','); }
+function medDateShort(iso) { const [y, m, d] = iso.split('-'); return d + '.' + m + '.' + y; }
+function medDateLong(iso) { return new Date(iso + 'T12:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }); }
+function medDayLabel(iso) {
+  const t = medToday();
+  if (iso === t) return 'Heute';
+  if (iso === medAddDays(t, -1)) return 'Gestern';
+  const [, m, d] = iso.split('-');
+  return MED_WD[medWeekday(iso)] + ' ' + d + '.' + m + '.';
+}
+function medByName(user) {
+  const n = (user.displayName || '').trim().split(/\s+/)[0];
+  return n || String(user.email || '').split('@')[0];
+}
+
+function normalizeMed(d) {
+  const x = d.data();
+  if (typeof x.name !== 'string' || !x.name.trim() || !ENT_DATE_RE.test(x.start || '')) return null;
+  return {
+    id: d.id,
+    name: x.name,
+    desc: typeof x.desc === 'string' ? x.desc : '',
+    amount: typeof x.amount === 'number' ? x.amount : 0,
+    unit: typeof x.unit === 'string' ? x.unit : '',
+    freq: MED_FREQ.some(([k]) => k === x.freq) ? x.freq : 'daily',
+    every: Number.isInteger(x.every) && x.every >= 2 ? x.every : 2,
+    days: Array.isArray(x.days) ? x.days.filter((w) => Number.isInteger(w) && w >= 0 && w <= 6) : [],
+    times: Array.isArray(x.times) ? x.times.filter((t) => MED_TIME_RE.test(t)).sort() : [],
+    start: x.start,
+    end: ENT_DATE_RE.test(x.end || '') ? x.end : null
+  };
+}
+function normalizeDose(d) {
+  const x = d.data();
+  if (typeof x.medId !== 'string' || !ENT_DATE_RE.test(x.date || '') || !MED_TIME_RE.test(x.time || '')) return null;
+  return {
+    id: d.id, medId: x.medId, date: x.date, time: x.time,
+    slot: typeof x.slot === 'string' ? x.slot : null,
+    amount: typeof x.amount === 'number' ? x.amount : null,
+    by: x.createdByName || String(x.createdBy || '').split('@')[0]
+  };
+}
+
+function startMedSync() {
+  stopMedSync();
+  medDosesSince = medAddDays(medToday(), -(MED_RECENT_DAYS - 1));
+  medUnsubs.push(onSnapshot(collection(db, 'medications'), (snap) => {
+    medState.meds = snap.docs.map(normalizeMed).filter(Boolean);
+    medState.loaded = true;
+    medState.loadError = false;
+    medChanged();
+  }, (error) => { console.error('Medikamente laden fehlgeschlagen:', error); medState.loadError = true; medChanged(); }));
+  medUnsubs.push(onSnapshot(query(collection(db, 'medicationDoses'), where('date', '>=', medDosesSince)), (snap) => {
+    medState.doses = snap.docs.map(normalizeDose).filter(Boolean);
+    medChanged();
+  }, (error) => console.error('Gaben laden fehlgeschlagen:', error)));
+}
+
+function stopMedSync() {
+  medUnsubs.forEach((u) => u());
+  medUnsubs = [];
+  medState.meds = [];
+  medState.doses = [];
+  medState.older = {};
+  medState.loaded = false;
+  renderHeuteMedHints();
+}
+
+// Offene Formulare nicht neu zeichnen, sonst gingen Fokus und Tastatur verloren.
+function medFormOpen() { const top = medTop(); return !!top && top.v !== 'med'; }
+function medChanged() {
+  renderHeuteMedHints();
+  if (currentScreen === 'gesundheit' && !medFormOpen()) renderGesundheit();
+}
+
+// --- Plan: wann ist welche Gabe fällig ---
+function medActiveOn(m, d) { return d >= m.start && (!m.end || d <= m.end); }
+// Abgesetzt heißt: ab heute keine Erinnerung mehr, auch wenn das Enddatum heute ist.
+function medIsCurrent(m) { return !m.end || m.end > medToday(); }
+function medScheduledOn(m, d) {
+  if (!medActiveOn(m, d)) return false;
+  if (m.freq === 'daily') return true;
+  if (m.freq === 'interval') return medDayDiff(d, m.start) % Math.max(2, m.every) === 0;
+  if (m.freq === 'weekdays') return m.days.includes(medWeekday(d));
+  return false;
+}
+// Ohne Uhrzeit gibt es trotzdem eine Gabe pro Tag, ihr Termin heißt ''.
+function medSlotsOn(m, d) {
+  if (m.freq === 'asNeeded' || !medScheduledOn(m, d)) return [];
+  if (d === medToday() && !medIsCurrent(m) && !medDosesOf(m).some((x) => x.date === d)) return [];
+  return m.times.length ? m.times.slice() : [''];
+}
+function medDosesOf(m) {
+  const recent = medState.doses.filter((x) => x.medId === m.id);
+  const old = (medState.older[m.id] || []).filter((x) => x.date < medDosesSince);
+  return recent.concat(old);
+}
+function medDoseFor(m, d, slot) { return medState.doses.find((x) => x.medId === m.id && x.date === d && x.slot === slot); }
+function medSlotState(m, d, slot) {
+  if (medDoseFor(m, d, slot)) return 'done';
+  const t = medToday();
+  if (d < t) return 'missed';
+  return (!slot || slot <= medNowHM()) ? 'due' : 'later';
+}
+function medTodaySlots() {
+  const t = medToday();
+  const out = [];
+  medState.meds.forEach((m) => medSlotsOn(m, t).forEach((s) => out.push({ m, s, st: medSlotState(m, t, s) })));
+  return out.sort((a, b) => (a.s || '00:00').localeCompare(b.s || '00:00') || a.m.name.localeCompare(b.m.name));
+}
+function medFreqText(m) {
+  if (m.freq === 'daily') return 'Täglich';
+  if (m.freq === 'interval') return 'Alle ' + m.every + ' Tage';
+  if (m.freq === 'weekdays') return MED_WD_ORDER.filter((w) => m.days.includes(w)).map((w) => MED_WD[w]).join(', ') || 'keine Tage';
+  return 'Bei Bedarf';
+}
+function medPlanText(m) {
+  const amt = medNum(m.amount) + ' ' + m.unit;
+  if (m.freq === 'asNeeded') return amt + ' · bei Bedarf';
+  const t = m.times.length ? m.times.join(', ') : 'ohne feste Uhrzeit';
+  return amt + ' · ' + (m.freq === 'daily' ? 'täglich' : m.freq === 'interval' ? 'alle ' + m.every + ' Tage' : medFreqText(m)) + ' ' + t;
+}
+function medIconKey(m) { return m.unit === 'ml' ? 'syringe' : m.unit === 'Tropfen' ? 'drop' : 'pill'; }
+function medSlotDocId(medId, date, slot) { return medId + '_' + date + '_' + (slot ? slot.replace(':', '') : 'tag'); }
+
+// --- Heute: Hinweiszeile ---
+const heuteMedHintsEl = document.getElementById('heute-med-hints');
+function renderHeuteMedHints() {
+  const due = currentUser ? medTodaySlots().filter((x) => x.st === 'due') : [];
+  heuteMedHintsEl.style.display = due.length ? 'flex' : 'none';
+  heuteMedHintsEl.innerHTML = due.map((x) =>
+    '<div class="med-hint">' + MED_ICON(medIconKey(x.m), 18, 1.9) +
+      '<div class="med-hint-t"><b>' + entEsc(x.m.name) + ' · ' + medNum(x.m.amount) + ' ' + entEsc(x.m.unit) + '</b><span>' + (x.s ? 'fällig seit ' + x.s : 'heute noch offen') + '</span></div>' +
+      '<button class="med-give" data-med-give="' + x.m.id + '" data-slot="' + x.s + '"' + (medState.saving ? ' disabled' : '') + '>' + MED_ICON('check', 14, 2.6) + 'Abhaken</button>' +
+    '</div>').join('');
+}
+heuteMedHintsEl.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-med-give]');
+  if (b) medGive(b.dataset.medGive, b.dataset.slot);
+});
+// Fälligkeit hängt an der Uhr; einmal pro Minute nachziehen. Über Mitternacht
+// verschiebt sich außerdem der Zeitraum der mitgelesenen Gaben.
+setInterval(() => {
+  if (!currentUser) return;
+  if (medDosesSince !== medAddDays(medToday(), -(MED_RECENT_DAYS - 1))) { startMedSync(); return; }
+  medChanged();
+}, 60000);
+
+async function medGive(medId, slot) {
+  const m = medState.meds.find((x) => x.id === medId);
+  const t = medToday();
+  if (!m || medState.saving || medDoseFor(m, t, slot)) return;
+  medState.saving = true;
+  medChanged();
+  try {
+    await setDoc(doc(db, 'medicationDoses', medSlotDocId(m.id, t, slot)), {
+      medId: m.id, name: m.name, date: t, slot, time: medNowHM(), amount: m.amount, unit: m.unit,
+      createdBy: currentUser.email, createdByName: medByName(currentUser), createdAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Gabe speichern fehlgeschlagen:', error);
+    alert('Abhaken nicht möglich. Bitte noch einmal versuchen.');
+  } finally {
+    medState.saving = false;
+    medChanged();
+  }
+}
+
+// --- Navigation innerhalb von Gesundheit ---
+function medTop() { return medState.stack[medState.stack.length - 1] || null; }
+function medGo(entry) { medState.stack.push(entry); renderGesundheit(true); syncHistory(); }
+function medBack() { medState.stack.pop(); renderGesundheit(true); syncHistory(); }
+function openGesundheit() { medState.stack = []; renderGesundheit(true); }
+
+function medBlankForm() { return { name: '', desc: '', amount: '', unit: 'Tropfen', freq: 'daily', every: 2, days: [1, 3, 5], times: [], start: medToday(), end: '', error: '' }; }
+function medFormFrom(m) { return { name: m.name, desc: m.desc, amount: medNum(m.amount), unit: m.unit, freq: m.freq, every: m.every, days: m.days.slice(), times: m.times.slice(), start: m.start, end: m.end || '', error: '' }; }
+
+// --- Rendering ---
+function medHead(title, sub) {
+  return '<div style="display:flex; align-items:center; gap:14px;"><div style="width:48px; height:48px; border-radius:16px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; color:var(--accent-strong); flex-shrink:0;">' + MED_ICON('heart', 24, 1.6) + '</div>' +
+    '<div style="min-width:0;"><div style="font-family:\'Fredoka\', sans-serif; font-size:24px; font-weight:600; line-height:1.2;">' + entEsc(title) + '</div><div style="font-size:13px; color:var(--text-muted);">' + entEsc(sub) + '</div></div></div>';
+}
+const medBackBtn = () => '<button class="g-back" data-med-act="back">' + MED_ICON('back', 15, 2.4) + 'Zurück</button>';
+
+function renderGesundheit(resetScroll) {
+  const top = medTop();
+  const html = !top ? medViewList() : top.v === 'med' ? medViewDetail(top) : top.v === 'dose' ? medViewDose(top) : medViewForm(top);
+  const y = medBodyEl.scrollTop;
+  medBodyEl.innerHTML = html;
+  medBodyEl.scrollTop = resetScroll ? 0 : y;
+  if (top && top.focus) { top.focus = false; const el = document.getElementById('med-f-name'); if (el) el.focus(); }
+}
+
+function medDots(m) {
+  const t = medToday();
+  let h = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = medAddDays(t, -i);
+    const sl = medSlotsOn(m, d);
+    if (!sl.length) { h += '<i class="none"></i>'; continue; }
+    const done = sl.filter((s) => medDoseFor(m, d, s)).length;
+    if (done === sl.length) h += '<i></i>';
+    else if (done) h += '<i class="half"></i>';
+    else h += d === t ? '<i class="open"></i>' : '<i class="miss"></i>';
+  }
+  return '<span class="g-dots" aria-label="letzte 7 Tage">' + h + '</span>';
+}
+
+function medViewList() {
+  const st = medState;
+  const t = medToday();
+  if (!st.loaded) return medHead('Gesundheit', 'Medikamente') + '<div class="g-empty">' + (st.loadError ? 'Daten konnten nicht geladen werden.' : 'Wird geladen…') + '</div>';
+  const slots = medTodaySlots();
+  const current = st.meds.filter(medIsCurrent).sort((a, b) => a.name.localeCompare(b.name));
+  const ended = st.meds.filter((m) => !medIsCurrent(m)).sort((a, b) => b.end.localeCompare(a.end));
+  const doneN = slots.filter((x) => x.st === 'done').length;
+  const sub = current.length + (current.length === 1 ? ' Medikament' : ' Medikamente') + (slots.length ? ' · heute ' + doneN + ' von ' + slots.length + ' Gaben' : '');
+  const doneRow = (m, x, label) => '<button class="g-row" data-med-act="editDose" data-id="' + x.id + '"><span class="g-rtime">' + label + '</span><span class="g-rmain"><span class="g-rname">' + entEsc(m.name) + '</span><span class="g-rsub">' + (x.amount != null ? medNum(x.amount) + ' ' + entEsc(m.unit) + ' · ' : '') + x.time + ' von ' + entEsc(x.by) + '</span></span><span class="g-done">' + MED_ICON('check', 12, 2.8) + 'Gegeben</span></button>';
+  const rows = slots.map((x) => {
+    const label = x.s || 'heute';
+    if (x.st === 'done') return doneRow(x.m, medDoseFor(x.m, t, x.s), label);
+    if (x.st === 'due') return '<div class="g-row"><span class="g-rtime">' + label + '</span><span class="g-rmain"><span class="g-rname">' + entEsc(x.m.name) + '</span><span class="g-rsub" style="color:var(--accent-strong); font-weight:600;">' + medNum(x.m.amount) + ' ' + entEsc(x.m.unit) + ' · fällig</span></span><button class="med-give" data-med-give="' + x.m.id + '" data-slot="' + x.s + '"' + (st.saving ? ' disabled' : '') + '>' + MED_ICON('check', 14, 2.6) + 'Abhaken</button></div>';
+    return '<div class="g-row g-muted"><span class="g-rtime">' + label + '</span><span class="g-rmain"><span class="g-rname">' + entEsc(x.m.name) + '</span><span class="g-rsub">' + medNum(x.m.amount) + ' ' + entEsc(x.m.unit) + '</span></span><span class="g-later">später</span></div>';
+  });
+  // Gaben außer der Reihe von heute (bei Bedarf oder zusätzlich)
+  st.doses.filter((x) => x.date === t && x.slot === null).sort((a, b) => a.time.localeCompare(b.time)).forEach((x) => {
+    const m = st.meds.find((y) => y.id === x.medId);
+    if (m) rows.push(doneRow(m, x, x.time));
+  });
+  const medRow = (m, isEnded) => '<button class="g-row' + (isEnded ? ' g-muted' : '') + '" style="gap:12px;" data-med-act="openMed" data-id="' + m.id + '"><span class="g-medico">' + MED_ICON(medIconKey(m), 18, 1.8) + '</span><span class="g-rmain"><span class="g-rname">' + entEsc(m.name) + '</span><span class="g-rsub">' + entEsc(isEnded ? (m.freq === 'asNeeded' ? 'bei Bedarf' : medPlanText(m)) + ' · bis ' + medDateLong(m.end) : medPlanText(m)) + '</span>' + (!isEnded && m.freq !== 'asNeeded' ? medDots(m) : '') + '</span><span class="g-chev">' + MED_ICON('chev', 15, 2.4) + '</span></button>';
+  return medHead('Gesundheit', sub) +
+    '<div class="g-sec"><div class="g-lbl">Heute</div>' + (rows.length ? '<div class="g-card">' + rows.join('') + '</div>' : '<div class="g-empty">Heute ist nichts geplant.</div>') + '</div>' +
+    '<div class="g-sec"><div style="display:flex; justify-content:space-between; align-items:baseline;"><div class="g-lbl">Medikamente</div>' + (current.some((m) => m.freq !== 'asNeeded') ? '<div style="font-size:10.5px; font-weight:600; color:var(--text-muted);">letzte 7 Tage</div>' : '') + '</div>' +
+      (current.length ? '<div class="g-card">' + current.map((m) => medRow(m, false)).join('') + '</div>' : '<div class="g-empty">Noch keine Medikamente eingetragen.</div>') +
+      '<button class="g-save" data-med-act="newMed">' + MED_ICON('plus', 17, 2.2) + 'Medikament hinzufügen</button></div>' +
+    (ended.length ? '<div class="g-sec"><div class="g-lbl">Abgesetzt</div><div class="g-card">' + ended.map((m) => medRow(m, true)).join('') + '</div></div>' : '');
+}
+
+function medLastDoses(m) {
+  const items = [];
+  if (m.freq === 'asNeeded') {
+    medDosesOf(m).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)).forEach((x) => items.push({ d: x.date, x }));
+  } else {
+    const t = medToday();
+    const older = medDosesOf(m).filter((x) => x.date < medDosesSince).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+    for (let i = 0; i < MED_RECENT_DAYS && items.length < 6; i++) {
+      const d = medAddDays(t, -i);
+      const day = [];
+      medDosesOf(m).filter((x) => x.date === d && x.slot === null).forEach((x) => day.push({ d, x, k: x.time }));
+      medSlotsOn(m, d).forEach((s) => {
+        const st = medSlotState(m, d, s);
+        if (st === 'done') { const x = medDoseFor(m, d, s); day.push({ d, x, k: x.time }); }
+        else if (st === 'missed' || st === 'due') day.push({ d, missing: s, k: s || '00:00' });
+      });
+      day.sort((a, b) => b.k.localeCompare(a.k)).forEach((it) => items.push(it));
+    }
+    older.forEach((x) => items.push({ d: x.date, x }));
+  }
+  if (!items.length) return '<div class="g-empty">Noch keine Gaben.</div>';
+  return '<div class="g-card">' + items.slice(0, 6).map((it) => it.x
+    ? '<button class="g-row" data-med-act="editDose" data-id="' + it.x.id + '" style="padding:10px 12px 10px 14px;"><span class="g-rtime" style="width:70px; font-size:12.5px;">' + medDayLabel(it.d) + '</span><span class="g-rsub" style="flex:1;"><b style="color:var(--text); font-weight:600;">' + it.x.time + '</b>' + (it.x.amount != null ? ' · ' + medNum(it.x.amount) + ' ' + entEsc(m.unit) : '') + ' · ' + entEsc(it.x.by) + '</span><span class="g-chev">' + MED_ICON('chev', 15, 2.4) + '</span></button>'
+    : '<div class="g-row" style="padding:10px 12px 10px 14px;"><span class="g-rtime" style="width:70px; font-size:12.5px; color:var(--text-muted);">' + medDayLabel(it.d) + '</span><span class="g-rsub" style="flex:1; color:var(--accent-strong); font-weight:600;">' + (it.missing ? it.missing + ' · ' : '') + (it.d === medToday() ? 'offen' : 'fehlt') + '</span><button class="med-give g-nachtragen" data-med-act="catchUp" data-d="' + it.d + '" data-slot="' + it.missing + '">Nachtragen</button></div>').join('') + '</div>';
+}
+
+// Gesperrte Ansicht eines Medikaments; ändern erst nach dem Stift.
+function medViewDetail(top) {
+  const m = medState.meds.find((x) => x.id === top.id);
+  if (!m) return medBackBtn() + medHead('Gesundheit', '') + '<div class="g-empty">Dieses Medikament gibt es nicht mehr.</div>';
+  const count = medDosesOf(m).length;
+  const field = (label, value) => '<div class="g-vfield"><div class="g-flbl">' + label + '</div><div class="g-vval">' + value + '</div></div>';
+  return medBackBtn() + medHead(m.name, 'seit ' + medDateLong(m.start) + ' · ' + count + (count === 1 ? ' Gabe' : ' Gaben')) +
+    '<div class="g-fcard">' +
+      '<button class="g-pencil" data-med-act="unlock" title="Bearbeiten" aria-label="Medikament bearbeiten">' + MED_ICON('pencil', 17, 2, 'white') + '</button>' +
+      '<div style="padding-right:46px;">' + field('Beschreibung', m.desc ? entEsc(m.desc) : 'keine') + '</div>' +
+      '<div class="g-fsep"></div>' + field('Menge', medNum(m.amount) + ' ' + entEsc(m.unit)) +
+      '<div class="g-fsep"></div>' +
+      '<div class="g-pair"><div>' + field('Häufigkeit', medFreqText(m)) + '</div><div>' + (m.freq === 'asNeeded' ? '' : field('Uhrzeit', m.times.length ? m.times.join(' · ') : 'keine feste')) + '</div></div>' +
+      '<div class="g-fsep"></div>' +
+      '<div class="g-pair"><div>' + field('Ab', medDateShort(m.start)) + '</div><div>' + field('Bis', m.end ? medDateShort(m.end) : 'offen') + '</div></div>' +
+    '</div>' +
+    (top.error ? '<div class="g-err" style="margin-top:-12px;">' + entEsc(top.error) + '</div>' : '') +
+    (medIsCurrent(m)
+      ? '<button class="g-del plain" data-med-act="endMed"' + (medState.saving ? ' disabled' : '') + '>' + MED_ICON('pause', 16, 2.2) + 'Absetzen</button>'
+      : '<button class="g-del plain" data-med-act="resumeMed"' + (medState.saving ? ' disabled' : '') + '>' + MED_ICON('play', 16, 2) + 'Wieder aufnehmen</button>') +
+    '<div class="g-sec"><div class="g-lbl">Letzte Gaben</div><button class="g-save" data-med-act="newDose">' + MED_ICON('plus', 16, 2.2) + 'Gabe eintragen</button>' + medLastDoses(m) + '</div>' +
+    '<button class="g-del" data-med-act="deleteMed"' + (medState.saving ? ' disabled' : '') + '>' + MED_ICON('trash', 17, 1.8) + 'Medikament löschen</button>';
+}
+
+// Neues Medikament oder Editor nach dem Stift — Zurück verwirft.
+function medViewForm(top) {
+  const f = top.f;
+  const edit = top.v === 'edit';
+  const m = edit ? medState.meds.find((x) => x.id === top.id) : null;
+  const freqExtra = f.freq === 'interval'
+    ? '<div style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;">alle <span class="g-num"><input type="number" inputmode="numeric" min="2" data-med-bind="every" value="' + entEsc(f.every) + '" style="width:30px;"></span> Tage</div>'
+    : f.freq === 'weekdays' ? '<div class="g-chips">' + MED_WD_ORDER.map((w) => '<button class="g-chip day' + (f.days.includes(w) ? ' on' : '') + '" data-med-act="day" data-v="' + w + '">' + MED_WD[w] + '</button>').join('') + '</div>' : '';
+  const times = f.freq === 'asNeeded'
+    ? '<div class="g-fnote">Keine Erinnerung. Gaben trägst du beim Medikament über „Gabe eintragen“ ein.</div>'
+    : '<div class="g-fcol"><div class="g-flbl">Uhrzeit <small>· optional</small></div>' +
+      '<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">' +
+        f.times.map((t, i) => '<span class="g-timef"><input type="time" value="' + entEsc(t) + '" data-med-time="' + i + '" aria-label="Uhrzeit ' + (i + 1) + '"><button class="g-x" data-med-act="rmTime" data-i="' + i + '" aria-label="Uhrzeit entfernen">' + MED_ICON('x', 12, 2.6) + '</button></span>').join('') +
+        '<button class="g-addtime" data-med-act="addTime">' + MED_ICON('plus', 13, 2.4) + (f.times.length ? 'Weitere Uhrzeit' : 'Uhrzeit hinzufügen') + '</button>' +
+      '</div>' + (f.times.length ? '' : '<div class="g-fnote">Ohne Uhrzeit erscheint die Erinnerung auf Heute ab dem Morgen, bis die Gabe abgehakt ist.</div>') + '</div>';
+  return medBackBtn() + medHead(edit && m ? m.name : 'Neues Medikament', edit ? 'Bearbeiten' : 'Gesundheit') +
+    '<div class="g-fcard">' +
+      '<div><div class="g-flbl">Name</div><input class="g-ftext" id="med-f-name" maxlength="80" autocomplete="off" placeholder="z. B. Oleovit D3" data-med-bind="name" value="' + entEsc(f.name) + '"></div>' +
+      '<div class="g-fsep"></div>' +
+      '<div><div class="g-flbl">Beschreibung <small>· optional</small></div><textarea class="g-farea" rows="2" maxlength="300" placeholder="Wofür, worauf achten" data-med-bind="desc">' + entEsc(f.desc) + '</textarea></div>' +
+      '<div class="g-fsep"></div>' +
+      '<div class="g-fcol"><div class="g-flbl">Menge</div><div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;"><span class="g-num"><input type="text" inputmode="decimal" placeholder="–" data-med-bind="amount" value="' + entEsc(f.amount) + '"></span>' +
+        '<div class="g-chips">' + MED_UNITS.map((u) => '<button class="g-chip' + (f.unit === u ? ' on' : '') + '" data-med-act="unit" data-v="' + u + '">' + u + '</button>').join('') + '</div></div></div>' +
+      '<div class="g-fsep"></div>' +
+      '<div class="g-fcol"><div class="g-flbl">Häufigkeit</div><div class="g-chips">' + MED_FREQ.map(([k, l]) => '<button class="g-chip' + (f.freq === k ? ' on' : '') + '" data-med-act="freq" data-v="' + k + '">' + l + '</button>').join('') + '</div>' + freqExtra + '</div>' +
+      '<div class="g-fsep"></div>' + times +
+      '<div class="g-fsep"></div>' +
+      '<div class="g-pair"><div><div class="g-flbl">Ab</div><input class="g-fdate" type="date" data-med-bind="start" value="' + entEsc(f.start) + '"></div><div><div class="g-flbl">Bis <small>· optional</small></div><input class="g-fdate" type="date" data-med-bind="end" value="' + entEsc(f.end) + '"></div></div>' +
+    '</div>' +
+    (f.error ? '<div class="g-err" style="margin-top:-12px;">' + entEsc(f.error) + '</div>' : '') +
+    '<button class="g-save" data-med-act="saveMed"' + (medState.saving ? ' disabled' : '') + '>' + (medState.saving ? 'Speichert…' : edit ? 'Aktualisieren' : 'Speichern') + '</button>';
+}
+
+function medViewDose(top) {
+  const f = top.f;
+  const m = medState.meds.find((x) => x.id === f.medId);
+  if (!m) return medBackBtn() + medHead('Gesundheit', '') + '<div class="g-empty">Dieses Medikament gibt es nicht mehr.</div>';
+  const fixedDate = f.slot !== null;
+  const sub = m.name + (f.slot ? ' · Termin ' + f.slot : f.slot === '' ? ' · Tagesgabe' : '');
+  return medBackBtn() + medHead(f.id ? 'Gabe bearbeiten' : 'Gabe eintragen', sub) +
+    '<div class="g-fcard">' +
+      '<div class="g-pair"><div><div class="g-flbl">Datum</div><input class="g-fdate" type="date" max="' + medToday() + '" data-med-bind="date" value="' + entEsc(f.date) + '"' + (fixedDate ? ' disabled' : '') + '></div>' +
+        '<div><div class="g-flbl">Uhrzeit</div><span class="g-timef" style="margin-top:3px;"><input type="time" data-med-bind="time" value="' + entEsc(f.time) + '"></span></div></div>' +
+      '<div class="g-fsep"></div>' +
+      '<div class="g-fcol"><div class="g-flbl">Menge</div><div><span class="g-num"><input type="text" inputmode="decimal" data-med-bind="amount" value="' + entEsc(f.amount) + '"><small>' + entEsc(m.unit) + '</small></span></div></div>' +
+      (f.id && f.by ? '<div class="g-fsep"></div><div class="g-fnote">Abgehakt von ' + entEsc(f.by) + '</div>' : '') +
+    '</div>' +
+    (f.error ? '<div class="g-err" style="margin-top:-12px;">' + entEsc(f.error) + '</div>' : '') +
+    '<button class="g-save" data-med-act="saveDose"' + (medState.saving ? ' disabled' : '') + '>' + (medState.saving ? 'Speichert…' : f.id ? 'Aktualisieren' : 'Speichern') + '</button>' +
+    (f.id ? '<button class="g-del" data-med-act="deleteDose"' + (medState.saving ? ' disabled' : '') + '>' + MED_ICON('trash', 17, 1.8) + 'Gabe löschen</button>' : '');
+}
+
+// --- Speichern ---
+function medAmount(text) { const v = parseProfilNumber(text); return v === null || Number.isNaN(v) ? NaN : v; }
+
+async function medSave() {
+  const top = medTop();
+  if (!top || !top.f || medState.saving) return;
+  const f = top.f;
+  const name = String(f.name || '').trim();
+  const amount = medAmount(f.amount);
+  const times = f.freq === 'asNeeded' ? [] : [...new Set(f.times.filter((t) => MED_TIME_RE.test(t)))].sort();
+  const every = parseInt(f.every, 10);
+  if (!name) f.error = 'Bitte einen Namen eintragen.';
+  else if (medState.meds.some((m) => m.id !== top.id && entNameKey(m.name) === entNameKey(name))) f.error = 'Dieses Medikament ist schon eingetragen.';
+  else if (!(amount > 0) || amount >= 1000) f.error = 'Bitte eine Menge eintragen.';
+  else if (f.freq === 'interval' && !(every >= 2 && every <= 60)) f.error = 'Abstand in Tagen prüfen (2 bis 60).';
+  else if (f.freq === 'weekdays' && !f.days.length) f.error = 'Bitte mindestens einen Wochentag wählen.';
+  else if (!ENT_DATE_RE.test(f.start || '')) f.error = 'Bitte ein Anfangsdatum wählen.';
+  else if (f.end && (!ENT_DATE_RE.test(f.end) || f.end < f.start)) f.error = 'Das Enddatum liegt vor dem Anfang.';
+  else f.error = '';
+  if (f.error) { renderGesundheit(); return; }
+
+  const data = {
+    name, desc: String(f.desc || '').trim(), amount, unit: f.unit, freq: f.freq,
+    every: f.freq === 'interval' ? every : null,
+    days: f.freq === 'weekdays' ? MED_WD_ORDER.filter((w) => f.days.includes(w)) : [],
+    times, start: f.start, end: f.end || null
+  };
+  medState.saving = true;
+  renderGesundheit();
+  try {
+    if (top.v === 'edit') await updateDoc(doc(db, 'medications', top.id), { ...data, updatedBy: currentUser.email, updatedAt: serverTimestamp() });
+    else await addDoc(collection(db, 'medications'), { ...data, createdBy: currentUser.email, createdAt: serverTimestamp() });
+    medState.saving = false;
+    if (medTop() === top) medBack();
+    return;
+  } catch (error) {
+    console.error('Medikament speichern fehlgeschlagen:', error);
+    f.error = 'Speichern nicht möglich. Bitte noch einmal versuchen.';
+  }
+  medState.saving = false;
+  if (currentScreen === 'gesundheit') renderGesundheit();
+}
+
+async function medSetEnd(top, end) {
+  if (medState.saving) return;
+  medState.saving = true;
+  top.error = '';
+  renderGesundheit();
+  try {
+    await updateDoc(doc(db, 'medications', top.id), { end, updatedBy: currentUser.email, updatedAt: serverTimestamp() });
+  } catch (error) {
+    console.error('Medikament ändern fehlgeschlagen:', error);
+    top.error = 'Ändern nicht möglich. Bitte noch einmal versuchen.';
+  }
+  medState.saving = false;
+  if (currentScreen === 'gesundheit') renderGesundheit();
+}
+
+async function medDelete(top) {
+  const m = medState.meds.find((x) => x.id === top.id);
+  if (!m || medState.saving) return;
+  medState.saving = true;
+  renderGesundheit();
+  try {
+    // Alle Gaben, auch die älteren, die hier nicht mitgelesen werden
+    const snap = await getDocs(query(collection(db, 'medicationDoses'), where('medId', '==', m.id)));
+    const n = snap.size;
+    if (!confirm(m.name + (n ? ' und ' + (n === 1 ? 'seine Gabe' : 'alle ' + n + ' Gaben') : '') + ' wirklich löschen?')) { medState.saving = false; renderGesundheit(); return; }
+    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+    await deleteDoc(doc(db, 'medications', m.id));
+    delete medState.older[m.id];
+    medState.saving = false;
+    if (medTop() === top) medBack();
+    return;
+  } catch (error) {
+    console.error('Medikament löschen fehlgeschlagen:', error);
+    top.error = 'Löschen nicht möglich. Bitte noch einmal versuchen.';
+  }
+  medState.saving = false;
+  if (currentScreen === 'gesundheit') renderGesundheit();
+}
+
+async function medSaveDose() {
+  const top = medTop();
+  if (!top || top.v !== 'dose' || medState.saving) return;
+  const f = top.f;
+  const m = medState.meds.find((x) => x.id === f.medId);
+  if (!m) return;
+  const amount = medAmount(f.amount);
+  const t = medToday();
+  if (!ENT_DATE_RE.test(f.date || '') || f.date > t) f.error = 'Bitte ein Datum bis heute wählen.';
+  else if (!MED_TIME_RE.test(f.time || '')) f.error = 'Bitte eine Uhrzeit eintragen.';
+  else if (f.date === t && f.time > medNowHM()) f.error = 'Die Uhrzeit liegt in der Zukunft.';
+  else if (!(amount > 0) || amount >= 1000) f.error = 'Bitte eine Menge eintragen.';
+  else f.error = '';
+  if (f.error) { renderGesundheit(); return; }
+  medState.saving = true;
+  renderGesundheit();
+  try {
+    if (f.id) {
+      const changes = { time: f.time, amount, updatedBy: currentUser.email, updatedAt: serverTimestamp() };
+      if (f.slot === null) changes.date = f.date;
+      await updateDoc(doc(db, 'medicationDoses', f.id), changes);
+    } else {
+      const data = { medId: m.id, name: m.name, date: f.date, slot: f.slot, time: f.time, amount, unit: m.unit, createdBy: currentUser.email, createdByName: medByName(currentUser), createdAt: serverTimestamp() };
+      if (f.slot !== null) await setDoc(doc(db, 'medicationDoses', medSlotDocId(m.id, f.date, f.slot)), data);
+      else await addDoc(collection(db, 'medicationDoses'), data);
+    }
+    await medRefreshOlder(m.id);
+    medState.saving = false;
+    if (medTop() === top) medBack();
+    return;
+  } catch (error) {
+    console.error('Gabe speichern fehlgeschlagen:', error);
+    f.error = 'Speichern nicht möglich. Bitte noch einmal versuchen.';
+  }
+  medState.saving = false;
+  if (currentScreen === 'gesundheit') renderGesundheit();
+}
+
+async function medDeleteDose() {
+  const top = medTop();
+  if (!top || top.v !== 'dose' || !top.f.id || medState.saving) return;
+  if (!confirm('Diese Gabe wirklich löschen?' + (top.f.slot !== null ? ' Der Termin gilt dann wieder als offen.' : ''))) return;
+  medState.saving = true;
+  renderGesundheit();
+  try {
+    await deleteDoc(doc(db, 'medicationDoses', top.f.id));
+    await medRefreshOlder(top.f.medId);
+    medState.saving = false;
+    if (medTop() === top) medBack();
+    return;
+  } catch (error) {
+    console.error('Gabe löschen fehlgeschlagen:', error);
+    top.f.error = 'Löschen nicht möglich. Bitte noch einmal versuchen.';
+  }
+  medState.saving = false;
+  if (currentScreen === 'gesundheit') renderGesundheit();
+}
+
+// Gaben vor dem live mitgelesenen Zeitraum, für „Letzte Gaben" und die Anzahl
+// im Kopf der Medikament-Seite. Nur nötig, wenn das Medikament älter ist.
+async function medRefreshOlder(medId) {
+  const m = medState.meds.find((x) => x.id === medId);
+  if (!m || m.start >= medDosesSince) return;
+  try {
+    const snap = await getDocs(query(collection(db, 'medicationDoses'), where('medId', '==', medId)));
+    medState.older[medId] = snap.docs.map(normalizeDose).filter(Boolean);
+  } catch (error) {
+    console.error('Ältere Gaben laden fehlgeschlagen:', error);
+  }
+}
+
+function medFindDose(id) {
+  return medState.doses.find((x) => x.id === id) || Object.values(medState.older).flat().find((x) => x.id === id);
+}
+
+medBodyEl.addEventListener('input', (e) => {
+  const top = medTop();
+  const f = top && top.f;
+  if (!f) return;
+  const key = e.target.dataset.medBind;
+  if (key) f[key] = e.target.value;
+  if (e.target.dataset.medTime !== undefined) f.times[Number(e.target.dataset.medTime)] = e.target.value;
+});
+
+medBodyEl.addEventListener('click', (e) => {
+  const give = e.target.closest('[data-med-give]');
+  if (give) { medGive(give.dataset.medGive, give.dataset.slot); return; }
+  const el = e.target.closest('[data-med-act]');
+  if (!el) return;
+  const top = medTop();
+  const f = top && top.f;
+  switch (el.dataset.medAct) {
+    case 'back': medBack(); return;
+    case 'newMed': medGo({ v: 'new', f: medBlankForm(), focus: true }); return;
+    case 'openMed': medGo({ v: 'med', id: el.dataset.id, error: '' }); medRefreshOlder(el.dataset.id).then(() => { if (medTop() && medTop().v === 'med') renderGesundheit(); }); return;
+    case 'unlock': { const m = medState.meds.find((x) => x.id === top.id); if (m) medGo({ v: 'edit', id: m.id, f: medFormFrom(m) }); return; }
+    case 'endMed': medSetEnd(top, medToday()); return;
+    case 'resumeMed': medSetEnd(top, null); return;
+    case 'deleteMed': medDelete(top); return;
+    case 'newDose': { const m = medState.meds.find((x) => x.id === top.id); if (m) medGo({ v: 'dose', f: { id: null, medId: m.id, date: medToday(), slot: null, time: medNowHM(), amount: medNum(m.amount), error: '' } }); return; }
+    case 'catchUp': {
+      const m = medState.meds.find((x) => x.id === top.id);
+      const slot = el.dataset.slot;
+      if (m) medGo({ v: 'dose', f: { id: null, medId: m.id, date: el.dataset.d, slot, time: slot || (el.dataset.d === medToday() ? medNowHM() : '09:00'), amount: medNum(m.amount), error: '' } });
+      return;
+    }
+    case 'editDose': {
+      const x = medFindDose(el.dataset.id);
+      if (x) medGo({ v: 'dose', f: { id: x.id, medId: x.medId, date: x.date, slot: x.slot, time: x.time, amount: x.amount != null ? medNum(x.amount) : '', by: x.by, error: '' } });
+      return;
+    }
+    case 'saveDose': medSaveDose(); return;
+    case 'deleteDose': medDeleteDose(); return;
+    case 'saveMed': medSave(); return;
+    case 'unit': f.unit = el.dataset.v; break;
+    case 'freq': f.freq = el.dataset.v; break;
+    case 'day': { const w = Number(el.dataset.v); f.days = f.days.includes(w) ? f.days.filter((x) => x !== w) : f.days.concat(w); break; }
+    case 'addTime': {
+      const last = f.times[f.times.length - 1];
+      f.times.push(MED_TIME_RE.test(last || '') ? String(Math.min(23, Number(last.slice(0, 2)) + 8)).padStart(2, '0') + last.slice(2) : '09:00');
+      renderGesundheit();
+      const inputs = medBodyEl.querySelectorAll('[data-med-time]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+      return;
+    }
+    case 'rmTime': f.times.splice(Number(el.dataset.i), 1); break;
+    default: return;
+  }
+  renderGesundheit();
 });
 </script>
 

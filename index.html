@@ -124,6 +124,28 @@
   #screen-fuettern .bt-chip.bt-chip-empty { background: var(--surface-alt); color: var(--text-muted); }
   #screen-fuettern .bt-stp { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
   #screen-fuettern .bt-del { width: 28px; height: 28px; border-radius: 9px; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  /* Timer: tatsächlicher Beginn, falls der Start vergessen wurde. Uhrzeit und
+     „vor x Min" sind gekoppelt; leer heißt „jetzt". Farben kommen aus dem
+     jeweiligen Screen, deshalb nicht an einen Screen gebunden. */
+  .bd-row { display: flex; align-items: flex-end; justify-content: center; gap: 8px; align-self: stretch; padding: 4px 0; }
+  .bd-field { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .bd-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .bd-val { position: relative; display: inline-flex; align-items: baseline; gap: 4px; margin-top: 3px; border-bottom: 1.5px solid var(--border); padding: 0 5px 3px; cursor: text; }
+  .bd-val:focus-within { border-bottom-color: var(--accent-strong); }
+  .bd-val input { font-family: inherit; font-size: 18px; font-weight: 600; color: var(--text); border: none; background: transparent; outline: none; padding: 0; margin: 0; font-variant-numeric: tabular-nums; }
+  .bd-time input { width: 58px; text-align: center; }
+  .bd-time input::-webkit-calendar-picker-indicator { display: none; }
+  .bd-time.empty input, .bd-time.empty input::-webkit-datetime-edit { color: transparent; }
+  .bd-now { display: none; position: absolute; left: 0; right: 0; top: 0; text-align: center; font-size: 18px; font-weight: 500; color: var(--text-muted); pointer-events: none; }
+  .bd-time.empty .bd-now { display: block; }
+  .bd-min input { width: 34px; text-align: right; -moz-appearance: textfield; }
+  .bd-min input::placeholder { color: var(--text-muted); font-weight: 500; opacity: 1; }
+  .bd-min input::-webkit-outer-spin-button, .bd-min input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .bd-min .u { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  .bd-or { font-size: 14px; font-weight: 500; color: var(--text-muted); padding-bottom: 5px; }
+  .bd-x { display: none; width: 26px; height: 26px; margin: 0 0 2px 4px; border-radius: 50%; border: none; padding: 0; background: var(--surface-alt); color: var(--text-muted); align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  .bd-err { display: none; margin-top: -6px; font-size: 12px; color: var(--warn); text-align: center; }
+
   #screen-fuettern .bt-add { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer; }
 
   /* Der Switcher steht dauerhaft im Kopf und führt auch zurück zur Übersicht.
@@ -622,6 +644,16 @@
               <div id="breast-right-stat" class="bt-stat"></div>
             </button>
           </div>
+          <div id="breast-bd-row" class="bd-row">
+            <div class="bd-field">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/></svg>
+              <div><div class="bd-lbl">Beginn</div><label class="bd-val bd-time empty"><span class="bd-now">jetzt</span><input id="breast-bd-time" type="time" aria-label="Beginn"></label></div>
+            </div>
+            <span class="bd-or">vor</span>
+            <label class="bd-val bd-min"><input id="breast-bd-min" type="number" inputmode="numeric" min="0" max="720" step="1" placeholder="0" aria-label="Begonnen vor Minuten"><span class="u">Min</span></label>
+            <button id="breast-bd-clear" class="bd-x" type="button" aria-label="Beginn zurück auf jetzt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div id="breast-bd-error" class="bd-err"></div>
           <button id="breast-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); margin-top:4px;">Start</button>
         </div>
       </div>
@@ -743,6 +775,16 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5"/></svg>
               </button>
             </div>
+            <div id="pump-bd-row" class="bd-row">
+              <div class="bd-field">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/></svg>
+                <div><div class="bd-lbl">Beginn</div><label class="bd-val bd-time empty"><span class="bd-now">jetzt</span><input id="pump-bd-time" type="time" aria-label="Beginn"></label></div>
+              </div>
+              <span class="bd-or">vor</span>
+              <label class="bd-val bd-min"><input id="pump-bd-min" type="number" inputmode="numeric" min="0" max="720" step="1" placeholder="0" aria-label="Begonnen vor Minuten"><span class="u">Min</span></label>
+              <button id="pump-bd-clear" class="bd-x" type="button" aria-label="Beginn zurück auf jetzt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div id="pump-bd-error" class="bd-err"></div>
             <button id="pump-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); margin-top:4px;">Start</button>
           </div>
 
@@ -1087,6 +1129,16 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5"/></svg>
             </button>
           </div>
+          <div id="nap-bd-row" class="bd-row">
+            <div class="bd-field">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/></svg>
+              <div><div class="bd-lbl">Beginn</div><label class="bd-val bd-time empty"><span class="bd-now">jetzt</span><input id="nap-bd-time" type="time" aria-label="Beginn"></label></div>
+            </div>
+            <span class="bd-or">vor</span>
+            <label class="bd-val bd-min"><input id="nap-bd-min" type="number" inputmode="numeric" min="0" max="720" step="1" placeholder="0" aria-label="Begonnen vor Minuten"><span class="u">Min</span></label>
+            <button id="nap-bd-clear" class="bd-x" type="button" aria-label="Beginn zurück auf jetzt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div id="nap-bd-error" class="bd-err"></div>
           <button id="timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Start</button>
         </div>
       </div>
@@ -1459,7 +1511,7 @@ function showScreen(target, opts = {}) {
   if (opts.edit) return;
   if (target === 'schlafen') {
     if (editingNightId || editingNapId) exitSchlafenEdit(false);
-    else { resetNapManualForm(); decideSchlafenDefault(); }
+    else { resetNapManualForm(); napBackdate.reset(); decideSchlafenDefault(); }
     if (openNapDocId) setNapMode('timer');
   }
   if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); else resetWindelnForm(); }
@@ -1822,6 +1874,10 @@ function setFeedType(type) {
 feedBottleBtn.addEventListener('click', () => setFeedType('bottle'));
 feedBreastBtn.addEventListener('click', () => setFeedType('breast'));
 feedPumpBtn.addEventListener('click', () => setFeedType('pump'));
+// Vor dem ersten setPumpMode: das rendert schon den Abpump-Timer (TDZ).
+const napBackdate = wireBackdate('nap', () => renderTimerDisplay());
+const breastBackdate = wireBackdate('breast', () => renderBreastTimerDisplay());
+const pumpBackdate = wireBackdate('pump', () => renderPumpTimerDisplay());
 setFeedType('bottle');
 setBreastMode('manual');
 setPumpMode('manual');
@@ -2143,6 +2199,108 @@ breastSaveBtn.addEventListener('click', async () => {
   }
 });
 
+// --- Timer-Beginn nachtragen: wer den Start vergessen hat, gibt vorher die
+// tatsächliche Uhrzeit oder „vor x Min" an. Beide Felder sind gekoppelt, leer
+// heißt „jetzt". Der Anker ist ein fester Zeitpunkt, damit ein späteres
+// Drücken auf Start nichts mehr verschiebt. Gilt für Nap, Brust und Abpumpen;
+// die Nacht hat ihre eigenen, jederzeit bearbeitbaren Felder. ---
+const BACKDATE_MAX_MIN = 12 * 60;
+
+function wireBackdate(prefix, onChange) {
+  const row = document.getElementById(prefix + '-bd-row');
+  const timeIn = document.getElementById(prefix + '-bd-time');
+  const minIn = document.getElementById(prefix + '-bd-min');
+  const clearBtn = document.getElementById(prefix + '-bd-clear');
+  const errEl = document.getElementById(prefix + '-bd-error');
+  const timeWrap = timeIn.parentElement;
+  let anchor = null;
+
+  function paint() {
+    timeWrap.classList.toggle('empty', !timeIn.value);
+    clearBtn.style.display = (timeIn.value || minIn.value) ? 'flex' : 'none';
+    onChange();
+  }
+  function fail(msg) {
+    anchor = null;
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+
+  minIn.addEventListener('input', () => {
+    errEl.style.display = 'none';
+    const raw = minIn.value.trim();
+    const m = Number(raw);
+    if (!raw || m === 0) {
+      anchor = null;
+      timeIn.value = '';
+    } else if (!Number.isInteger(m) || m < 0 || m > BACKDATE_MAX_MIN) {
+      timeIn.value = '';
+      fail('Höchstens 12 Stunden zurück.');
+    } else {
+      anchor = Date.now() - m * 60000;
+      timeIn.value = formatTime(new Date(anchor));
+    }
+    paint();
+  });
+
+  // Eine Uhrzeit nach „jetzt" gehört zum Vortag (23:50 kurz nach Mitternacht);
+  // liegt sie dann mehr als 12 Stunden zurück, war sie ein Tippfehler.
+  function onTime() {
+    errEl.style.display = 'none';
+    if (!timeIn.value) {
+      anchor = null;
+      minIn.value = '';
+    } else {
+      const now = new Date();
+      const [h, mi] = timeIn.value.split(':').map(Number);
+      const start = new Date(now);
+      start.setHours(h, mi, 0, 0);
+      const wrapped = start > now;
+      if (wrapped) start.setDate(start.getDate() - 1);
+      const diffMin = Math.floor((now - start) / 60000);
+      if (diffMin > BACKDATE_MAX_MIN) {
+        minIn.value = '';
+        fail(wrapped ? 'Zeitpunkt liegt in der Zukunft.' : 'Höchstens 12 Stunden zurück.');
+      } else {
+        anchor = start.getTime();
+        minIn.value = String(diffMin);
+      }
+    }
+    paint();
+  }
+  timeIn.addEventListener('input', onTime);
+  timeIn.addEventListener('change', onTime);
+
+  function reset() {
+    anchor = null;
+    timeIn.value = '';
+    minIn.value = '';
+    errEl.style.display = 'none';
+    paint();
+  }
+  clearBtn.addEventListener('click', reset);
+
+  return {
+    startedAt: () => (anchor ? new Date(anchor) : new Date()),
+    active: () => anchor !== null,
+    hasError: () => errEl.style.display === 'block',
+    previewSeconds: () => (anchor ? Math.max(0, Math.floor((Date.now() - anchor) / 1000)) : 0),
+    setVisible(visible) {
+      row.style.display = visible ? 'flex' : 'none';
+      if (!visible) errEl.style.display = 'none';
+    },
+    reset
+  };
+}
+
+// Gemeinsame Anzeige vor dem Start: bei nachgetragenem Beginn zählt die Uhr
+// grau die schon vergangene Zeit, darunter steht, ab wann gezählt wird.
+function renderBackdatePreview(bd, displayEl, sublabelEl, idleText) {
+  displayEl.textContent = formatClock(bd.previewSeconds());
+  displayEl.style.color = bd.active() ? 'var(--text-muted)' : '';
+  sublabelEl.textContent = bd.active() ? 'Startet rückwirkend ab ' + formatTime(bd.startedAt()) : idleText;
+}
+
 // --- Brust-Timer: robust gegen Schließen der App, Zustand lebt in Firestore
 // (identisches Muster zum Schlafen-Timer, eigene Variablen/IDs, selbe Collection
 // wie die manuellen Brust-Einträge — 'feedings', unterschieden über type).
@@ -2208,11 +2366,16 @@ function renderBreastTimerDisplay() {
   breastRightStatEl.innerHTML = !running ? '' : leftIsSide ? BREAST_PAUSE_MARK : runMark;
 
   if (running) {
+    breastTimerDisplay.style.color = '';
+    breastBackdate.setVisible(false);
     breastTimerSublabel.textContent = 'Stillt seit ' + formatTime(new Date(openFeedingStartedAt));
     breastTimerToggleBtn.textContent = 'Stop';
     breastTimerToggleBtn.style.background = 'var(--stop)';
   } else {
-    breastTimerSublabel.textContent = 'Bereit zum Start';
+    // Nachgetragene Zeit zählt nach dem Start zur vorgewählten Seite.
+    breastBackdate.setVisible(true);
+    renderBackdatePreview(breastBackdate, breastTimerDisplay, breastTimerSublabel, 'Bereit zum Start');
+    (leftIsSide ? breastLeftTimeEl : breastRightTimeEl).textContent = formatSideClock(breastBackdate.previewSeconds());
     breastTimerToggleBtn.textContent = 'Start';
     breastTimerToggleBtn.style.background = 'var(--accent-strong)';
   }
@@ -2346,7 +2509,8 @@ breastTimerToggleBtn.addEventListener('click', async () => {
   breastTimerToggleBtn.disabled = true;
   try {
     if (!openFeedingDocId) {
-      const startedAt = new Date();
+      if (breastBackdate.hasError()) { breastTimerToggleBtn.disabled = false; return; }
+      const startedAt = breastBackdate.startedAt();
       const entry = {
         type: 'breast',
         amount: null,
@@ -2373,7 +2537,7 @@ breastTimerToggleBtn.addEventListener('click', async () => {
       breastTimerRightSec = 0;
       breastTimerSideSince = startedAt.getTime();
       feedingTimerInterval = setInterval(renderBreastTimerDisplay, 1000);
-      renderBreastTimerDisplay();
+      breastBackdate.reset();
     } else {
       // Der Stand aus Firestore gewinnt: ein zweites Gerät kann inzwischen die
       // Seite gewechselt haben, seine Sekunden stehen dann im Dokument.
@@ -2726,6 +2890,8 @@ pumpTimerAmountInput.addEventListener('input', () => {
 function renderPumpTimerDisplay() {
   const running = !!openPumpDocId;
   const pending = !!pendingPumpDocId;
+  pumpBackdate.setVisible(!running && !pending);
+  pumpTimerDisplay.style.color = '';
   if (pending) {
     pumpTimerDisplay.textContent = formatClock(Math.max(0, Math.round((pendingPumpEndedAt - pendingPumpStartedAt) / 1000)));
     pumpTimerSublabel.textContent = formatTime(new Date(pendingPumpStartedAt)) + ' – ' + formatTime(new Date(pendingPumpEndedAt));
@@ -2739,7 +2905,8 @@ function renderPumpTimerDisplay() {
     pumpTimerToggleBtn.textContent = 'Stop';
     pumpTimerToggleBtn.style.background = 'var(--stop)';
   } else {
-    pumpTimerSublabel.textContent = pumpSideValue() ? 'Bereit zum Start' : 'Mindestens eine Seite wählen';
+    renderBackdatePreview(pumpBackdate, pumpTimerDisplay, pumpTimerSublabel, 'Bereit zum Start');
+    if (!pumpSideValue()) pumpTimerSublabel.textContent = 'Mindestens eine Seite wählen';
     pumpTimerToggleBtn.textContent = 'Start';
     pumpTimerToggleBtn.style.background = pumpSideValue() ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
   }
@@ -2795,7 +2962,8 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
   pumpTimerToggleBtn.disabled = true;
   try {
     if (!openPumpDocId) {
-      const startedAt = new Date();
+      if (pumpBackdate.hasError()) { pumpTimerToggleBtn.disabled = false; return; }
+      const startedAt = pumpBackdate.startedAt();
       // date/time werden schon beim Start gesetzt: entryBusinessTimestamp hat
       // für Timer-Einträge keinen Sonderfall, sonst fiele der laufende
       // Eintrag in der Historie aus der Sortierung.
@@ -2817,7 +2985,7 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
       openPumpDocId = ref.id;
       openPumpStartedAt = startedAt.getTime();
       pumpTimerInterval = setInterval(renderPumpTimerDisplay, 1000);
-      renderPumpTimerDisplay();
+      pumpBackdate.reset();
     } else {
       // Der Stand aus Firestore gewinnt: ein zweites Gerät kann den Vorgang
       // inzwischen begonnen oder die Seite geändert haben.
@@ -2931,6 +3099,8 @@ function resetFuetternForm() {
 // Brust-Timer wird direkt gezeigt.
 function prepareFuetternForNewEntry() {
   amountErrorEl.style.display = 'none';
+  breastBackdate.reset();
+  pumpBackdate.reset();
   fuetternDateInput.value = isoDate(new Date());
   fuetternTimeInput.value = formatTime(new Date());
   fuetternDateInput.dispatchEvent(new Event('change'));
@@ -4254,13 +4424,14 @@ async function findOpenNap() {
 }
 
 function renderTimerDisplay() {
+  napBackdate.setVisible(!openNapStartedAt);
   if (!openNapStartedAt) {
-    timerDisplay.textContent = '00:00:00';
-    timerSublabel.textContent = 'Bereit zum Start';
+    renderBackdatePreview(napBackdate, timerDisplay, timerSublabel, 'Bereit zum Start');
     timerToggleBtn.textContent = 'Start';
     timerToggleBtn.style.background = 'var(--accent-strong)';
     return;
   }
+  timerDisplay.style.color = '';
   const elapsed = Math.floor((Date.now() - openNapStartedAt) / 1000);
   const hh = String(Math.floor(elapsed / 3600)).padStart(2, '0');
   const mm = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
@@ -4325,7 +4496,8 @@ timerToggleBtn.addEventListener('click', async () => {
   timerToggleBtn.disabled = true;
   try {
     if (!openNapDocId) {
-      const startedAt = new Date();
+      if (napBackdate.hasError()) { timerToggleBtn.disabled = false; return; }
+      const startedAt = napBackdate.startedAt();
       const entry = {
         startTime: startedAt.toISOString(),
         endTime: null,
@@ -4338,7 +4510,7 @@ timerToggleBtn.addEventListener('click', async () => {
       openNapDocId = ref.id;
       openNapStartedAt = startedAt.getTime();
       timerInterval = setInterval(renderTimerDisplay, 1000);
-      renderTimerDisplay();
+      napBackdate.reset();
     } else {
       // Vor dem Stop nochmal frisch nachsehen, welches Dokument offen ist —
       // die lokale ID könnte veraltet sein, falls die App zwischenzeitlich neu geladen wurde.

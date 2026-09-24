@@ -1485,7 +1485,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp
+  getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { scaleBand, scaleLinear, scalePoint } from "./vendor/d3/d3-scale.js";
 import { line as d3Line, area as d3Area, curveLinear } from "./vendor/d3/d3-shape.js";
@@ -1557,6 +1557,7 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = null;
     stopProfilSync();
     stopMedSync();
+    stopFeedStatsSync();
     loginScreen.style.display = 'flex';
     appEl.style.display = 'none';
     return;
@@ -1575,6 +1576,7 @@ onAuthStateChanged(auth, async (user) => {
   appEl.style.display = 'block';
   startProfilSync();
   startMedSync();
+  startFeedStatsSync();
   loadOverview();
   resumeOpenNapIfAny();
   resumeOpenNightIfAny();
@@ -2006,8 +2008,182 @@ function buildChips(container, values, unit, input) {
   });
 }
 
+// --- Füttern-Zusammenfassung (stats/fuettern) ---
+// Mengen-Cards und vorgewählte Brust-Seite brauchen nur wenige Felder der
+// letzten Fütterungen. Statt dafür bei jedem Öffnen von Füttern Dutzende bis
+// Hunderte Dokumente zu lesen, steht je Fütterung eine Kurzfassung
+// {type, amount, ts, side, done} in einem einzigen Dokument, auf das die App
+// live hört. Jeder Schreibvorgang auf feedings (addFeeding/updateFeeding/
+// deleteFeeding) ändert es im selben Batch mit. Fehlt es oder ist es älter
+// als einen Tag, baut das erste Gerät es aus feedings neu auf — das heilt
+// auch Abweichungen, etwa durch eine noch offene alte App-Version.
+const FEED_STATS_REF = doc(db, 'stats', 'fuettern');
+const FEED_STATS_VERSION = 1;
+// Aufbewahrt wird etwas mehr als die 10 Tage der Mengen-Cards, dazu immer die
+// letzten abgeschlossenen Brust-Fütterungen, egal wie alt.
+const FEED_STATS_KEEP_DAYS = 14;
+const FEED_STATS_REBUILD_MS = 24 * 60 * 60 * 1000;
+const AMOUNT_CHIP_DAYS = 10;
+const BREAST_START_COUNT = 10;
+let feedStats = null;
+let feedStatsUnsubscribe = null;
+let feedStatsRebuilding = false;
+let feedStatsReadyResolve = null;
+let feedStatsReady = null;
+function resetFeedStatsReady() {
+  feedStatsReady = new Promise((resolve) => { feedStatsReadyResolve = resolve; });
+}
+resetFeedStatsReady();
+
+// Die Startseite einer Brust-Fütterung: das erste Segment, bei Einträgen ohne
+// Segmente die Seite mit mehr Minuten, bei Gleichstand keine.
+function feedingSummary(f) {
+  let side = null;
+  if (f.type === 'breast') {
+    side = Array.isArray(f.segments) && f.segments.length ? f.segments[0].side : null;
+    if (!side) {
+      const l = Number(f.leftMinutes) || 0;
+      const r = Number(f.rightMinutes) || 0;
+      side = l > r ? 'left' : r > l ? 'right' : null;
+    }
+  }
+  const ts = entryBusinessTimestamp(f);
+  return {
+    type: f.type || null,
+    amount: Number(f.amount) || null,
+    ts: ts ? ts.getTime() : Date.now(),
+    side: side || null,
+    done: f.endTime !== null
+  };
+}
+
+// Die letzten abgeschlossenen Brust-Fütterungen, neueste zuerst — nach dem
+// fachlichen Zeitpunkt, nicht nach dem Speicherzeitpunkt.
+function recentBreastStartIds(entries) {
+  return Object.keys(entries)
+    .filter((id) => entries[id].type === 'breast' && entries[id].done)
+    .sort((a, b) => entries[b].ts - entries[a].ts)
+    .slice(0, BREAST_START_COUNT);
+}
+
+function feedStatsKeepIds(entries) {
+  const cutoff = Date.now() - FEED_STATS_KEEP_DAYS * 24 * 60 * 60 * 1000;
+  const keep = new Set(Object.keys(entries).filter((id) => entries[id].ts >= cutoff));
+  recentBreastStartIds(entries).forEach((id) => keep.add(id));
+  return keep;
+}
+
+// changes: { id: Kurzfassung } oder { id: null } fürs Löschen. Räumt dabei
+// gleich auf, was aus dem Aufbewahrungsfenster gefallen ist.
+function feedStatsPatch(changes) {
+  const merged = Object.assign({}, feedStats || {});
+  Object.keys(changes).forEach((id) => {
+    if (changes[id]) merged[id] = changes[id];
+    else delete merged[id];
+  });
+  const keep = feedStatsKeepIds(merged);
+  const entries = {};
+  Object.keys(changes).forEach((id) => { entries[id] = changes[id] && keep.has(id) ? changes[id] : deleteField(); });
+  Object.keys(feedStats || {}).forEach((id) => { if (!keep.has(id) && !(id in entries)) entries[id] = deleteField(); });
+  return { entries };
+}
+
+// Nach erfolgreichem Speichern sofort auch lokal nachziehen: die Mengen-Cards
+// werden direkt danach neu berechnet und sollen nicht davon abhängen, ob die
+// Live-Aktualisierung schon da ist. Die nächste kommt ohnehin gleich.
+function feedStatsApplyLocal(changes) {
+  if (!feedStats) return;
+  Object.keys(changes).forEach((id) => {
+    if (changes[id]) feedStats[id] = changes[id];
+    else delete feedStats[id];
+  });
+}
+
+async function commitFeedingBatch(batch, changes) {
+  batch.set(FEED_STATS_REF, feedStatsPatch(changes), { merge: true });
+  await batch.commit();
+  feedStatsApplyLocal(changes);
+}
+
+async function addFeeding(data) {
+  const ref = doc(collection(db, 'feedings'));
+  const batch = writeBatch(db);
+  batch.set(ref, data);
+  await commitFeedingBatch(batch, { [ref.id]: feedingSummary(data) });
+  return ref;
+}
+
+// `full` = der Eintrag nach der Änderung (nur die Felder, die die
+// Kurzfassung braucht); ohne ihn bleibt die Zusammenfassung unberührt.
+async function updateFeeding(id, patch, full) {
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'feedings', id), patch);
+  if (full) await commitFeedingBatch(batch, { [id]: feedingSummary(full) });
+  else await batch.commit();
+}
+
+async function deleteFeeding(id) {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'feedings', id));
+  await commitFeedingBatch(batch, { [id]: null });
+}
+
+// Neuaufbau aus feedings: alles, was in den letzten 14 Tagen gespeichert
+// wurde (nachgetragene Einträge haben ein späteres createdAt als ihr
+// fachliches Datum, fallen also nicht heraus), dazu die letzten 40 für die
+// Brust-Seite. Gelöscht wird nur, was schon vor der Abfrage im Dokument stand
+// — ein Eintrag, den ein anderes Gerät gerade eben gespeichert hat, bleibt.
+async function rebuildFeedStats() {
+  if (feedStatsRebuilding) return;
+  feedStatsRebuilding = true;
+  try {
+    const before = feedStats || {};
+    const since = new Date(Date.now() - FEED_STATS_KEEP_DAYS * 24 * 60 * 60 * 1000);
+    const [recent, last] = await Promise.all([
+      getDocs(query(collection(db, 'feedings'), where('createdAt', '>=', since))),
+      getDocs(query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(40)))
+    ]);
+    const all = {};
+    [...recent.docs, ...last.docs].forEach((d) => { all[d.id] = feedingSummary(d.data()); });
+    const keep = feedStatsKeepIds(all);
+    const entries = {};
+    Object.keys(all).forEach((id) => { if (keep.has(id)) entries[id] = all[id]; });
+    Object.keys(before).forEach((id) => { if (!(id in entries)) entries[id] = deleteField(); });
+    await setDoc(FEED_STATS_REF, { v: FEED_STATS_VERSION, builtAt: Date.now(), entries }, { merge: true });
+  } catch (error) {
+    console.error('Füttern-Zusammenfassung neu aufbauen fehlgeschlagen:', error);
+    feedStatsReadyResolve();
+  } finally {
+    feedStatsRebuilding = false;
+  }
+}
+
+function startFeedStatsSync() {
+  stopFeedStatsSync();
+  feedStatsUnsubscribe = onSnapshot(FEED_STATS_REF, (snap) => {
+    const data = snap.exists() ? snap.data() : null;
+    const valid = !!(data && data.v === FEED_STATS_VERSION && data.builtAt);
+    if (data && data.entries) feedStats = data.entries;
+    // Ohne gültiges Dokument erst nach dem Neuaufbau freigeben — sonst stünden
+    // beim allerersten Start kurz die Standard-Cards und links vorgewählt da.
+    if (valid) feedStatsReadyResolve();
+    if (snap.metadata.fromCache) return;
+    if (!valid || Date.now() - data.builtAt > FEED_STATS_REBUILD_MS) rebuildFeedStats();
+  }, (error) => {
+    console.error('Füttern-Zusammenfassung laden fehlgeschlagen:', error);
+    feedStatsReadyResolve();
+  });
+}
+
+function stopFeedStatsSync() {
+  if (feedStatsUnsubscribe) feedStatsUnsubscribe();
+  feedStatsUnsubscribe = null;
+  feedStats = null;
+  resetFeedStatsReady();
+}
+
 // Die vier Mengen-Cards passen sich mit der Zeit an: Ausgangspunkt sind
-// 20/40/80/100 ml, aber sobald in den letzten 60 Tagen genug Fläschchen
+// 20/40/80/100 ml, aber sobald in den letzten 10 Tagen genug Fläschchen
 // erfasst wurden (min. 3), ersetzt die jeweils häufigste abweichende Menge
 // die Standard-Karte mit der geringsten Häufigkeit. Bei Gleichstand bleibt
 // die Standard-Karte bestehen, damit die Cards nicht bei jedem Laden
@@ -2020,15 +2196,13 @@ let fuetternAmountChips = DEFAULT_BOTTLE_AMOUNTS.slice();
 
 async function computeAmountChips(feedingType, defaults) {
   try {
-    const start = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    const docs = await getAnalyseRangeDocs('feedings', start);
-    const cutoff = start.getTime();
+    await feedStatsReady;
+    const cutoff = Date.now() - AMOUNT_CHIP_DAYS * 24 * 60 * 60 * 1000;
     const freq = new Map();
     let n = 0;
-    docs.forEach((doc) => {
+    Object.values(feedStats || {}).forEach((doc) => {
       if (doc.type !== feedingType || !doc.amount) return;
-      const ts = entryBusinessTimestamp(doc);
-      if (!ts || ts.getTime() < cutoff) return;
+      if (doc.ts < cutoff) return;
       n++;
       const rounded = Math.round(doc.amount / 10) * 10;
       freq.set(rounded, (freq.get(rounded) || 0) + 1);
@@ -2073,7 +2247,7 @@ fuetternSaveBtn.addEventListener('click', async () => {
   };
   fuetternSaveBtn.disabled = true;
   try {
-    await addDoc(collection(db, 'feedings'), entry);
+    await addFeeding(entry);
     fuetternSaveBtn.disabled = false;
     refreshFuetternAmountChips();
     afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--fuettern)');
@@ -2293,7 +2467,7 @@ breastSaveBtn.addEventListener('click', async () => {
   breastSaveBtn.disabled = true;
   try {
     const entry = { ...breastEntryFromForm(), createdBy: currentUser.email, createdAt: serverTimestamp() };
-    await addDoc(collection(db, 'feedings'), entry);
+    await addFeeding(entry);
     breastSaveBtn.disabled = false;
     resetBreastSegments();
     afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--fuettern)');
@@ -2523,22 +2697,13 @@ renderBreastTimerDisplay();
 // Gleichstand bleibt es links.
 async function computeBreastStartSide() {
   try {
-    const snap = await getDocs(query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(40)));
-    const recent = snap.docs
-      .map((d) => d.data())
-      .filter((f) => f.type === 'breast' && f.endTime !== null)
-      .slice(0, 10);
+    await feedStatsReady;
+    const entries = feedStats || {};
     let left = 0;
     let right = 0;
-    recent.forEach((f) => {
-      let side = Array.isArray(f.segments) && f.segments.length ? f.segments[0].side : null;
-      if (!side) {
-        const l = Number(f.leftMinutes) || 0;
-        const r = Number(f.rightMinutes) || 0;
-        side = l > r ? 'left' : r > l ? 'right' : null;
-      }
-      if (side === 'left') left++;
-      else if (side === 'right') right++;
+    recentBreastStartIds(entries).forEach((id) => {
+      if (entries[id].side === 'left') left++;
+      else if (entries[id].side === 'right') right++;
     });
     return right > left ? 'right' : 'left';
   } catch (error) {
@@ -2634,7 +2799,7 @@ breastTimerToggleBtn.addEventListener('click', async () => {
         createdBy: currentUser.email,
         createdAt: serverTimestamp()
       };
-      const ref = await addDoc(collection(db, 'feedings'), entry);
+      const ref = await addFeeding(entry);
       openFeedingDocId = ref.id;
       openFeedingStartedAt = startedAt.getTime();
       breastTimerLeftSec = 0;
@@ -2658,7 +2823,7 @@ breastTimerToggleBtn.addEventListener('click', async () => {
       const sec = breastTimerSeconds();
       const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
       const split = breastSideMinutesFromSeconds(sec.left, sec.right, durationMinutes);
-      await updateDoc(doc(db, 'feedings', targetId), {
+      const stopPatch = {
         endTime: endedAt.toISOString(),
         durationMinutes,
         minutes: durationMinutes,
@@ -2667,7 +2832,9 @@ breastTimerToggleBtn.addEventListener('click', async () => {
         leftSeconds: sec.left,
         rightSeconds: sec.right,
         sideSince: null
-      });
+      };
+      const stopBase = open || { type: 'breast', date: isoDate(startedAt), time: formatTime(startedAt) };
+      await updateFeeding(targetId, stopPatch, { ...stopBase, ...stopPatch });
       clearInterval(feedingTimerInterval);
       feedingTimerInterval = null;
       openFeedingDocId = null;
@@ -2903,7 +3070,7 @@ pumpSaveBtn.addEventListener('click', async () => {
   pumpSaveBtn.disabled = true;
   try {
     const entry = { ...pumpEntryFromForm(), createdBy: currentUser.email, createdAt: serverTimestamp() };
-    await addDoc(collection(db, 'feedings'), entry);
+    await addFeeding(entry);
     pumpSaveBtn.disabled = false;
     resetPumpManualForm();
     refreshPumpAmountChips();
@@ -3085,7 +3252,7 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
         createdBy: currentUser.email,
         createdAt: serverTimestamp()
       };
-      const ref = await addDoc(collection(db, 'feedings'), entry);
+      const ref = await addFeeding(entry);
       openPumpDocId = ref.id;
       openPumpStartedAt = startedAt.getTime();
       pumpTimerInterval = setInterval(renderPumpTimerDisplay, 1000);
@@ -3101,13 +3268,15 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
       // nachgetragen ist (in der Historie als „unvollständig").
       const endedAt = new Date();
       const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
-      await updateDoc(doc(db, 'feedings', targetId), {
+      const stopPatch = {
         endTime: endedAt.toISOString(),
         durationMinutes,
         minutes: durationMinutes,
         side: pumpSideValue(),
         pendingAmount: true
-      });
+      };
+      const stopBase = open || { type: 'pump', date: isoDate(startedAt), time: formatTime(startedAt) };
+      await updateFeeding(targetId, stopPatch, { ...stopBase, ...stopPatch });
       clearInterval(pumpTimerInterval);
       pumpTimerInterval = null;
       openPumpDocId = null;
@@ -3142,11 +3311,12 @@ pumpFinishSaveBtn.addEventListener('click', async () => {
       pumpFinishSaveBtn.disabled = false;
       return;
     }
-    await updateDoc(doc(db, 'feedings', finishedId), {
+    const finishPatch = {
       amount: Number(pumpTimerAmountInput.value),
       side: pumpSideValue(),
       pendingAmount: false
-    });
+    };
+    await updateFeeding(finishedId, finishPatch, { ...stillPending, ...finishPatch });
     setPendingPump(null);
     pumpLeft = true;
     pumpRight = true;
@@ -3357,7 +3527,7 @@ async function handleFuetternUpdate(triggerBtn) {
   }
   triggerBtn.disabled = true;
   try {
-    await updateDoc(doc(db, 'feedings', updatedId), entry);
+    await updateFeeding(updatedId, entry, entry);
     exitFuetternEdit();
     if (entry.type === 'bottle') refreshFuetternAmountChips();
     returnToHistorieAfterUpdate({ id: updatedId, ...entry });
@@ -4983,7 +5153,8 @@ async function deleteHistorieEntry(entry, delBtn) {
   const name = entry._cat === 'fuettern' ? 'feedings' : entry._cat === 'windeln' ? 'diaperChanges' : (entry._type === 'night' ? 'nightWakeups' : 'naps');
   delBtn.disabled = true;
   try {
-    await deleteDoc(doc(db, name, entry.id));
+    if (name === 'feedings') await deleteFeeding(entry.id);
+    else await deleteDoc(doc(db, name, entry.id));
     removeHistoryRow(historieListEl, entry.id);
     if (entry._cat === 'fuettern' && entry.type === 'bottle') refreshFuetternAmountChips();
     if (entry._cat === 'fuettern' && entry.type === 'pump') { refreshPumpAmountChips(); syncPumpState(); }

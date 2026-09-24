@@ -1503,6 +1503,66 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// --- Live-Abfragen für die Heute-Seite ---
+// Heute stellte bei jedem Besuch dieselben Abfragen neu (letzte 12 Einträge,
+// Einträge von heute, offene Timer/Nächte) — laut Audit-Log ein gutes Fünftel
+// aller Lesevorgänge. Jetzt bleibt je Abfrage eine Live-Abfrage offen: der
+// erste Aufruf kostet wie bisher, danach nur noch geänderte Dokumente. Die
+// Abfragen selbst sind unverändert, die Ergebnisse also dieselben.
+// `group` hält je Zweck höchstens eine Abfrage offen: fängt ein neuer Tag an,
+// ersetzt die Abfrage für heute die von gestern.
+// Kommt keine Server-Antwort (offline, Fehler), fällt der Aufruf auf eine
+// einmalige Abfrage zurück — mit genau dem Verhalten wie vorher. Nach einem
+// Zeitüberlauf bleibt die Live-Abfrage bestehen; bis sie doch antwortet,
+// wird ohne weiteres Warten direkt abgefragt.
+const LIVE_QUERY_TIMEOUT_MS = 10000;
+const liveQueries = new Map();
+
+function liveQueryDocs(group, key, makeQuery) {
+  let h = liveQueries.get(group);
+  if (h && h.key !== key) { h.unsub(); h = null; }
+  if (!h) {
+    h = { key, docs: [], ok: false, unsub: () => {} };
+    let resolveReady;
+    h.ready = new Promise((resolve) => { resolveReady = resolve; });
+    const timer = setTimeout(resolveReady, LIVE_QUERY_TIMEOUT_MS);
+    h.unsub = onSnapshot(makeQuery(), (snap) => {
+      // Eigene, noch nicht bestätigte Schreibvorgänge haben createdAt erst
+      // als Schätzung — ohne sie stünde dort null.
+      h.docs = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+      if (!h.ok && !snap.metadata.fromCache) {
+        h.ok = true;
+        clearTimeout(timer);
+        resolveReady();
+      }
+    }, (error) => {
+      console.error('Live-Abfrage ' + group + ' beendet:', error);
+      clearTimeout(timer);
+      h.ok = false;
+      if (liveQueries.get(group) === h) liveQueries.delete(group);
+      resolveReady();
+    });
+    liveQueries.set(group, h);
+  }
+  return h;
+}
+
+// Wie getDocs(...).docs, aber aus der Live-Abfrage, sobald sie steht.
+async function cachedQueryDocs(group, key, makeQuery) {
+  if (currentUser) {
+    const h = liveQueryDocs(group, key, makeQuery);
+    await h.ready;
+    if (h.ok) return h.docs.map((d) => ({ ...d }));
+  }
+  const snap = await getDocs(makeQuery());
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+function stopLiveQueries() {
+  liveQueries.forEach((h) => h.unsub());
+  liveQueries.clear();
+}
+
 const ALLOWED_EMAIL_HASHES = [
   'be75ec1ed07f97bf7d38e52e3c9799f0325003ec3f23fdd67103642c56594e73',
   '2c4c6c9b65ac160548f63faf4e9faa59b5ac1659620585ab704cf4d0585edebf',
@@ -1558,6 +1618,7 @@ onAuthStateChanged(auth, async (user) => {
     stopProfilSync();
     stopMedSync();
     stopFeedStatsSync();
+    stopLiveQueries();
     loginScreen.style.display = 'flex';
     appEl.style.display = 'none';
     return;
@@ -2594,11 +2655,8 @@ let breastTimerRightSec = 0;
 let breastTimerSideSince = null;
 
 async function findOpenFeeding() {
-  const q = query(collection(db, 'feedings'), where('type', '==', 'breast'), where('endTime', '==', null));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+  const docs = await cachedQueryDocs('feeding-open', '', () => query(collection(db, 'feedings'), where('type', '==', 'breast'), where('endTime', '==', null)));
+  return docs[0] || null;
 }
 
 // Sekunden je Seite inklusive der gerade laufenden Strecke.
@@ -4093,15 +4151,18 @@ let openNightDocId = null;
 let openNightData = null;
 
 async function findOpenNight() {
-  const q = query(collection(db, 'nightWakeups'), where('nightEnd', '==', null));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+  const docs = await cachedQueryDocs('night-open', '', () => query(collection(db, 'nightWakeups'), where('nightEnd', '==', null)));
+  return docs[0] || null;
 }
+// Die Nacht, die heute endet, fragt Heute bei jedem Besuch ab — nur sie läuft
+// über die Live-Abfrage; andere Tage (Nachts-Karte blättert) wie bisher direkt.
 async function findNightByEnd(dateStr) {
-  const q = query(collection(db, 'nightWakeups'), where('nightEnd', '==', dateStr));
-  const snap = await getDocs(q);
+  const makeQuery = () => query(collection(db, 'nightWakeups'), where('nightEnd', '==', dateStr));
+  if (dateStr === isoDate(new Date())) {
+    const docs = await cachedQueryDocs('night-end-today', dateStr, makeQuery);
+    return docs[0] || null;
+  }
+  const snap = await getDocs(makeQuery());
   if (snap.empty) return null;
   const d = snap.docs[0];
   return { id: d.id, ...d.data() };
@@ -4690,11 +4751,8 @@ let openNapStartedAt = null;
 let timerInterval = null;
 
 async function findOpenNap() {
-  const q = query(collection(db, 'naps'), where('endTime', '==', null));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+  const docs = await cachedQueryDocs('nap-open', '', () => query(collection(db, 'naps'), where('endTime', '==', null)));
+  return docs[0] || null;
 }
 
 function renderTimerDisplay() {
@@ -5295,8 +5353,8 @@ function formatDuration(mins) {
 }
 
 async function getTodayDocs(name) {
-  const snap = await getDocs(query(collection(db, name), where('createdAt', '>=', todayStartDate())));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const start = todayStartDate();
+  return cachedQueryDocs('today-' + name, isoDate(start), () => query(collection(db, name), where('createdAt', '>=', start)));
 }
 
 function timeOnDate(baseDate, hhmm) {
@@ -5334,9 +5392,7 @@ function entryIsToday(doc, now) {
 // deshalb größer als die eine gesuchte Zeile: sonst bliebe nach dem Filtern
 // unter Umständen nichts übrig.
 async function getMostRecentByBusinessTime(name, predicate) {
-  const snap = await getDocs(query(collection(db, name), orderBy('createdAt', 'desc'), limit(12)));
-  if (snap.empty) return null;
-  let docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  let docs = await cachedQueryDocs('recent-' + name, '', () => query(collection(db, name), orderBy('createdAt', 'desc'), limit(12)));
   if (predicate) docs = docs.filter(predicate);
   if (docs.length === 0) return null;
   docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));
@@ -5361,10 +5417,17 @@ async function loadOverview() {
 
   const timelineEvents = [];
 
+  // Alle drei Bereiche gleichzeitig anstoßen, gezeichnet wird weiter der Reihe
+  // nach. Fehler landen erst beim await im jeweiligen try.
+  const fuetternCountsAsMeal = (f) => fuetternIsMeal(f) && fuetternIsFinished(f);
+  const feedData = Promise.all([findOpenFeeding(), getMostRecentByBusinessTime('feedings', fuetternCountsAsMeal), getTodayDocs('feedings')]);
+  const diaperData = Promise.all([getMostRecentByBusinessTime('diaperChanges'), getTodayDocs('diaperChanges')]);
+  const sleepData = Promise.all([findOpenNap(), findNightByEnd(isoDate(now)), findOpenNight(), getTodayDocs('naps')]);
+  [feedData, diaperData, sleepData].forEach((p) => p.catch(() => {}));
+
   // Füttern
   try {
-    const fuetternCountsAsMeal = (f) => fuetternIsMeal(f) && fuetternIsFinished(f);
-    const [openFeeding, lastFeeding, todayFeedingsRaw] = await Promise.all([findOpenFeeding(), getMostRecentByBusinessTime('feedings', fuetternCountsAsMeal), getTodayDocs('feedings')]);
+    const [openFeeding, lastFeeding, todayFeedingsRaw] = await feedData;
     const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now) && fuetternCountsAsMeal(f));
     // Läuft gerade ein Brust-Timer, ist "vor x Stunden" die falsche Auskunft:
     // sie bezöge sich auf die vorletzte, abgeschlossene Mahlzeit. Stattdessen
@@ -5418,7 +5481,7 @@ async function loadOverview() {
 
   // Windeln
   try {
-    const [lastDiaper, todayDiapersRaw] = await Promise.all([getMostRecentByBusinessTime('diaperChanges'), getTodayDocs('diaperChanges')]);
+    const [lastDiaper, todayDiapersRaw] = await diaperData;
     const todayDiapers = todayDiapersRaw.filter((d) => entryIsToday(d, now));
     function diaperLabel(d) {
       const sizes = [];
@@ -5457,12 +5520,7 @@ async function loadOverview() {
     // nur sie gehört auf die Heute-Karte, und nur an ihr hängt die Erinnerung
     // weiter unten. Die offene Nacht dazu, um eine begonnene von einer gar
     // nicht erfassten Nacht unterscheiden zu können.
-    const [openNap, lastNight, openNight, todayNapsRaw] = await Promise.all([
-      findOpenNap(),
-      findNightByEnd(isoDate(now)),
-      findOpenNight(),
-      getTodayDocs('naps')
-    ]);
+    const [openNap, lastNight, openNight, todayNapsRaw] = await sleepData;
     const todayNaps = todayNapsRaw.filter((n) => entryIsToday(n, now));
 
     const badge = document.getElementById('schlafen-running-badge');

@@ -25,6 +25,32 @@
   #screen-heute .tl-flash { border-radius: 8px; margin: -2px -8px 0; padding: 2px 8px 0; animation: tlFlash 2.6s ease-out; }
   @keyframes tlFlash { 0%, 45% { background: var(--fl); } 100% { background: transparent; } }
   @media (prefers-reduced-motion: reduce) { #screen-heute .tl-flash { animation: none; } }
+  /* Zeitverlauf-Einträge öffnen die Detailansicht — wie die Meilensteine
+     (.e-tl-btn): negativer Rand, damit nur die gedrückte Fläche wächst. */
+  #screen-heute .tl-btn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; margin: -4px -6px 10px; padding: 4px 6px; border: none; border-radius: 10px; background: none; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+  #screen-heute .tl-btn.last { margin-bottom: -4px; }
+  #screen-heute .tl-btn:active { background: var(--tl-soft); }
+  #screen-heute .tl-btn:focus-visible { outline: 2px solid var(--neutral-strong); outline-offset: 0; }
+
+  /* Detailansicht eines Eintrags (aus Zeitverlauf oder Historie): gesperrte
+     Karte wie beim Medikament, Stift oben rechts, Löschen ganz unten. */
+  #screen-eintrag button { font-family: inherit; }
+  #eintrag-scroll > * { flex-shrink: 0; }
+  #screen-eintrag .d-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  #screen-eintrag .d-sep { height: 1px; background: var(--border); }
+  #screen-eintrag .d-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  #screen-eintrag .d-field { display: flex; flex-direction: column; gap: 5px; }
+  #screen-eintrag .d-val { font-size: 14px; font-weight: 400; line-height: 1.4; color: var(--text-muted); font-variant-numeric: tabular-nums; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  #screen-eintrag .d-pair { display: flex; gap: 14px; }
+  #screen-eintrag .d-pair > div { flex: 1; min-width: 0; }
+  #screen-eintrag .d-pencil { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  #screen-eintrag .d-seg { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 8px; background: var(--surface-alt); color: var(--text-muted); }
+  #screen-eintrag .d-swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  #screen-eintrag .d-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+  #screen-eintrag .d-del { width: 100%; padding: 13px 10px; border: 1px solid var(--border); border-radius: 14px; font-size: 15px; font-weight: 700; color: var(--warn); background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+  #screen-eintrag .d-del:disabled { opacity: .6; cursor: default; }
+  /* Aus dem Heute-Zeitverlauf bearbeitet: das Datum steht fest. */
+  input[type="date"]:disabled { color: var(--text-muted); opacity: 1; -webkit-text-fill-color: var(--text-muted); }
 
   .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
   .quick-row { margin-top: -17px; }
@@ -48,13 +74,15 @@
   /* Gemeinsame Historie */
   #screen-historie .h-chip { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 6px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); white-space: nowrap; cursor: pointer; font-family: inherit; }
   #screen-historie .h-chip.on { font-weight: 700; background: var(--chip-soft); border-color: var(--chip-border); color: var(--chip-strong); }
-  #screen-historie .h-row { display: flex; align-items: center; gap: 9px; padding: 10px 8px 10px 14px; border-bottom: 1px solid var(--border); }
+  /* Eine Zeile ist ein Knopf in die Detailansicht des Eintrags. */
+  #screen-historie .h-row { display: flex; align-items: center; gap: 9px; padding: 10px 12px 10px 14px; border: none; border-bottom: 1px solid var(--border); background: none; width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+  #screen-historie .h-row:active { background: var(--row-soft); }
+  #screen-historie .h-row:focus-visible { outline: 2px solid var(--neutral-strong); outline-offset: -2px; }
+  #screen-historie .h-chev { flex-shrink: 0; display: flex; color: var(--text-muted); }
   #screen-historie .h-ico { width: 24px; height: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   #screen-historie .h-time { font-size: 13px; font-weight: 600; color: var(--text); width: 40px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
   #screen-historie .h-detail { font-size: 12.5px; color: var(--text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #screen-historie .h-detail b { color: var(--text); font-weight: 600; }
-  #screen-historie .h-btn { border: none; background: none; padding: 6px; cursor: pointer; display: flex; color: var(--text-muted); }
-  #screen-historie .h-btn.del { color: var(--warn); }
   /* Entwicklung */
   #screen-entwicklung button { font-family: inherit; }
   #screen-entwicklung .e-seg { display: flex; background: var(--surface-alt); border-radius: 18px; padding: 5px; gap: 5px; }
@@ -163,7 +191,6 @@
   .med-hint-t { flex: 1; min-width: 0; line-height: 1.3; }
   .med-hint-t b { display: block; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .med-hint-t span { font-size: 11.5px; font-weight: 600; opacity: .8; }
-  #screen-historie .h-badge { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px; margin-right: 6px; flex-shrink: 0; }
 
   /* Brust: Links/Rechts. Der Seitenwechsel im Timer ist bewusst ein kleiner
      Schieberegler und kein dritter Segment-Umschalter — Fläschchen/Brust und
@@ -620,8 +647,7 @@
           <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
         </div>
         <div id="fuettern-bottle-edit-actions" style="display: none; gap: 10px;">
-          <button id="fuettern-bottle-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-          <button id="fuettern-bottle-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          <button id="fuettern-bottle-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
         </div>
       </div>
 
@@ -692,8 +718,7 @@
             <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
           </div>
           <div id="fuettern-breast-edit-actions" style="display: none; gap: 10px;">
-            <button id="fuettern-breast-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-            <button id="fuettern-breast-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+            <button id="fuettern-breast-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
           </div>
         </div>
 
@@ -836,8 +861,7 @@
             <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
           </div>
           <div id="fuettern-pump-edit-actions" style="display: none; gap: 10px;">
-            <button id="fuettern-pump-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-            <button id="fuettern-pump-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+            <button id="fuettern-pump-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
           </div>
         </div>
 
@@ -1000,8 +1024,7 @@
           <button class="entry-cancel" data-back="windeln" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
         </div>
         <div id="windeln-edit-actions" style="display: none; gap: 10px;">
-          <button id="windeln-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-          <button id="windeln-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          <button id="windeln-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
         </div>
       </div>
 
@@ -1131,8 +1154,7 @@
           </button>
         </div>
         <div id="night-edit-actions" style="display: none; gap: 10px;">
-          <button id="night-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-          <button id="night-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+          <button id="night-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
         </div>
       </div>
 
@@ -1192,8 +1214,7 @@
             <button class="entry-cancel" data-back="schlafen" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
           </div>
           <div id="nap-edit-actions" style="display: none; gap: 10px;">
-            <button id="nap-update" style="flex: 1.7; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-            <button id="nap-cancel-edit" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
+            <button id="nap-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
           </div>
         </div>
 
@@ -1336,6 +1357,22 @@
         <button id="historie-more" style="display: none; width: 100%; border: none; background: none; color: var(--neutral-strong); font-size: 13px; font-weight: 600; padding: 8px 0 14px; cursor: pointer;">Weitere laden</button>
       </div>
     </div>
+    <nav class="tabbar" data-active="heute"></nav>
+  </div>
+
+  <!-- Eintrag: Detailansicht aus Zeitverlauf oder Historie (renderEintragDetail) -->
+  <div id="screen-eintrag" style="
+    --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
+    --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250); --fuettern-soft: oklch(93% 0.025 250);
+    --windeln: #39ABAB; --windeln-soft: #DFF2F2;
+    --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9;
+    --warn: oklch(58% 0.17 25);
+    --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
+    --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
+    height: 100vh; max-width: 480px; margin: 0 auto;
+    color: var(--text); display: none; flex-direction: column;
+  ">
+    <div id="eintrag-scroll" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 18px 24px 16px; display: flex; flex-direction: column; gap: 22px;"></div>
     <nav class="tabbar" data-active="heute"></nav>
   </div>
 
@@ -1648,6 +1685,7 @@ const screens = {
   schlafen: document.getElementById('screen-schlafen'),
   analyse: document.getElementById('screen-analyse'),
   historie: document.getElementById('screen-historie'),
+  eintrag: document.getElementById('screen-eintrag'),
   entwicklung: document.getElementById('screen-entwicklung'),
   gesundheit: document.getElementById('screen-gesundheit'),
   profil: document.getElementById('screen-profil')
@@ -1662,6 +1700,7 @@ function showScreen(target, opts = {}) {
   if (target === 'heute') loadOverview();
   if (target === 'analyse') loadAnalyse();
   if (target === 'historie' && !opts.keep) loadHistorie(true);
+  if (target === 'eintrag') renderEintragDetail();
   if (target === 'entwicklung') openEntwicklung();
   if (target === 'gesundheit') openGesundheit();
   if (target === 'profil') loadProfilForm();
@@ -1712,7 +1751,8 @@ document.querySelectorAll('.quick-btn').forEach((btn) => {
 document.getElementById('heute-all-entries').addEventListener('click', () => showScreen('historie'));
 
 // „‹ Zurück" und „Abbrechen" auf den Eintragen-Seiten: ein neuer Eintrag
-// führt zurück auf Heute, eine Bearbeitung zurück in die Historie. Laufende
+// führt zurück auf Heute, eine Bearbeitung (nur „‹ Zurück") verwirft die
+// Änderungen und kehrt in die Detailansicht des Eintrags zurück. Laufende
 // Timer bleiben davon unberührt.
 function leaveEntryScreen(cat, discard) {
   const editing = cat === 'fuettern' ? !!editingFeedingId
@@ -1722,9 +1762,7 @@ function leaveEntryScreen(cat, discard) {
     if (cat === 'fuettern') exitFuetternEdit(false);
     else if (cat === 'windeln') exitWindelnEdit(false);
     else exitSchlafenEdit(false);
-    historieEditingEntry = null;
-    showScreen('historie', { keep: true });
-    historieScrollEl.scrollTop = historieScrollTop;
+    showScreen('eintrag');
     return;
   }
   if (discard && cat === 'fuettern') resetBreastSegments();
@@ -1750,7 +1788,14 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
 // history.go zurück, gleiche Tiefe (Tabwechsel) → nichts. So stapeln sich beim
 // Hin- und Herwechseln keine Einträge, und von Heute aus schließt die Taste.
 // („Meilenstein eintragen" zählt wie „Messung eintragen" als Tiefe 2.)
+// Die Detailansicht eines Eintrags liegt eine Stufe unter ihrem Ursprung
+// (Heute-Zeitverlauf oder Historie), sein Bearbeiten eine weitere darunter.
 let currentScreen = 'heute';
+// Der in der Detailansicht gezeigte Eintrag (mit _cat/_type wie in der
+// Historie) und woher sie geöffnet wurde: 'heute' oder 'historie'.
+let eintragEntry = null;
+let eintragOrigin = 'heute';
+let eintragJustUpdated = false;
 let navDepth = 0;
 let navIgnorePops = 0;
 let navHandlingPop = false;
@@ -1758,9 +1803,11 @@ history.replaceState({ bt: 0 }, '');
 
 function uiNavDepth() {
   if (currentScreen === 'heute') return 0;
-  if (currentScreen === 'fuettern') return editingFeedingId ? 2 : 1;
-  if (currentScreen === 'windeln') return editingDiaperId ? 2 : 1;
-  if (currentScreen === 'schlafen') return (editingNightId || editingNapId) ? 2 : 1;
+  const detailDepth = eintragOrigin === 'historie' ? 2 : 1;
+  if (currentScreen === 'eintrag') return detailDepth;
+  if (currentScreen === 'fuettern') return editingFeedingId ? detailDepth + 1 : 1;
+  if (currentScreen === 'windeln') return editingDiaperId ? detailDepth + 1 : 1;
+  if (currentScreen === 'schlafen') return (editingNightId || editingNapId) ? detailDepth + 1 : 1;
   if (currentScreen === 'entwicklung') return entDialogOpen() ? 2 : 1;
   // Übersicht 1, Medikament/Neu/Gabe 2, Editor oder Gabe aus dem Medikament 3
   if (currentScreen === 'gesundheit') return 1 + medState.stack.length;
@@ -1786,6 +1833,7 @@ function syncHistory() {
 // Ein Schritt zurück — dasselbe wie „‹ Zurück" auf der jeweiligen Seite.
 function navigateBackOneLevel() {
   if (['fuettern', 'windeln', 'schlafen'].includes(currentScreen)) leaveEntryScreen(currentScreen);
+  else if (currentScreen === 'eintrag') leaveEintragDetail();
   else if (currentScreen === 'entwicklung' && entDialogOpen()) closeEntwicklungDialog();
   else if (currentScreen === 'gesundheit' && medState.stack.length) medBack();
   else if (currentScreen !== 'heute') showScreen('heute');
@@ -1810,6 +1858,8 @@ window.addEventListener('popstate', (e) => {
 });
 
 let pendingTimelineFlash = null;
+// Die Einträge hinter den Zeilen des Zeitverlaufs, in derselben Reihenfolge.
+let heuteTimelineEntries = [];
 function afterNewEntrySaved(ts, color) {
   pendingTimelineFlash = ts ? { ts: ts.getTime(), color } : null;
   showScreen('heute');
@@ -1884,7 +1934,6 @@ const fuetternTimeErrorEl = document.getElementById('fuettern-time-error');
 const fuetternSaveBtn = document.getElementById('fuettern-save');
 const fuetternBottleEditActions = document.getElementById('fuettern-bottle-edit-actions');
 const fuetternBottleUpdateBtn = document.getElementById('fuettern-bottle-update');
-const fuetternBottleCancelEditBtn = document.getElementById('fuettern-bottle-cancel-edit');
 
 // Brust: eigener Manuell/Timer-Umschalter, wie bei Schlafen → Tagsüber.
 const breastModeToggle = document.getElementById('breast-mode-toggle');
@@ -1905,7 +1954,6 @@ const breastTotalSidesEl = document.getElementById('breast-total-sides');
 const breastSaveBtn = document.getElementById('breast-save');
 const fuetternBreastEditActions = document.getElementById('fuettern-breast-edit-actions');
 const fuetternBreastUpdateBtn = document.getElementById('fuettern-breast-update');
-const fuetternBreastCancelEditBtn = document.getElementById('fuettern-breast-cancel-edit');
 const breastTimerDisplay = document.getElementById('breast-timer-display');
 const breastTimerSublabel = document.getElementById('breast-timer-sublabel');
 const breastTimerToggleBtn = document.getElementById('breast-timer-toggle-btn');
@@ -1942,7 +1990,6 @@ const pumpDurIncBtn = document.getElementById('pump-dur-inc');
 const pumpSaveBtn = document.getElementById('pump-save');
 const fuetternPumpEditActions = document.getElementById('fuettern-pump-edit-actions');
 const fuetternPumpUpdateBtn = document.getElementById('fuettern-pump-update');
-const fuetternPumpCancelEditBtn = document.getElementById('fuettern-pump-cancel-edit');
 const pumpAmountInput = document.getElementById('pump-amount');
 const pumpAmountChipsEl = document.getElementById('pump-amount-chips');
 const pumpAmountErrorEl = document.getElementById('pump-amount-error');
@@ -3543,13 +3590,11 @@ function enterFuetternEdit(entry) {
 
 function exitFuetternEdit() {
   editingFeedingId = null;
+  setEntryDateLocked(false);
   fuetternSubtitleEl.textContent = 'Neuer Eintrag';
   fuetternTimeNowBtn.style.display = '';
   resetFuetternForm();
 }
-fuetternBottleCancelEditBtn.addEventListener('click', () => leaveEntryScreen('fuettern'));
-fuetternBreastCancelEditBtn.addEventListener('click', () => leaveEntryScreen('fuettern'));
-fuetternPumpCancelEditBtn.addEventListener('click', () => leaveEntryScreen('fuettern'));
 
 async function handleFuetternUpdate(triggerBtn) {
   if (!currentUser || !editingFeedingId) return;
@@ -3582,7 +3627,7 @@ async function handleFuetternUpdate(triggerBtn) {
     await updateFeeding(updatedId, entry, entry);
     exitFuetternEdit();
     if (entry.type === 'bottle') refreshFuetternAmountChips();
-    returnToHistorieAfterUpdate({ id: updatedId, ...entry });
+    returnToEintragAfterUpdate({ id: updatedId, ...entry });
   } catch (error) {
     triggerBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { triggerBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
@@ -3732,7 +3777,6 @@ let editingDiaperId = null;
 const windelnSubtitleEl = document.getElementById('windeln-subtitle');
 const windelnEditActions = document.getElementById('windeln-edit-actions');
 const windelnUpdateBtn = document.getElementById('windeln-update');
-const windelnCancelEditBtn = document.getElementById('windeln-cancel-edit');
 const windelnTimeNowBtn = document.getElementById('windeln-time-now');
 const windelnScrollEl = screens.windeln.firstElementChild;
 
@@ -3747,9 +3791,9 @@ function resetWindelnForm() {
   windelnDateInput.dispatchEvent(new Event('change'));
 }
 
-// Bearbeiten (aus der gemeinsamen Historie) öffnet die Maske als eigenes
+// Bearbeiten (Stift in der Detailansicht) öffnet die Maske als eigenes
 // "Fenster": der Jetzt-Knopf entfällt (der Eintrag hat schon seine Zeit), und
-// statt Speichern/Abbrechen stehen Aktualisieren/Abbrechen da.
+// statt Speichern/Abbrechen steht nur Aktualisieren da — zurück geht's oben.
 function enterWindelnEdit(entry) {
   editingDiaperId = entry.id;
   small = !!entry.small;
@@ -3773,13 +3817,13 @@ function enterWindelnEdit(entry) {
 
 function exitWindelnEdit() {
   editingDiaperId = null;
+  setEntryDateLocked(false);
   windelnSubtitleEl.textContent = 'Neuer Eintrag';
   windelnTimeNowBtn.style.display = '';
   windelnSaveBtn.parentElement.style.display = 'flex';
   windelnEditActions.style.display = 'none';
   resetWindelnForm();
 }
-windelnCancelEditBtn.addEventListener('click', () => leaveEntryScreen('windeln'));
 
 windelnSaveBtn.addEventListener('click', async () => {
   if (!currentUser || (!small && !big) || !windelnTimeIsValid()) return;
@@ -3817,7 +3861,7 @@ windelnUpdateBtn.addEventListener('click', async () => {
   try {
     await updateDoc(doc(db, 'diaperChanges', updatedId), entry);
     exitWindelnEdit();
-    returnToHistorieAfterUpdate({ id: updatedId, ...entry });
+    returnToEintragAfterUpdate({ id: updatedId, ...entry });
   } catch (error) {
     windelnUpdateBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { windelnUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
@@ -4025,11 +4069,11 @@ async function decideSchlafenDefault() {
   await refreshLastNightPending();
 }
 
-// Bearbeiten (aus der gemeinsamen Historie) öffnet ein eigenes "Fenster", wie
+// Bearbeiten (Stift in der Detailansicht) öffnet ein eigenes "Fenster", wie
 // bei Windeln/Füttern: der Nachts/Tagsüber-Umschalter wird versteckt (man bearbeitet einen
 // bereits feststehenden Eintrag, kein Umschalten mehr nötig), die passende
 // Maske (Nacht- oder Nap-Panel) zeigt die Werte vorausgefüllt, und die
-// Fußzeile wechselt zu Aktualisieren/Abbrechen. Zwei getrennte IDs, weil
+// Fußzeile wechselt zu Aktualisieren. Zwei getrennte IDs, weil
 // Nächte und Naps in unterschiedlichen Collections liegen (anders als bei
 // Füttern, wo Fläschchen/Brust dieselbe `feedings`-Collection teilen).
 function enterSchlafenEdit(entry) {
@@ -4075,6 +4119,7 @@ function enterSchlafenEdit(entry) {
 function exitSchlafenEdit() {
   editingNightId = null;
   editingNapId = null;
+  setEntryDateLocked(false);
   schlafenSubtitleEl.textContent = 'Neuer Eintrag';
   schlafenModeToggleEl.style.display = 'flex';
   napModeToggleEl.style.display = 'flex';
@@ -4104,7 +4149,6 @@ const nightWaketimeInput = document.getElementById('night-waketime');
 const nightTimeError = document.getElementById('night-time-error');
 const nightEditActions = document.getElementById('night-edit-actions');
 const nightUpdateBtn = document.getElementById('night-update');
-const nightCancelEditBtn = document.getElementById('night-cancel-edit');
 const nightRunningBadge = document.getElementById('night-running-badge');
 const nightRunningBadgeText = document.getElementById('night-running-badge-text');
 const nightLockedRow = document.getElementById('night-locked-row');
@@ -4237,7 +4281,7 @@ function updateNightView() {
   // Während der Historie-Bearbeitung (enterSchlafenEdit) sind die Felder
   // schon mit den Werten des zu bearbeitenden Eintrags belegt — hier nur
   // Label/Navigator nachziehen, kein Umschalten des Speichern-Buttons (das
-  // übernehmen night-update/-cancel-edit).
+  // übernimmt night-update, zurück führt „‹ Zurück“).
   if (editingNightId) {
     const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
     const nightStart = new Date(nightEnd); nightStart.setDate(nightStart.getDate() - 1);
@@ -4634,7 +4678,6 @@ const napSaveBtn = document.getElementById('nap-save');
 const napModeToggleEl = document.getElementById('nap-mode-toggle');
 const napEditActions = document.getElementById('nap-edit-actions');
 const napUpdateBtn = document.getElementById('nap-update');
-const napCancelEditBtn = document.getElementById('nap-cancel-edit');
 const timerDisplay = document.getElementById('timer-display');
 const timerSublabel = document.getElementById('timer-sublabel');
 const timerToggleBtn = document.getElementById('timer-toggle-btn');
@@ -4930,8 +4973,6 @@ function schlafenDurationLabel(entry) {
   return m > 0 ? (h + ' Std ' + m + ' Min') : (h + ' Std');
 }
 
-nightCancelEditBtn.addEventListener('click', () => leaveEntryScreen('schlafen'));
-napCancelEditBtn.addEventListener('click', () => leaveEntryScreen('schlafen'));
 
 nightUpdateBtn.addEventListener('click', async () => {
   if (!currentUser || !editingNightId || !nightTimeIsValid()) return;
@@ -4950,7 +4991,7 @@ nightUpdateBtn.addEventListener('click', async () => {
   try {
     await updateDoc(doc(db, 'nightWakeups', updatedId), entry);
     exitSchlafenEdit();
-    returnToHistorieAfterUpdate({ id: updatedId, _type: 'night', ...entry });
+    returnToEintragAfterUpdate({ id: updatedId, _type: 'night', ...entry });
   } catch (error) {
     nightUpdateBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { nightUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
@@ -4975,7 +5016,7 @@ napUpdateBtn.addEventListener('click', async () => {
   try {
     await updateDoc(doc(db, 'naps', updatedId), entry);
     exitSchlafenEdit();
-    returnToHistorieAfterUpdate({ id: updatedId, _type: 'nap', ...entry });
+    returnToEintragAfterUpdate({ id: updatedId, _type: 'nap', ...entry });
   } catch (error) {
     napUpdateBtn.textContent = 'Fehler beim Speichern';
     setTimeout(() => { napUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
@@ -5016,8 +5057,6 @@ let historieState = {};
 let historieLastDayKey = null;
 let historieLoadToken = 0;
 let historieScrollTop = 0;
-let historieEditingEntry = null;
-let historieJustUpdatedId = null;
 
 function historieActiveSources() {
   return HISTORIE_SOURCES.filter((s) => historieFilter === 'all' || s.cat === historieFilter);
@@ -5095,6 +5134,8 @@ const HISTORIE_ICONS = {
   nap: '<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>'
 };
 const HISTORIE_PENCIL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const WARN_ICON_SVG = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 14.5H3.5z"/><line x1="12" y1="10.5" x2="12" y2="14"/></svg>';
+const CHEVRON_RIGHT_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 const HISTORIE_TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
 
 // Laufende Timer bzw. offene Nächte haben kein Ende und keine Dauer — sie
@@ -5132,13 +5173,16 @@ function historieDetail(entry) {
   return { icon: 'nap', main: 'Schläfchen', rest: 'bis ' + (schlafenEndTimeLabel(entry) || '--:--') + ' · ' + (schlafenDurationLabel(entry) || '–') };
 }
 
+// Eine Zeile ist ein Knopf: Antippen öffnet die Detailansicht des Eintrags,
+// dort wird bearbeitet und gelöscht.
 function historieRow(entry) {
   const cat = HISTORIE_CAT[entry._cat];
   const ts = historieTs(entry);
   const info = historieDetail(entry);
-  const row = document.createElement('div');
+  const row = document.createElement('button');
   row.className = 'h-row';
   row.dataset.entryId = entry.id;
+  row.style.setProperty('--row-soft', cat.soft);
 
   const ico = document.createElement('span');
   ico.className = 'h-ico';
@@ -5162,57 +5206,18 @@ function historieRow(entry) {
     const warn = document.createElement('span');
     warn.title = 'Bitte beobachten';
     warn.style.cssText = 'display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:var(--warn); vertical-align:middle; margin-left:5px;';
-    warn.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 14.5H3.5z"/><line x1="12" y1="10.5" x2="12" y2="14"/></svg>';
+    warn.innerHTML = WARN_ICON_SVG;
     detail.appendChild(warn);
   }
   row.appendChild(detail);
 
-  if (entry.id === historieJustUpdatedId) {
-    const badge = document.createElement('span');
-    badge.className = 'h-badge';
-    badge.style.background = cat.soft;
-    badge.style.color = cat.strong;
-    badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert';
-    row.appendChild(badge);
-    return row;
-  }
+  const chev = document.createElement('span');
+  chev.className = 'h-chev';
+  chev.innerHTML = CHEVRON_RIGHT_SVG;
+  row.appendChild(chev);
 
-  if (historieIsOpen(entry)) {
-    const gap = document.createElement('span');
-    gap.style.cssText = 'width:28px; flex-shrink:0;';
-    row.appendChild(gap);
-  } else {
-    const editBtn = document.createElement('button');
-    editBtn.className = 'h-btn';
-    editBtn.setAttribute('aria-label', 'Bearbeiten');
-    editBtn.innerHTML = HISTORIE_PENCIL;
-    editBtn.addEventListener('click', () => openHistorieEdit(entry));
-    row.appendChild(editBtn);
-  }
-
-  const delBtn = document.createElement('button');
-  delBtn.className = 'h-btn del';
-  delBtn.setAttribute('aria-label', 'Löschen');
-  delBtn.innerHTML = HISTORIE_TRASH;
-  delBtn.addEventListener('click', () => deleteHistorieEntry(entry, delBtn));
-  row.appendChild(delBtn);
+  row.addEventListener('click', () => openEintragDetail(entry, 'historie'));
   return row;
-}
-
-async function deleteHistorieEntry(entry, delBtn) {
-  const label = entry._cat === 'fuettern' ? (entry.type === 'pump' ? 'Abpump' : 'Fütterungs') : entry._cat === 'windeln' ? 'Windel' : (entry._type === 'night' ? 'Schlafen' : 'Nap');
-  if (!confirm('Diesen ' + label + '-Eintrag wirklich löschen?')) return;
-  const name = entry._cat === 'fuettern' ? 'feedings' : entry._cat === 'windeln' ? 'diaperChanges' : (entry._type === 'night' ? 'nightWakeups' : 'naps');
-  delBtn.disabled = true;
-  try {
-    if (name === 'feedings') await deleteFeeding(entry.id);
-    else await deleteDoc(doc(db, name, entry.id));
-    removeHistoryRow(historieListEl, entry.id);
-    if (entry._cat === 'fuettern' && entry.type === 'bottle') refreshFuetternAmountChips();
-    if (entry._cat === 'fuettern' && entry.type === 'pump') { refreshPumpAmountChips(); syncPumpState(); }
-  } catch (error) {
-    delBtn.disabled = false;
-  }
 }
 
 function appendHistorieEntries(docs) {
@@ -5238,7 +5243,6 @@ async function loadHistorie(reset) {
     historieState = {};
     HISTORIE_SOURCES.forEach((s) => { historieState[s.name] = { lastSnap: null, allLoaded: false, fetched: false, oldest: null }; });
     historieLastDayKey = null;
-    historieJustUpdatedId = null;
     historieListEl.innerHTML = '';
     historieScrollEl.scrollTop = 0;
   }
@@ -5279,45 +5283,222 @@ document.querySelectorAll('#historie-chips .h-chip').forEach((chip) => {
   });
 });
 
-// Stift in der Historie: die Eintragen-Seite des Bereichs öffnet sich im
-// Bearbeiten-Modus. Aktualisieren und Abbrechen führen hierher zurück — an
-// dieselbe Scrollposition (leaveEntryScreen / returnToHistorieAfterUpdate).
-function openHistorieEdit(entry) {
-  historieScrollTop = historieScrollEl.scrollTop;
-  historieEditingEntry = entry;
+// --- Eintrag: Detailansicht (aus Heute-Zeitverlauf oder Historie) ---
+// Gesperrte Karte mit allen Werten wie beim Medikament; der Stift öffnet die
+// Eintragen-Seite des Bereichs im Bearbeiten-Modus, „Eintrag löschen" steht
+// ganz unten. Zurück führt dorthin, woher die Ansicht geöffnet wurde.
+const eintragScrollEl = document.getElementById('eintrag-scroll');
+const EINTRAG_CAT_NAME = { fuettern: 'Füttern', windeln: 'Windeln', schlafen: 'Schlafen' };
+
+function openEintragDetail(entry, origin) {
+  if (origin === 'historie') historieScrollTop = historieScrollEl.scrollTop;
+  eintragEntry = entry;
+  eintragOrigin = origin;
+  eintragJustUpdated = false;
+  showScreen('eintrag');
+  eintragScrollEl.scrollTop = 0;
+}
+
+function leaveEintragDetail() {
+  eintragEntry = null;
+  eintragJustUpdated = false;
+  if (eintragOrigin === 'historie') {
+    showScreen('historie', { keep: true });
+    historieScrollEl.scrollTop = historieScrollTop;
+  } else {
+    showScreen('heute');
+  }
+}
+
+// „Heute, 24.09." / „Gestern, 23.09." / „Mo 21.09."
+function eintragDateText(d) {
+  if (!d) return '–';
+  const label = dayLabel(d, new Date());
+  const short = String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.';
+  return label === 'Heute' || label === 'Gestern' ? label + ', ' + short : label;
+}
+
+// Beginn und Ende einer Brust- oder Abpump-Fütterung als "HH:MM"; fehlt das
+// Ende (Alteinträge), wird es aus der Dauer gerechnet — wie beim Bearbeiten.
+function eintragFeedingRange(entry) {
+  const start = fuetternTimeFieldValue(entry.startTime, entry.time);
+  let end = fuetternTimeFieldValue(entry.endTime, null);
+  if (!end && start) {
+    const endMin = (parseMinutes(start) + (Math.round(Number(entry.minutes)) || 0)) % 1440;
+    end = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+  }
+  return { start: start || '--:--', end: end || '--:--' };
+}
+
+function eintragFieldsHtml(entry, open) {
+  const field = (label, value) => '<div class="d-field"><div class="d-lbl">' + label + '</div><div class="d-val">' + value + '</div></div>';
+  const pair = (a, b) => '<div class="d-pair"><div>' + a + '</div><div>' + b + '</div></div>';
+  const ts = historieTs(entry);
+  const dateField = field('Datum', eintragDateText(ts));
+  const parts = [];
+
+  if (entry._cat === 'fuettern' && entry.type === 'bottle') {
+    parts.push(field('Menge', entEsc((entry.amount || 0) + ' ml')));
+    parts.push(pair(dateField, field('Uhrzeit', ts ? formatTime(ts) : '--:--')));
+  } else if (entry._cat === 'fuettern' && entry.type === 'pump') {
+    const r = eintragFeedingRange(entry);
+    const side = entry.side === 'both' ? 'Links & rechts' : entry.side === 'left' ? 'Nur links' : entry.side === 'right' ? 'Nur rechts' : '–';
+    if (open) {
+      parts.push(field('Status', entry.endTime === null ? 'Läuft seit ' + r.start : 'Menge fehlt noch'));
+    } else {
+      parts.push(pair(field('Menge', entry.amount ? entEsc(entry.amount + ' ml') : '–'), field('Dauer', entEsc((entry.minutes || entry.durationMinutes || 0) + ' Min'))));
+    }
+    parts.push(field('Seite', side));
+    parts.push(pair(dateField, field(open ? 'Beginn' : 'Beginn – Ende', open ? r.start : r.start + ' – ' + r.end)));
+  } else if (entry._cat === 'fuettern') {
+    const r = eintragFeedingRange(entry);
+    if (open) {
+      parts.push(field('Status', 'Läuft seit ' + r.start));
+    } else {
+      const segs = breastSegmentsFromEntry(entry);
+      const sum = (side) => segs.filter((s) => s.side === side).reduce((a, s) => a + s.minutes, 0);
+      const hasSides = segs.some((s) => s.side);
+      parts.push(pair(field('Dauer', entEsc((entry.minutes || 0) + ' Min')), field('Seiten', hasSides ? 'L ' + sum('left') + ' · R ' + sum('right') + ' Min' : '–')));
+      if (hasSides && segs.length > 1) {
+        parts.push(field('Reihenfolge', segs.map((s) => '<span class="d-seg">' + (s.side === 'left' ? 'L' : s.side === 'right' ? 'R' : '?') + ' ' + s.minutes + '</span>').join('<span>→</span>')));
+      }
+    }
+    parts.push(pair(dateField, field(open ? 'Beginn' : 'Beginn – Ende', open ? r.start : r.start + ' – ' + r.end)));
+  } else if (entry._cat === 'windeln') {
+    const sizes = [];
+    if (entry.small) sizes.push('Klein');
+    if (entry.big) sizes.push('Groß');
+    parts.push(field('Art', sizes.join(' & ') || '–'));
+    if (entry.big) {
+      const color = entry.color && COLOR_BY_ID[entry.color];
+      const warn = !!(color && WARN_COLOR_IDS.includes(entry.color));
+      parts.push(field('Farbe', color
+        ? '<span class="d-swatch" style="background:' + color.hex + ';"></span>' + entEsc(color.label) +
+          (warn ? '<span style="display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:var(--warn);">' + WARN_ICON_SVG + '</span><span style="color:var(--warn); font-weight:600; font-size:12px;">Bitte beobachten</span>' : '')
+        : 'keine'));
+    }
+    parts.push(pair(dateField, field('Uhrzeit', ts ? formatTime(ts) : '--:--')));
+  } else if (entry._type === 'night') {
+    const start = entry.nightStart ? new Date(entry.nightStart + 'T00:00:00') : null;
+    const end = entry.nightEnd ? new Date(entry.nightEnd + 'T00:00:00') : null;
+    parts.push(field('Nacht', (start ? fmtDayDate(start) : '–') + ' → ' + (end ? fmtDayDate(end) : '…')));
+    parts.push(pair(field('Bettzeit', entEsc(entry.bedtime || '--:--')), field('Aufgewacht', open ? 'läuft' : entEsc(entry.wakeTime || '--:--'))));
+    if (!open) parts.push(pair(field('Dauer', schlafenDurationLabel(entry) || '–'), field('Nachts wach', (entry.wakeCount || 0) + '×')));
+  } else {
+    parts.push(pair(field('Start', ts ? formatTime(ts) : '--:--'), field('Ende', open ? 'läuft' : entEsc(schlafenEndTimeLabel(entry) || '--:--'))));
+    parts.push(pair(field('Dauer', open ? '–' : (schlafenDurationLabel(entry) || '–')), dateField));
+  }
+  return parts;
+}
+
+function renderEintragDetail() {
+  const entry = eintragEntry;
+  if (!entry) return;
+  const cat = HISTORIE_CAT[entry._cat];
+  const info = historieDetail(entry);
+  const open = historieIsOpen(entry);
+  const ts = historieTs(entry);
+  const title = entry._cat === 'windeln' ? 'Windel' : info.main;
+  const when = ts ? eintragDateText(ts).split(',')[0] + ', ' + formatTime(ts) : '';
+  const badge = eintragJustUpdated
+    ? '<span class="d-badge" style="background:' + cat.soft + '; color:' + cat.strong + ';"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert</span>'
+    : '';
+  const parts = eintragFieldsHtml(entry, open);
+  const sep = '<div class="d-sep"></div>';
+  // Offene Einträge (laufende Timer, unvollständige Nächte) werden auf ihrer
+  // Eintragen-Seite abgeschlossen, nicht hier bearbeitet — wie in der Historie.
+  const pencil = open ? '' : '<button class="d-pencil" data-eintrag-act="edit" style="background:' + cat.strong + ';" title="Bearbeiten" aria-label="Eintrag bearbeiten">' + HISTORIE_PENCIL.replace('width="16" height="16"', 'width="17" height="17"').replace('stroke="currentColor" stroke-width="1.8"', 'stroke="white" stroke-width="2"') + '</button>';
+  const first = '<div style="' + (open ? '' : 'padding-right:46px; ') + 'display:flex; flex-direction:column; gap:14px;">' + parts[0] + '</div>';
+
+  eintragScrollEl.innerHTML =
+    '<button class="back-btn" data-eintrag-act="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Zurück</button>' +
+    '<div style="display:flex; align-items:center; gap:14px;">' +
+      '<div style="width:48px; height:48px; border-radius:16px; background:' + cat.soft + '; color:' + cat.strong + '; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + HISTORIE_ICONS[info.icon] + '</svg></div>' +
+      '<div style="min-width:0;"><div style="font-family:\'Fredoka\', sans-serif; font-size:24px; font-weight:600; line-height:1.2;">' + title + '</div>' +
+      '<div style="font-size:13px; color:var(--text-muted);">' + EINTRAG_CAT_NAME[entry._cat] + (when ? ' · ' + when : '') + badge + '</div></div>' +
+    '</div>' +
+    '<div class="d-card">' + pencil + first + parts.slice(1).map((p) => sep + p).join('') + '</div>' +
+    '<button class="d-del" data-eintrag-act="delete">' + HISTORIE_TRASH.replace('width="16" height="16"', 'width="17" height="17"') + 'Eintrag löschen</button>';
+}
+
+eintragScrollEl.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('[data-eintrag-act]');
+  if (!btn || !eintragEntry) return;
+  const act = btn.dataset.eintragAct;
+  if (act === 'back') leaveEintragDetail();
+  else if (act === 'edit') openEintragEdit();
+  else if (act === 'delete') deleteEintrag(btn);
+});
+
+// Stift: die Eintragen-Seite des Bereichs öffnet sich im Bearbeiten-Modus.
+// Aus dem Heute-Zeitverlauf steht das Datum fest — dort geht es um heute.
+function openEintragEdit() {
+  const entry = eintragEntry;
   showScreen(entry._cat, { edit: true });
   if (entry._cat === 'fuettern') enterFuetternEdit(entry);
   else if (entry._cat === 'windeln') enterWindelnEdit(entry);
   else enterSchlafenEdit(entry);
+  setEntryDateLocked(eintragOrigin === 'heute');
   syncHistory();
 }
 
-// Nach dem Aktualisieren nur die eine Zeile neu einsortieren (Datum oder
-// Uhrzeit können sich geändert haben) — die Liste bleibt stehen, samt
-// Scrollposition. Das „aktualisiert"-Badge tauscht nach 1,8 s nur diese Zeile
-// zurück, ohne Neuladen.
-function returnToHistorieAfterUpdate(changes) {
-  const base = historieEditingEntry && historieEditingEntry.id === changes.id ? historieEditingEntry : {};
-  const entry = { ...base, ...changes };
-  historieEditingEntry = null;
-  historieJustUpdatedId = entry.id;
-  showScreen('historie', { keep: true });
+// Sperrt bzw. löst das Datum aller Bearbeiten-Masken; bei Nächten sind das
+// die Pfeile, mit denen man zu einer anderen Nacht blättert.
+function setEntryDateLocked(locked) {
+  [fuetternDateInput, breastDateInput, pumpDateInput, windelnDateInput, napDateInput].forEach((input) => { input.disabled = locked; });
+  nightPrevBtn.style.visibility = locked ? 'hidden' : '';
+  nightNextBtn.style.visibility = locked ? 'hidden' : '';
+}
 
+// Nach dem Aktualisieren zurück in die Detailansicht, mit den neuen Werten
+// und kurz dem „aktualisiert"-Hinweis. Kam sie aus der Historie, wird dort nur
+// die eine Zeile neu einsortiert (Datum oder Uhrzeit können sich geändert
+// haben) — die Liste bleibt stehen, samt Scrollposition.
+function returnToEintragAfterUpdate(changes) {
+  const base = eintragEntry && eintragEntry.id === changes.id ? eintragEntry : {};
+  const entry = { ...base, ...changes };
+  eintragEntry = entry;
+
+  if (eintragOrigin === 'historie') {
+    removeHistoryRow(historieListEl, entry.id);
+    const bufferIdx = historieBuffer.findIndex((e) => e.id === entry.id);
+    if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
+    const key = historieKey(entry);
+    const inserted = insertHistoryRow(historieListEl, historieRow(entry), key.dayKey, key.dayDate ? dayLabel(key.dayDate, new Date()) : 'Unbekanntes Datum', key.sort, historieAllLoaded());
+    // Rutscht der Eintrag hinter die geladenen Seiten, kommt er mit „Weitere laden".
+    if (!inserted) historieBuffer.push(entry);
+    historieLastDayKey = historyLastDayKey(historieListEl);
+  }
+
+  eintragJustUpdated = true;
+  showScreen('eintrag');
+  setTimeout(() => {
+    if (eintragEntry !== entry || !eintragJustUpdated) return;
+    eintragJustUpdated = false;
+    if (currentScreen === 'eintrag') renderEintragDetail();
+  }, 1800);
+}
+
+async function deleteEintrag(delBtn) {
+  const entry = eintragEntry;
+  const label = entry._cat === 'fuettern' ? (entry.type === 'pump' ? 'Abpump' : 'Fütterungs') : entry._cat === 'windeln' ? 'Windel' : (entry._type === 'night' ? 'Schlafen' : 'Nap');
+  if (!confirm('Diesen ' + label + '-Eintrag wirklich löschen?')) return;
+  const name = entry._cat === 'fuettern' ? 'feedings' : entry._cat === 'windeln' ? 'diaperChanges' : (entry._type === 'night' ? 'nightWakeups' : 'naps');
+  delBtn.disabled = true;
+  try {
+    if (name === 'feedings') await deleteFeeding(entry.id);
+    else await deleteDoc(doc(db, name, entry.id));
+  } catch (error) {
+    delBtn.disabled = false;
+    return;
+  }
   removeHistoryRow(historieListEl, entry.id);
+  historieLastDayKey = historyLastDayKey(historieListEl);
   const bufferIdx = historieBuffer.findIndex((e) => e.id === entry.id);
   if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
-  const key = historieKey(entry);
-  const inserted = insertHistoryRow(historieListEl, historieRow(entry), key.dayKey, key.dayDate ? dayLabel(key.dayDate, new Date()) : 'Unbekanntes Datum', key.sort, historieAllLoaded());
-  // Rutscht der Eintrag hinter die geladenen Seiten, kommt er mit „Weitere laden".
-  if (!inserted) historieBuffer.push(entry);
-  historieLastDayKey = historyLastDayKey(historieListEl);
-  historieScrollEl.scrollTop = historieScrollTop;
-
-  setTimeout(() => {
-    if (historieJustUpdatedId !== entry.id) return;
-    historieJustUpdatedId = null;
-    replaceHistoryRow(historieListEl, entry.id, historieRow(entry));
-  }, 1800);
+  if (entry._cat === 'fuettern' && entry.type === 'bottle') refreshFuetternAmountChips();
+  if (entry._cat === 'fuettern' && entry.type === 'pump') { refreshPumpAmountChips(); syncPumpState(); }
+  if (eintragEntry === entry) leaveEintragDetail();
 }
 
 // --- Heute (Übersicht) ---
@@ -5452,7 +5633,8 @@ async function loadOverview() {
       timelineEvents.push({
         ts,
         color: 'var(--fuettern)',
-        label: f.type === 'bottle' ? 'Fläschchen · ' + f.amount + ' ml' : 'Brust · ' + f.minutes + ' Min'
+        label: f.type === 'bottle' ? 'Fläschchen · ' + f.amount + ' ml' : 'Brust · ' + f.minutes + ' Min',
+        entry: { ...f, _cat: 'fuettern' }
       });
     });
     // Abpumpen gehört in den Zeitverlauf, aber nicht in die Zahlen darüber:
@@ -5466,7 +5648,8 @@ async function loadOverview() {
         timelineEvents.push({
           ts,
           color: 'var(--fuettern)',
-          label: 'Abpumpen · ' + (f.amount ? f.amount + ' ml' : (f.minutes || 0) + ' Min')
+          label: 'Abpumpen · ' + (f.amount ? f.amount + ' ml' : (f.minutes || 0) + ' Min'),
+          entry: { ...f, _cat: 'fuettern' }
         });
       });
   } catch (error) {
@@ -5502,7 +5685,7 @@ async function loadOverview() {
     todayDiapers.forEach((d) => {
       const ts = entryBusinessTimestamp(d);
       if (!ts) return;
-      timelineEvents.push({ ts, color: 'var(--windeln)', label: 'Windel ' + diaperLabel(d) });
+      timelineEvents.push({ ts, color: 'var(--windeln)', label: 'Windel ' + diaperLabel(d), entry: { ...d, _cat: 'windeln' } });
     });
   } catch (error) {
     document.getElementById('windeln-detail').textContent = 'Fehler beim Laden';
@@ -5549,7 +5732,7 @@ async function loadOverview() {
         'Nachts: ' + nightHours + ' Std. · ' + lastNight.wakeCount + '× aufgewacht';
       nightHintBtn.style.display = 'none';
       if (lastNight.createdAt) {
-        timelineEvents.push({ ts: timeOnDate(now, lastNight.wakeTime), color: 'var(--schlafen)', label: 'Aufgewacht' });
+        timelineEvents.push({ ts: timeOnDate(now, lastNight.wakeTime), color: 'var(--schlafen)', label: 'Aufgewacht', entry: { ...lastNight, _cat: 'schlafen', _type: 'night' } });
       }
     } else {
       nightStatsEl.textContent = '';
@@ -5577,7 +5760,8 @@ async function loadOverview() {
       timelineEvents.push({
         ts,
         color: 'var(--schlafen)',
-        label: n.endTime ? 'Schläfchen · ' + formatDuration(n.durationMinutes) : 'Schläfchen gestartet'
+        label: n.endTime ? 'Schläfchen · ' + formatDuration(n.durationMinutes) : 'Schläfchen gestartet',
+        entry: { ...n, _cat: 'schlafen', _type: 'nap' }
       });
     });
   } catch (error) {
@@ -5587,6 +5771,7 @@ async function loadOverview() {
   // Zeitverlauf
   const container = document.getElementById('timeline-container');
   timelineEvents.sort((a, b) => b.ts - a.ts);
+  heuteTimelineEntries = timelineEvents.map((e) => e.entry);
   if (timelineEvents.length === 0) {
     container.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Noch keine Einträge heute</div>';
   } else {
@@ -5603,14 +5788,21 @@ async function loadOverview() {
         '<div style="width: 10px; height: 10px; border-radius: 50%; background: ' + e.color + ';"></div>' +
         (isLast ? '' : '<div style="width: 2px; flex: 1; background: var(--border); margin: 4px 0;"></div>') +
         '</div>' +
-        '<div style="padding-bottom: ' + (isLast ? '0' : '14') + 'px; flex: 1; min-width: 0;">' +
-        (doFlash ? '<div class="tl-flash" style="--fl: ' + FLASH_SOFT[e.color] + ';">' : '<div>') +
-        '<div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">' + formatTime(e.ts) + '</div>' +
-        '<div style="font-size: 13.5px; font-weight: 600;">' + e.label + '</div>' +
-        '</div></div></div>';
+        '<button class="tl-btn' + (isLast ? ' last' : '') + '" data-tl="' + i + '" style="--tl-soft: ' + FLASH_SOFT[e.color] + ';">' +
+        (doFlash ? '<span class="tl-flash" style="display: block; flex: 1; min-width: 0; --fl: ' + FLASH_SOFT[e.color] + ';">' : '<span style="display: block; flex: 1; min-width: 0;">') +
+        '<span style="display: block; font-size: 11.5px; color: var(--text-muted); font-weight: 600;">' + formatTime(e.ts) + '</span>' +
+        '<span style="display: block; font-size: 13.5px; font-weight: 600;">' + e.label + '</span>' +
+        '</span>' + CHEVRON_RIGHT_SVG.replace('<svg ', '<svg style="flex-shrink: 0; color: var(--text-muted);" ') + '</button></div>';
     }).join('');
   }
 }
+
+// Ein Zeitverlauf-Eintrag öffnet seine Detailansicht (wie ein Meilenstein).
+document.getElementById('timeline-container').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('[data-tl]');
+  const entry = btn && heuteTimelineEntries[Number(btn.dataset.tl)];
+  if (entry) openEintragDetail(entry, 'heute');
+});
 
 // --- Analyse ---
 const ANALYSE_RANGE_DAYS = 7;

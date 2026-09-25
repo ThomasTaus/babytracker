@@ -1542,6 +1542,13 @@ function liveQueryDocs(group, key, makeQuery) {
         h.ok = true;
         clearTimeout(timer);
         resolveReady();
+      } else if (h.ok && currentScreen === 'heute') {
+        // Spätere Änderungen neu zeichnen, solange Heute offen ist. Ein eben
+        // gespeicherter Eintrag kommt hier oft erst nach dem Rücksprung an:
+        // mit ausstehendem serverTimestamp passt er lokal nicht auf
+        // `createdAt >= heute`, und die Bestätigung trifft nach dem ersten
+        // Zeichnen ein. Ohne Neuzeichnen stünde er erst beim nächsten Besuch da.
+        scheduleHeuteRefresh();
       }
     }, (error) => {
       console.error('Live-Abfrage ' + group + ' beendet:', error);
@@ -1564,6 +1571,17 @@ async function cachedQueryDocs(group, key, makeQuery) {
   }
   const snap = await getDocs(makeQuery());
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Mehrere Live-Abfragen melden sich oft kurz nacheinander (Kachel und
+// Zeitverlauf hängen an verschiedenen), daher nur einmal neu zeichnen.
+let heuteRefreshTimer = null;
+function scheduleHeuteRefresh() {
+  if (heuteRefreshTimer) return;
+  heuteRefreshTimer = setTimeout(() => {
+    heuteRefreshTimer = null;
+    if (currentScreen === 'heute' && currentUser) loadOverview();
+  }, 50);
 }
 
 function stopLiveQueries() {
@@ -1854,7 +1872,7 @@ function afterNewEntrySaved(ts, color) {
     returnToEintragOrigin();
     return;
   }
-  pendingTimelineFlash = ts ? { ts: ts.getTime(), color } : null;
+  pendingTimelineFlash = ts ? { ts: ts.getTime(), color, at: Date.now() } : null;
   showScreen('heute');
 }
 
@@ -5499,7 +5517,7 @@ function returnToEintragAfterUpdate(changes) {
   } else {
     // Eine Nacht steht im Zeitverlauf mit ihrem Aufwachen, nicht der Bettzeit.
     const ts = entry._type === 'night' ? timeOnDate(new Date(), entry.wakeTime) : historieTs(entry);
-    pendingTimelineFlash = ts ? { ts: ts.getTime(), color: 'var(--' + entry._cat + ')' } : null;
+    pendingTimelineFlash = ts ? { ts: ts.getTime(), color: 'var(--' + entry._cat + ')', at: Date.now() } : null;
   }
   returnToEintragOrigin();
 }
@@ -5879,14 +5897,17 @@ async function loadOverview() {
   const container = document.getElementById('timeline-container');
   timelineEvents.sort((a, b) => b.ts - a.ts);
   heuteTimelineEntries = timelineEvents.map((e) => e.entry);
+  // Das Aufleuchten bleibt vorgemerkt, bis der Eintrag tatsächlich dasteht:
+  // ein eben gespeicherter kommt oft erst beim Neuzeichnen durch die
+  // Live-Abfrage an (scheduleHeuteRefresh). Nach ein paar Sekunden verfällt es.
+  const flash = pendingTimelineFlash && Date.now() - pendingTimelineFlash.at < 5000 ? pendingTimelineFlash : null;
+  let html;
   if (timelineEvents.length === 0) {
-    container.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Noch keine Einträge heute</div>';
+    html = '<div style="font-size: 13px; color: var(--text-muted);">Noch keine Einträge heute</div>';
   } else {
-    const flash = pendingTimelineFlash;
-    pendingTimelineFlash = null;
     const FLASH_SOFT = { 'var(--fuettern)': 'var(--fuettern-soft)', 'var(--windeln)': 'var(--windeln-soft)', 'var(--schlafen)': 'var(--schlafen-soft)' };
     let flashed = false;
-    container.innerHTML = timelineEvents.map((e, i) => {
+    html = timelineEvents.map((e, i) => {
       const isLast = i === timelineEvents.length - 1;
       const doFlash = !flashed && flash && e.color === flash.color && Math.abs(e.ts.getTime() - flash.ts) < 60000;
       if (doFlash) flashed = true;
@@ -5903,7 +5924,16 @@ async function loadOverview() {
         CHEVRON_RIGHT_SVG.replace('<svg ', '<svg style="flex-shrink: 0; color: var(--text-muted);" ') + '</button></div>';
     }).join('');
   }
+  // Auch nach dem Aufleuchten bleibt die Vormerkung bis zum Verfall stehen:
+  // ein Neuzeichnen kurz danach ergibt so dasselbe HTML und wird unten
+  // übersprungen, statt die laufende Animation abzubrechen.
+  if (!flash) pendingTimelineFlash = null;
+  if (html !== lastTimelineHtml) {
+    container.innerHTML = html;
+    lastTimelineHtml = html;
+  }
 }
+let lastTimelineHtml = null;
 
 // „läuft · 12 Min" rechts in einer Zeitverlauf-Zeile — dasselbe Abzeichen wie
 // auf den Kacheln, mit der bisherigen Dauer. Sie wird jede halbe Minute

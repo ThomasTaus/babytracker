@@ -5737,7 +5737,7 @@ async function loadOverview() {
     });
     // Abpumpen gehört in den Zeitverlauf, aber nicht in die Zahlen darüber:
     // die Kachel zählt Mahlzeiten des Babys. Unvollständige Einträge (Timer
-    // gestoppt, Menge fehlt noch) tauchen erst auf, wenn sie fertig sind.
+    // gestoppt, Menge fehlt noch) kommen weiter unten mit ihrem Abzeichen dazu.
     todayFeedingsRaw
       .filter((f) => f.type === 'pump' && entryIsToday(f, now) && fuetternIsFinished(f) && !f.pendingAmount)
       .forEach((f) => {
@@ -5753,16 +5753,20 @@ async function loadOverview() {
     // Laufende Brust- und Abpump-Timer stehen wie ein laufendes Schläfchen mit
     // „läuft"-Abzeichen im Zeitverlauf; antippen öffnet ihren Timer
     // (openEintrag). In die Zahlen der Kachel zählen sie erst, wenn sie fertig sind.
+    // Ein gestopptes Abpumpen ohne Menge bleibt ebenfalls stehen, mit
+    // „Menge fehlt" statt der Dauer — antippen führt zum Nachtragen.
     todayFeedingsRaw
-      .filter((f) => (f.type === 'breast' || f.type === 'pump') && f.endTime === null && entryIsToday(f, now))
+      .filter((f) => (f.type === 'breast' || f.type === 'pump') && (f.endTime === null || (f.type === 'pump' && f.pendingAmount)) && entryIsToday(f, now))
       .forEach((f) => {
         const ts = entryBusinessTimestamp(f);
         if (!ts) return;
+        const running = f.endTime === null;
         timelineEvents.push({
           ts,
           color: 'var(--fuettern)',
           label: f.type === 'pump' ? 'Abpumpen' : 'Brust',
-          runningSince: f.startTime ? new Date(f.startTime) : ts,
+          runningSince: running ? (f.startTime ? new Date(f.startTime) : ts) : null,
+          badgeText: running ? null : 'Menge fehlt',
           entry: { ...f, _cat: 'fuettern' }
         });
       });
@@ -5907,7 +5911,7 @@ async function loadOverview() {
         (doFlash ? '<span class="tl-flash" style="display: block; flex: 1; min-width: 0; --fl: ' + FLASH_SOFT[e.color] + ';">' : '<span style="display: block; flex: 1; min-width: 0;">') +
         '<span style="display: block; font-size: 11.5px; color: var(--text-muted); font-weight: 600;">' + formatTime(e.ts) + '</span>' +
         '<span style="display: block; font-size: 13.5px; font-weight: 600;">' + e.label + '</span>' +
-        '</span>' + (e.runningSince ? timelineRunningBadge(e.color, e.runningSince) : '') +
+        '</span>' + (e.runningSince || e.badgeText ? timelineRunningBadge(e.color, e.runningSince, e.badgeText) : '') +
         CHEVRON_RIGHT_SVG.replace('<svg ', '<svg style="flex-shrink: 0; color: var(--text-muted);" ') + '</button></div>';
     }).join('');
   }
@@ -5915,7 +5919,8 @@ async function loadOverview() {
 
 // „läuft · 12 Min" rechts in einer Zeitverlauf-Zeile — dasselbe Abzeichen wie
 // auf den Kacheln, mit der bisherigen Dauer. Sie wird jede halbe Minute
-// nachgezogen, solange Heute offen ist.
+// nachgezogen, solange Heute offen ist. Mit `text` (etwa „Menge fehlt")
+// steht dieser fest statt der Dauer.
 const TIMELINE_BADGE_COLORS = {
   'var(--fuettern)': ['var(--fuettern-soft)', 'var(--fuettern-strong)'],
   'var(--schlafen)': ['var(--schlafen-soft)', 'var(--schlafen-strong)']
@@ -5923,11 +5928,11 @@ const TIMELINE_BADGE_COLORS = {
 function runningMinutesLabel(since) {
   return 'läuft · ' + formatDuration(Math.max(0, Math.floor((Date.now() - since) / 60000)));
 }
-function timelineRunningBadge(color, since) {
+function timelineRunningBadge(color, since, text) {
   const [soft, strong] = TIMELINE_BADGE_COLORS[color] || ['var(--neutral-soft)', 'var(--neutral-strong)'];
   return '<span style="display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; background: ' + soft + '; color: ' + strong + '; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap;">' +
     '<span style="width: 5px; height: 5px; border-radius: 50%; background: ' + strong + '; display: inline-block;"></span>' +
-    '<span data-run-since="' + since.getTime() + '">' + runningMinutesLabel(since.getTime()) + '</span></span>';
+    (text ? '<span>' + text + '</span>' : '<span data-run-since="' + since.getTime() + '">' + runningMinutesLabel(since.getTime()) + '</span>') + '</span>';
 }
 setInterval(() => {
   if (currentScreen !== 'heute') return;

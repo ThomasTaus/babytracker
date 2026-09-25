@@ -5750,6 +5750,21 @@ async function loadOverview() {
           entry: { ...f, _cat: 'fuettern' }
         });
       });
+    // Laufende Brust- und Abpump-Timer stehen wie ein laufendes Schläfchen mit
+    // „gestartet" im Zeitverlauf; antippen öffnet ihren Timer (openEintrag).
+    // In die Zahlen der Kachel zählen sie erst, wenn sie fertig sind.
+    todayFeedingsRaw
+      .filter((f) => (f.type === 'breast' || f.type === 'pump') && f.endTime === null && entryIsToday(f, now))
+      .forEach((f) => {
+        const ts = entryBusinessTimestamp(f);
+        if (!ts) return;
+        timelineEvents.push({
+          ts,
+          color: 'var(--fuettern)',
+          label: (f.type === 'pump' ? 'Abpumpen' : 'Brust') + ' gestartet',
+          entry: { ...f, _cat: 'fuettern' }
+        });
+      });
   } catch (error) {
     document.getElementById('fuettern-detail').textContent = 'Fehler beim Laden';
   }

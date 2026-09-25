@@ -5751,8 +5751,8 @@ async function loadOverview() {
         });
       });
     // Laufende Brust- und Abpump-Timer stehen wie ein laufendes Schläfchen mit
-    // „gestartet" im Zeitverlauf; antippen öffnet ihren Timer (openEintrag).
-    // In die Zahlen der Kachel zählen sie erst, wenn sie fertig sind.
+    // „läuft"-Abzeichen im Zeitverlauf; antippen öffnet ihren Timer
+    // (openEintrag). In die Zahlen der Kachel zählen sie erst, wenn sie fertig sind.
     todayFeedingsRaw
       .filter((f) => (f.type === 'breast' || f.type === 'pump') && f.endTime === null && entryIsToday(f, now))
       .forEach((f) => {
@@ -5761,7 +5761,8 @@ async function loadOverview() {
         timelineEvents.push({
           ts,
           color: 'var(--fuettern)',
-          label: (f.type === 'pump' ? 'Abpumpen' : 'Brust') + ' gestartet',
+          label: f.type === 'pump' ? 'Abpumpen' : 'Brust',
+          runningSince: f.startTime ? new Date(f.startTime) : ts,
           entry: { ...f, _cat: 'fuettern' }
         });
       });
@@ -5873,7 +5874,8 @@ async function loadOverview() {
       timelineEvents.push({
         ts,
         color: 'var(--schlafen)',
-        label: n.endTime ? 'Schläfchen · ' + formatDuration(n.durationMinutes) : 'Schläfchen gestartet',
+        label: n.endTime ? 'Schläfchen · ' + formatDuration(n.durationMinutes) : 'Schläfchen',
+        runningSince: n.endTime ? null : ts,
         entry: { ...n, _cat: 'schlafen', _type: 'nap' }
       });
     });
@@ -5905,10 +5907,34 @@ async function loadOverview() {
         (doFlash ? '<span class="tl-flash" style="display: block; flex: 1; min-width: 0; --fl: ' + FLASH_SOFT[e.color] + ';">' : '<span style="display: block; flex: 1; min-width: 0;">') +
         '<span style="display: block; font-size: 11.5px; color: var(--text-muted); font-weight: 600;">' + formatTime(e.ts) + '</span>' +
         '<span style="display: block; font-size: 13.5px; font-weight: 600;">' + e.label + '</span>' +
-        '</span>' + CHEVRON_RIGHT_SVG.replace('<svg ', '<svg style="flex-shrink: 0; color: var(--text-muted);" ') + '</button></div>';
+        '</span>' + (e.runningSince ? timelineRunningBadge(e.color, e.runningSince) : '') +
+        CHEVRON_RIGHT_SVG.replace('<svg ', '<svg style="flex-shrink: 0; color: var(--text-muted);" ') + '</button></div>';
     }).join('');
   }
 }
+
+// „läuft · 12 Min" rechts in einer Zeitverlauf-Zeile — dasselbe Abzeichen wie
+// auf den Kacheln, mit der bisherigen Dauer. Sie wird jede halbe Minute
+// nachgezogen, solange Heute offen ist.
+const TIMELINE_BADGE_COLORS = {
+  'var(--fuettern)': ['var(--fuettern-soft)', 'var(--fuettern-strong)'],
+  'var(--schlafen)': ['var(--schlafen-soft)', 'var(--schlafen-strong)']
+};
+function runningMinutesLabel(since) {
+  return 'läuft · ' + formatDuration(Math.max(0, Math.floor((Date.now() - since) / 60000)));
+}
+function timelineRunningBadge(color, since) {
+  const [soft, strong] = TIMELINE_BADGE_COLORS[color] || ['var(--neutral-soft)', 'var(--neutral-strong)'];
+  return '<span style="display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; background: ' + soft + '; color: ' + strong + '; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap;">' +
+    '<span style="width: 5px; height: 5px; border-radius: 50%; background: ' + strong + '; display: inline-block;"></span>' +
+    '<span data-run-since="' + since.getTime() + '">' + runningMinutesLabel(since.getTime()) + '</span></span>';
+}
+setInterval(() => {
+  if (currentScreen !== 'heute') return;
+  document.querySelectorAll('#timeline-container [data-run-since]').forEach((el) => {
+    el.textContent = runningMinutesLabel(Number(el.dataset.runSince));
+  });
+}, 30000);
 
 // Ein Zeitverlauf-Eintrag öffnet seine Bearbeiten-Maske (laufende: ihren
 // Timer bzw. die offene Nacht), wie eine Zeile der Historie.

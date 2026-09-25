@@ -45,7 +45,11 @@
   /* Aus dem Heute-Zeitverlauf bearbeitet: das Datum steht fest. */
   input[type="date"]:disabled { color: var(--text-muted); opacity: 1; -webkit-text-fill-color: var(--text-muted); }
 
-  .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: var(--surface-alt); border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  /* Heute-Kacheln: die ganze Kachel führt zur Eintragen-Seite, das „+" ist nur
+     noch Zeichen dafür. Beim Antippen kurz die helle Farbe des Bereichs. */
+  .heute-card { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.12s; }
+  .heute-card:active { background: var(--card-soft) !important; }
+  .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: transparent; border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
   .quick-row { margin-top: -17px; }
 
   /* Fußleiste: auf jeder Seite dieselbe, gebaut von renderTabbars(). Alle
@@ -436,7 +440,7 @@
       <div id="heute-med-hints" style="display: none; flex-direction: column; gap: 8px;"></div>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--fuettern); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+        <div class="heute-card" data-target="fuettern" style="--card-soft: var(--fuettern-soft); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--fuettern); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -458,13 +462,13 @@
             <span id="fuettern-stats" style="font-size: 11px; color: var(--text-muted);"></span>
             <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
               <button class="quick-btn" data-target="fuettern" title="Eintrag hinzufügen" aria-label="Füttern: Eintrag hinzufügen">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--windeln); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+        <div class="heute-card" data-target="windeln" style="--card-soft: var(--windeln-soft); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--windeln); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -479,13 +483,13 @@
             <span id="windeln-stats" style="font-size: 11px; color: var(--text-muted);"></span>
             <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
               <button class="quick-btn" data-target="windeln" title="Eintrag hinzufügen" aria-label="Windeln: Eintrag hinzufügen">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--schlafen); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+        <div class="heute-card" data-target="schlafen" style="--card-soft: var(--schlafen-soft); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--schlafen); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -514,7 +518,7 @@
             </button>
             <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
               <button class="quick-btn" data-target="schlafen" title="Eintrag hinzufügen" aria-label="Schlafen: Eintrag hinzufügen">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
@@ -1736,8 +1740,13 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
   });
 });
 
-document.querySelectorAll('.quick-btn').forEach((btn) => {
-  btn.addEventListener('click', () => showScreen(btn.dataset.target));
+// Die ganze Kachel (samt „+") öffnet die Eintragen-Seite. Die Erinnerung an
+// die fehlende Nacht hat ihren eigenen Handler und wird hier übergangen.
+document.querySelectorAll('.heute-card').forEach((card) => {
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('#schlafen-night-hint')) return;
+    showScreen(card.dataset.target);
+  });
 });
 document.getElementById('heute-all-entries').addEventListener('click', () => showScreen('historie'));
 

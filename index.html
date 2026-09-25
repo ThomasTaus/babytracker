@@ -5915,10 +5915,13 @@ async function loadOverview() {
       const isLast = i === timelineEvents.length - 1;
       const doFlash = !flashed && flash && e.color === flash.color && Math.abs(e.ts.getTime() - flash.ts) < 60000;
       if (doFlash) flashed = true;
+      // Der Punkt sitzt mittig zwischen Uhrzeit und Ereigniszeile; die Linie
+      // läuft oberhalb (ab der zweiten Zeile) und unterhalb ohne Lücke durch.
       return '<div style="display: flex; gap: 12px;">' +
         '<div style="display: flex; flex-direction: column; align-items: center;">' +
-        '<div style="width: 10px; height: 10px; border-radius: 50%; background: ' + e.color + ';"></div>' +
-        (isLast ? '' : '<div style="width: 2px; flex: 1; background: var(--border); margin: 4px 0;"></div>') +
+        '<div style="width: 2px; height: 6px; margin-bottom: 4px; background: var(--border);' + (i === 0 ? ' visibility: hidden;' : '') + '"></div>' +
+        '<div style="width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: ' + e.color + ';"></div>' +
+        (isLast ? '' : '<div style="width: 2px; flex: 1; background: var(--border); margin-top: 4px;"></div>') +
         '</div>' +
         '<button class="tl-btn' + (isLast ? ' last' : '') + '" data-tl="' + i + '" style="--tl-soft: ' + FLASH_SOFT[e.color] + ';">' +
         (doFlash ? '<span class="tl-flash" style="display: block; flex: 1; min-width: 0; --fl: ' + FLASH_SOFT[e.color] + ';">' : '<span style="display: block; flex: 1; min-width: 0;">') +

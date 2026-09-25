@@ -32,8 +32,9 @@
   #screen-heute .tl-btn:active { background: var(--tl-soft); }
   #screen-heute .tl-btn:focus-visible { outline: 2px solid var(--neutral-strong); outline-offset: 0; }
 
-  /* Detailansicht eines Eintrags (aus Zeitverlauf oder Historie): gesperrte
-     Karte wie beim Medikament, Stift oben rechts, Löschen ganz unten. */
+  /* Detailansicht eines offenen Eintrags (laufender Timer, unvollständige
+     Nacht) aus Zeitverlauf oder Historie: gesperrte Karte, Löschen ganz unten.
+     Abgeschlossene Einträge öffnen direkt ihre Bearbeiten-Maske. */
   #screen-eintrag button { font-family: inherit; }
   #eintrag-scroll > * { flex-shrink: 0; }
   #screen-eintrag .d-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
@@ -43,12 +44,18 @@
   #screen-eintrag .d-val { font-size: 14px; font-weight: 400; line-height: 1.4; color: var(--text-muted); font-variant-numeric: tabular-nums; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
   #screen-eintrag .d-pair { display: flex; gap: 14px; }
   #screen-eintrag .d-pair > div { flex: 1; min-width: 0; }
-  #screen-eintrag .d-pencil { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   #screen-eintrag .d-seg { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 8px; background: var(--surface-alt); color: var(--text-muted); }
   #screen-eintrag .d-swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-  #screen-eintrag .d-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
-  #screen-eintrag .d-del { width: 100%; padding: 13px 10px; border: 1px solid var(--border); border-radius: 14px; font-size: 15px; font-weight: 700; color: var(--warn); background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
-  #screen-eintrag .d-del:disabled { opacity: .6; cursor: default; }
+  /* „Eintrag löschen" ganz unten — in der Detailansicht und in den
+     Bearbeiten-Masken von Füttern, Windeln und Schlafen. */
+  .d-del { width: 100%; flex-shrink: 0; padding: 13px 10px; border: 1px solid var(--border); border-radius: 14px; font-size: 15px; font-weight: 700; font-family: inherit; color: var(--warn); background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+  .d-del:disabled { opacity: .6; cursor: default; }
+  /* „Eintrag aktualisieren" bleibt grau, solange nichts geändert wurde —
+     dasselbe Grau wie ein Speichern-Knopf ohne gültige Eingabe. */
+  .upd-btn:disabled { background: oklch(70% 0.01 70) !important; cursor: default !important; }
+  /* Ein gerade aktualisierter Eintrag leuchtet in der Historie kurz auf. */
+  #screen-historie .h-row.h-flash { --fl: var(--row-soft); animation: tlFlash 2.6s ease-out; }
+  @media (prefers-reduced-motion: reduce) { #screen-historie .h-row.h-flash { animation: none; } }
   /* Aus dem Heute-Zeitverlauf bearbeitet: das Datum steht fest. */
   input[type="date"]:disabled { color: var(--text-muted); opacity: 1; -webkit-text-fill-color: var(--text-muted); }
 
@@ -647,7 +654,7 @@
           <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
         </div>
         <div id="fuettern-bottle-edit-actions" style="display: none; gap: 10px;">
-          <button id="fuettern-bottle-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+          <button id="fuettern-bottle-update" class="upd-btn" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
         </div>
       </div>
 
@@ -718,7 +725,7 @@
             <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
           </div>
           <div id="fuettern-breast-edit-actions" style="display: none; gap: 10px;">
-            <button id="fuettern-breast-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+            <button id="fuettern-breast-update" class="upd-btn" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
           </div>
         </div>
 
@@ -861,7 +868,7 @@
             <button class="entry-cancel" data-back="fuettern" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
           </div>
           <div id="fuettern-pump-edit-actions" style="display: none; gap: 10px;">
-            <button id="fuettern-pump-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+            <button id="fuettern-pump-update" class="upd-btn" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
           </div>
         </div>
 
@@ -1024,7 +1031,7 @@
           <button class="entry-cancel" data-back="windeln" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
         </div>
         <div id="windeln-edit-actions" style="display: none; gap: 10px;">
-          <button id="windeln-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+          <button id="windeln-update" class="upd-btn" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
         </div>
       </div>
 
@@ -1154,7 +1161,7 @@
           </button>
         </div>
         <div id="night-edit-actions" style="display: none; gap: 10px;">
-          <button id="night-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+          <button id="night-update" class="upd-btn" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
         </div>
       </div>
 
@@ -1214,7 +1221,7 @@
             <button class="entry-cancel" data-back="schlafen" style="flex: 1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
           </div>
           <div id="nap-edit-actions" style="display: none; gap: 10px;">
-            <button id="nap-update" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
+            <button id="nap-update" class="upd-btn" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
           </div>
         </div>
 
@@ -1752,8 +1759,8 @@ document.getElementById('heute-all-entries').addEventListener('click', () => sho
 
 // „‹ Zurück" und „Abbrechen" auf den Eintragen-Seiten: ein neuer Eintrag
 // führt zurück auf Heute, eine Bearbeitung (nur „‹ Zurück") verwirft die
-// Änderungen und kehrt in die Detailansicht des Eintrags zurück. Laufende
-// Timer bleiben davon unberührt.
+// Änderungen und kehrt dorthin zurück, woher der Eintrag geöffnet wurde
+// (Zeitverlauf oder Historie). Laufende Timer bleiben davon unberührt.
 function leaveEntryScreen(cat, discard) {
   const editing = cat === 'fuettern' ? !!editingFeedingId
     : cat === 'windeln' ? !!editingDiaperId
@@ -1762,7 +1769,7 @@ function leaveEntryScreen(cat, discard) {
     if (cat === 'fuettern') exitFuetternEdit(false);
     else if (cat === 'windeln') exitWindelnEdit(false);
     else exitSchlafenEdit(false);
-    showScreen('eintrag');
+    returnToEintragOrigin();
     return;
   }
   if (discard && cat === 'fuettern') resetBreastSegments();
@@ -1788,14 +1795,17 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
 // history.go zurück, gleiche Tiefe (Tabwechsel) → nichts. So stapeln sich beim
 // Hin- und Herwechseln keine Einträge, und von Heute aus schließt die Taste.
 // („Meilenstein eintragen" zählt wie „Messung eintragen" als Tiefe 2.)
-// Die Detailansicht eines Eintrags liegt eine Stufe unter ihrem Ursprung
-// (Heute-Zeitverlauf oder Historie), sein Bearbeiten eine weitere darunter.
+// Ein Eintrag aus dem Heute-Zeitverlauf oder der Historie (Bearbeiten-Maske
+// bzw. bei offenen Einträgen die Detailansicht) liegt eine Stufe unter seinem
+// Ursprung.
 let currentScreen = 'heute';
-// Der in der Detailansicht gezeigte Eintrag (mit _cat/_type wie in der
-// Historie) und woher sie geöffnet wurde: 'heute' oder 'historie'.
+// Der geöffnete Eintrag (mit _cat/_type wie in der Historie) und woher er
+// geöffnet wurde: 'heute' oder 'historie'.
 let eintragEntry = null;
 let eintragOrigin = 'heute';
-let eintragJustUpdated = false;
+// Stand der Bearbeiten-Maske direkt nach dem Öffnen (entryEditSignature);
+// „Eintrag aktualisieren" bleibt grau, solange die Maske ihm gleicht.
+let entryEditBaseline = null;
 let navDepth = 0;
 let navIgnorePops = 0;
 let navHandlingPop = false;
@@ -1803,11 +1813,11 @@ history.replaceState({ bt: 0 }, '');
 
 function uiNavDepth() {
   if (currentScreen === 'heute') return 0;
-  const detailDepth = eintragOrigin === 'historie' ? 2 : 1;
-  if (currentScreen === 'eintrag') return detailDepth;
-  if (currentScreen === 'fuettern') return editingFeedingId ? detailDepth + 1 : 1;
-  if (currentScreen === 'windeln') return editingDiaperId ? detailDepth + 1 : 1;
-  if (currentScreen === 'schlafen') return (editingNightId || editingNapId) ? detailDepth + 1 : 1;
+  const eintragDepth = eintragOrigin === 'historie' ? 2 : 1;
+  if (currentScreen === 'eintrag') return eintragDepth;
+  if (currentScreen === 'fuettern') return editingFeedingId ? eintragDepth : 1;
+  if (currentScreen === 'windeln') return editingDiaperId ? eintragDepth : 1;
+  if (currentScreen === 'schlafen') return (editingNightId || editingNapId) ? eintragDepth : 1;
   if (currentScreen === 'entwicklung') return entDialogOpen() ? 2 : 1;
   // Übersicht 1, Medikament/Neu/Gabe 2, Editor oder Gabe aus dem Medikament 3
   if (currentScreen === 'gesundheit') return 1 + medState.stack.length;
@@ -1833,7 +1843,7 @@ function syncHistory() {
 // Ein Schritt zurück — dasselbe wie „‹ Zurück" auf der jeweiligen Seite.
 function navigateBackOneLevel() {
   if (['fuettern', 'windeln', 'schlafen'].includes(currentScreen)) leaveEntryScreen(currentScreen);
-  else if (currentScreen === 'eintrag') leaveEintragDetail();
+  else if (currentScreen === 'eintrag') returnToEintragOrigin();
   else if (currentScreen === 'entwicklung' && entDialogOpen()) closeEntwicklungDialog();
   else if (currentScreen === 'gesundheit' && medState.stack.length) medBack();
   else if (currentScreen !== 'heute') showScreen('heute');
@@ -3591,6 +3601,7 @@ function enterFuetternEdit(entry) {
 function exitFuetternEdit() {
   editingFeedingId = null;
   setEntryDateLocked(false);
+  endEntryEditChrome();
   fuetternSubtitleEl.textContent = 'Neuer Eintrag';
   fuetternTimeNowBtn.style.display = '';
   resetFuetternForm();
@@ -3791,7 +3802,7 @@ function resetWindelnForm() {
   windelnDateInput.dispatchEvent(new Event('change'));
 }
 
-// Bearbeiten (Stift in der Detailansicht) öffnet die Maske als eigenes
+// Bearbeiten (Eintrag im Zeitverlauf oder in der Historie antippen) öffnet die Maske als eigenes
 // "Fenster": der Jetzt-Knopf entfällt (der Eintrag hat schon seine Zeit), und
 // statt Speichern/Abbrechen steht nur Aktualisieren da — zurück geht's oben.
 function enterWindelnEdit(entry) {
@@ -3818,6 +3829,7 @@ function enterWindelnEdit(entry) {
 function exitWindelnEdit() {
   editingDiaperId = null;
   setEntryDateLocked(false);
+  endEntryEditChrome();
   windelnSubtitleEl.textContent = 'Neuer Eintrag';
   windelnTimeNowBtn.style.display = '';
   windelnSaveBtn.parentElement.style.display = 'flex';
@@ -4069,7 +4081,7 @@ async function decideSchlafenDefault() {
   await refreshLastNightPending();
 }
 
-// Bearbeiten (Stift in der Detailansicht) öffnet ein eigenes "Fenster", wie
+// Bearbeiten (Eintrag im Zeitverlauf oder in der Historie antippen) öffnet ein eigenes "Fenster", wie
 // bei Windeln/Füttern: der Nachts/Tagsüber-Umschalter wird versteckt (man bearbeitet einen
 // bereits feststehenden Eintrag, kein Umschalten mehr nötig), die passende
 // Maske (Nacht- oder Nap-Panel) zeigt die Werte vorausgefüllt, und die
@@ -4120,6 +4132,7 @@ function exitSchlafenEdit() {
   editingNightId = null;
   editingNapId = null;
   setEntryDateLocked(false);
+  endEntryEditChrome();
   schlafenSubtitleEl.textContent = 'Neuer Eintrag';
   schlafenModeToggleEl.style.display = 'flex';
   napModeToggleEl.style.display = 'flex';
@@ -5133,7 +5146,6 @@ const HISTORIE_ICONS = {
   night: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
   nap: '<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>'
 };
-const HISTORIE_PENCIL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 const WARN_ICON_SVG = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 14.5H3.5z"/><line x1="12" y1="10.5" x2="12" y2="14"/></svg>';
 const CHEVRON_RIGHT_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 const HISTORIE_TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
@@ -5173,8 +5185,8 @@ function historieDetail(entry) {
   return { icon: 'nap', main: 'Schläfchen', rest: 'bis ' + (schlafenEndTimeLabel(entry) || '--:--') + ' · ' + (schlafenDurationLabel(entry) || '–') };
 }
 
-// Eine Zeile ist ein Knopf: Antippen öffnet die Detailansicht des Eintrags,
-// dort wird bearbeitet und gelöscht.
+// Eine Zeile ist ein Knopf: Antippen öffnet die Bearbeiten-Maske des
+// Eintrags (offene Einträge: die Detailansicht), dort wird auch gelöscht.
 function historieRow(entry) {
   const cat = HISTORIE_CAT[entry._cat];
   const ts = historieTs(entry);
@@ -5216,7 +5228,7 @@ function historieRow(entry) {
   chev.innerHTML = CHEVRON_RIGHT_SVG;
   row.appendChild(chev);
 
-  row.addEventListener('click', () => openEintragDetail(entry, 'historie'));
+  row.addEventListener('click', () => openEintrag(entry, 'historie'));
   return row;
 }
 
@@ -5283,25 +5295,30 @@ document.querySelectorAll('#historie-chips .h-chip').forEach((chip) => {
   });
 });
 
-// --- Eintrag: Detailansicht (aus Heute-Zeitverlauf oder Historie) ---
-// Gesperrte Karte mit allen Werten wie beim Medikament; der Stift öffnet die
-// Eintragen-Seite des Bereichs im Bearbeiten-Modus, „Eintrag löschen" steht
-// ganz unten. Zurück führt dorthin, woher die Ansicht geöffnet wurde.
+// --- Eintrag öffnen (aus Heute-Zeitverlauf oder Historie) ---
+// Ein abgeschlossener Eintrag öffnet direkt die Eintragen-Seite seines
+// Bereichs im Bearbeiten-Modus; „Eintrag aktualisieren" wird erst mit einer
+// Änderung aktiv, „Eintrag löschen" steht ganz unten. Offene Einträge
+// (laufende Timer, unvollständige Nächte) werden auf ihrer Eintragen-Seite
+// abgeschlossen — für sie gibt es nur eine gesperrte Detailansicht mit
+// Löschen. Zurück führt jeweils dorthin, woher der Eintrag geöffnet wurde.
 const eintragScrollEl = document.getElementById('eintrag-scroll');
 const EINTRAG_CAT_NAME = { fuettern: 'Füttern', windeln: 'Windeln', schlafen: 'Schlafen' };
 
-function openEintragDetail(entry, origin) {
+function openEintrag(entry, origin) {
   if (origin === 'historie') historieScrollTop = historieScrollEl.scrollTop;
   eintragEntry = entry;
   eintragOrigin = origin;
-  eintragJustUpdated = false;
+  if (!historieIsOpen(entry)) {
+    openEintragEdit();
+    return;
+  }
   showScreen('eintrag');
   eintragScrollEl.scrollTop = 0;
 }
 
-function leaveEintragDetail() {
+function returnToEintragOrigin() {
   eintragEntry = null;
-  eintragJustUpdated = false;
   if (eintragOrigin === 'historie') {
     showScreen('historie', { keep: true });
     historieScrollEl.scrollTop = historieScrollTop;
@@ -5400,38 +5417,30 @@ function renderEintragDetail() {
   const ts = historieTs(entry);
   const title = entry._cat === 'windeln' ? 'Windel' : info.main;
   const when = ts ? eintragDateText(ts).split(',')[0] + ', ' + formatTime(ts) : '';
-  const badge = eintragJustUpdated
-    ? '<span class="d-badge" style="background:' + cat.soft + '; color:' + cat.strong + ';"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>aktualisiert</span>'
-    : '';
   const parts = eintragFieldsHtml(entry, open);
   const sep = '<div class="d-sep"></div>';
-  // Offene Einträge (laufende Timer, unvollständige Nächte) werden auf ihrer
-  // Eintragen-Seite abgeschlossen, nicht hier bearbeitet — wie in der Historie.
-  const pencil = open ? '' : '<button class="d-pencil" data-eintrag-act="edit" style="background:' + cat.strong + ';" title="Bearbeiten" aria-label="Eintrag bearbeiten">' + HISTORIE_PENCIL.replace('width="16" height="16"', 'width="17" height="17"').replace('stroke="currentColor" stroke-width="1.8"', 'stroke="white" stroke-width="2"') + '</button>';
-  const first = '<div style="' + (open ? '' : 'padding-right:46px; ') + 'display:flex; flex-direction:column; gap:14px;">' + parts[0] + '</div>';
 
   eintragScrollEl.innerHTML =
     '<button class="back-btn" data-eintrag-act="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Zurück</button>' +
     '<div style="display:flex; align-items:center; gap:14px;">' +
       '<div style="width:48px; height:48px; border-radius:16px; background:' + cat.soft + '; color:' + cat.strong + '; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + HISTORIE_ICONS[info.icon] + '</svg></div>' +
       '<div style="min-width:0;"><div style="font-family:\'Fredoka\', sans-serif; font-size:24px; font-weight:600; line-height:1.2;">' + title + '</div>' +
-      '<div style="font-size:13px; color:var(--text-muted);">' + EINTRAG_CAT_NAME[entry._cat] + (when ? ' · ' + when : '') + badge + '</div></div>' +
+      '<div style="font-size:13px; color:var(--text-muted);">' + EINTRAG_CAT_NAME[entry._cat] + (when ? ' · ' + when : '') + '</div></div>' +
     '</div>' +
-    '<div class="d-card">' + pencil + first + parts.slice(1).map((p) => sep + p).join('') + '</div>' +
-    '<button class="d-del" data-eintrag-act="delete">' + HISTORIE_TRASH.replace('width="16" height="16"', 'width="17" height="17"') + 'Eintrag löschen</button>';
+    '<div class="d-card">' + parts.map((p, i) => (i ? sep : '') + p).join('') + '</div>' +
+    '<button class="d-del" data-eintrag-act="delete">' + ENTRY_DELETE_LABEL + '</button>';
 }
 
 eintragScrollEl.addEventListener('click', (ev) => {
   const btn = ev.target.closest('[data-eintrag-act]');
   if (!btn || !eintragEntry) return;
   const act = btn.dataset.eintragAct;
-  if (act === 'back') leaveEintragDetail();
-  else if (act === 'edit') openEintragEdit();
+  if (act === 'back') returnToEintragOrigin();
   else if (act === 'delete') deleteEintrag(btn);
 });
 
-// Stift: die Eintragen-Seite des Bereichs öffnet sich im Bearbeiten-Modus.
-// Aus dem Heute-Zeitverlauf steht das Datum fest — dort geht es um heute.
+// Die Eintragen-Seite des Bereichs im Bearbeiten-Modus. Aus dem Heute-
+// Zeitverlauf steht das Datum fest — dort geht es um heute.
 function openEintragEdit() {
   const entry = eintragEntry;
   showScreen(entry._cat, { edit: true });
@@ -5439,7 +5448,74 @@ function openEintragEdit() {
   else if (entry._cat === 'windeln') enterWindelnEdit(entry);
   else enterSchlafenEdit(entry);
   setEntryDateLocked(eintragOrigin === 'heute');
+  entryDeleteBtns[entry._cat].style.display = 'flex';
+  entryDeleteBtns[entry._cat].disabled = false;
+  entryEditBaseline = entryEditSignature();
+  refreshEntryUpdateBtn();
   syncHistory();
+}
+
+// Alles, was in der Maske gespeichert würde, als Vergleichswert — genau die
+// Felder, die die jeweiligen Aktualisieren-Handler schreiben.
+function entryEditSignature() {
+  if (editingFeedingId) {
+    if (feedType === 'bottle') return JSON.stringify(['bottle', amountInput.value, fuetternDateInput.value, fuetternTimeInput.value]);
+    if (feedType === 'pump') return JSON.stringify(['pump', pumpDateInput.value, pumpStartInput.value, pumpEndInput.value, pumpLeft, pumpRight, pumpAmountInput.value]);
+    return JSON.stringify(['breast', breastDateInput.value, breastStartInput.value, breastSegments.map((s) => [s.side, s.minutes])]);
+  }
+  if (editingDiaperId) return JSON.stringify([small, big, big ? diaperColor : null, windelnDateInput.value, windelnTimeInput.value]);
+  if (editingNightId) return JSON.stringify([nightOffset, nightBedtimeInput.value, nightWaketimeInput.value, wakeCount]);
+  if (editingNapId) return JSON.stringify([napDateInput.value, napStartInput.value, napEndInput.value]);
+  return null;
+}
+
+function entryUpdateBtn() {
+  if (editingFeedingId) return feedType === 'bottle' ? fuetternBottleUpdateBtn : feedType === 'pump' ? fuetternPumpUpdateBtn : fuetternBreastUpdateBtn;
+  if (editingDiaperId) return windelnUpdateBtn;
+  if (editingNightId) return nightUpdateBtn;
+  if (editingNapId) return napUpdateBtn;
+  return null;
+}
+
+function refreshEntryUpdateBtn() {
+  const btn = entryEditBaseline === null ? null : entryUpdateBtn();
+  if (btn) btn.disabled = entryEditSignature() === entryEditBaseline;
+}
+
+// Jede Eingabe, jeder Stepper, jede Chip- oder Farbwahl in einer der Masken
+// kann den Stand ändern. Die Handler der Bedienelemente laufen vorher (sie
+// sitzen am Element selbst), hier wird nur nachgesehen. Die Dauer-Stepper
+// reagieren auf pointerdown und wiederholen beim Halten bis pointerup. Der
+// Aktualisieren-Knopf selbst ist ausgenommen: er sperrt sich während des
+// Speicherns.
+['fuettern', 'windeln', 'schlafen'].forEach((cat) => {
+  ['input', 'change', 'click', 'pointerdown', 'pointerup', 'pointercancel'].forEach((type) => {
+    screens[cat].addEventListener(type, (ev) => {
+      if (ev.target.closest && ev.target.closest('.upd-btn')) return;
+      refreshEntryUpdateBtn();
+    });
+  });
+});
+
+// „Eintrag löschen" ganz unten in jeder Bearbeiten-Maske, nur beim Bearbeiten.
+const ENTRY_DELETE_LABEL = HISTORIE_TRASH.replace('width="16" height="16"', 'width="17" height="17"') + 'Eintrag löschen';
+const entryDeleteBtns = {};
+[['fuettern', fuetternScrollEl], ['windeln', windelnScrollEl], ['schlafen', schlafenScrollEl]].forEach(([cat, scrollEl]) => {
+  const btn = document.createElement('button');
+  btn.className = 'd-del';
+  btn.style.display = 'none';
+  btn.innerHTML = ENTRY_DELETE_LABEL;
+  btn.addEventListener('click', () => { if (eintragEntry) deleteEintrag(btn); });
+  scrollEl.appendChild(btn);
+  entryDeleteBtns[cat] = btn;
+});
+
+// Beim Verlassen des Bearbeitens (exitXEdit): Löschen ausblenden, Vergleich
+// vergessen. Ohne Zugriff auf entryDeleteBtns, weil exitXEdit auch schon
+// beim Start laufen kann, bevor diese Zeilen ausgeführt sind.
+function endEntryEditChrome() {
+  entryEditBaseline = null;
+  document.querySelectorAll('#screen-fuettern .d-del, #screen-windeln .d-del, #screen-schlafen .d-del').forEach((btn) => { btn.style.display = 'none'; });
 }
 
 // Sperrt bzw. löst das Datum aller Bearbeiten-Masken; bei Nächten sind das
@@ -5450,33 +5526,31 @@ function setEntryDateLocked(locked) {
   nightNextBtn.style.visibility = locked ? 'hidden' : '';
 }
 
-// Nach dem Aktualisieren zurück in die Detailansicht, mit den neuen Werten
-// und kurz dem „aktualisiert"-Hinweis. Kam sie aus der Historie, wird dort nur
-// die eine Zeile neu einsortiert (Datum oder Uhrzeit können sich geändert
-// haben) — die Liste bleibt stehen, samt Scrollposition.
+// Nach dem Aktualisieren zurück dorthin, woher der Eintrag geöffnet wurde;
+// er leuchtet dort kurz auf. In der Historie wird nur die eine Zeile neu
+// einsortiert (Datum oder Uhrzeit können sich geändert haben) — die Liste
+// bleibt stehen, samt Scrollposition.
 function returnToEintragAfterUpdate(changes) {
   const base = eintragEntry && eintragEntry.id === changes.id ? eintragEntry : {};
   const entry = { ...base, ...changes };
-  eintragEntry = entry;
 
   if (eintragOrigin === 'historie') {
     removeHistoryRow(historieListEl, entry.id);
     const bufferIdx = historieBuffer.findIndex((e) => e.id === entry.id);
     if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
     const key = historieKey(entry);
-    const inserted = insertHistoryRow(historieListEl, historieRow(entry), key.dayKey, key.dayDate ? dayLabel(key.dayDate, new Date()) : 'Unbekanntes Datum', key.sort, historieAllLoaded());
+    const row = historieRow(entry);
+    const inserted = insertHistoryRow(historieListEl, row, key.dayKey, key.dayDate ? dayLabel(key.dayDate, new Date()) : 'Unbekanntes Datum', key.sort, historieAllLoaded());
     // Rutscht der Eintrag hinter die geladenen Seiten, kommt er mit „Weitere laden".
     if (!inserted) historieBuffer.push(entry);
+    else row.classList.add('h-flash');
     historieLastDayKey = historyLastDayKey(historieListEl);
+  } else {
+    // Eine Nacht steht im Zeitverlauf mit ihrem Aufwachen, nicht der Bettzeit.
+    const ts = entry._type === 'night' ? timeOnDate(new Date(), entry.wakeTime) : historieTs(entry);
+    pendingTimelineFlash = ts ? { ts: ts.getTime(), color: 'var(--' + entry._cat + ')' } : null;
   }
-
-  eintragJustUpdated = true;
-  showScreen('eintrag');
-  setTimeout(() => {
-    if (eintragEntry !== entry || !eintragJustUpdated) return;
-    eintragJustUpdated = false;
-    if (currentScreen === 'eintrag') renderEintragDetail();
-  }, 1800);
+  returnToEintragOrigin();
 }
 
 async function deleteEintrag(delBtn) {
@@ -5498,7 +5572,11 @@ async function deleteEintrag(delBtn) {
   if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
   if (entry._cat === 'fuettern' && entry.type === 'bottle') refreshFuetternAmountChips();
   if (entry._cat === 'fuettern' && entry.type === 'pump') { refreshPumpAmountChips(); syncPumpState(); }
-  if (eintragEntry === entry) leaveEintragDetail();
+  if (eintragEntry !== entry) return;
+  if (currentScreen === 'fuettern' && editingFeedingId) exitFuetternEdit();
+  else if (currentScreen === 'windeln' && editingDiaperId) exitWindelnEdit();
+  else if (currentScreen === 'schlafen' && (editingNightId || editingNapId)) exitSchlafenEdit();
+  returnToEintragOrigin();
 }
 
 // --- Heute (Übersicht) ---
@@ -5797,11 +5875,12 @@ async function loadOverview() {
   }
 }
 
-// Ein Zeitverlauf-Eintrag öffnet seine Detailansicht (wie ein Meilenstein).
+// Ein Zeitverlauf-Eintrag öffnet seine Bearbeiten-Maske (offene Einträge:
+// die Detailansicht), wie ein Zeile der Historie.
 document.getElementById('timeline-container').addEventListener('click', (ev) => {
   const btn = ev.target.closest('[data-tl]');
   const entry = btn && heuteTimelineEntries[Number(btn.dataset.tl)];
-  if (entry) openEintragDetail(entry, 'heute');
+  if (entry) openEintrag(entry, 'heute');
 });
 
 // --- Analyse ---

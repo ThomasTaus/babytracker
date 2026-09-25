@@ -25,29 +25,15 @@
   #screen-heute .tl-flash { border-radius: 8px; margin: -2px -8px 0; padding: 2px 8px 0; animation: tlFlash 2.6s ease-out; }
   @keyframes tlFlash { 0%, 45% { background: var(--fl); } 100% { background: transparent; } }
   @media (prefers-reduced-motion: reduce) { #screen-heute .tl-flash { animation: none; } }
-  /* Zeitverlauf-Einträge öffnen die Detailansicht — wie die Meilensteine
+  /* Zeitverlauf-Einträge öffnen ihre Maske — wie die Meilensteine
      (.e-tl-btn): negativer Rand, damit nur die gedrückte Fläche wächst. */
   #screen-heute .tl-btn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; margin: -4px -6px 10px; padding: 4px 6px; border: none; border-radius: 10px; background: none; color: inherit; text-align: left; cursor: pointer; font: inherit; }
   #screen-heute .tl-btn.last { margin-bottom: -4px; }
   #screen-heute .tl-btn:active { background: var(--tl-soft); }
   #screen-heute .tl-btn:focus-visible { outline: 2px solid var(--neutral-strong); outline-offset: 0; }
 
-  /* Detailansicht eines offenen Eintrags (laufender Timer, unvollständige
-     Nacht) aus Zeitverlauf oder Historie: gesperrte Karte, Löschen ganz unten.
-     Abgeschlossene Einträge öffnen direkt ihre Bearbeiten-Maske. */
-  #screen-eintrag button { font-family: inherit; }
-  #eintrag-scroll > * { flex-shrink: 0; }
-  #screen-eintrag .d-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
-  #screen-eintrag .d-sep { height: 1px; background: var(--border); }
-  #screen-eintrag .d-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-  #screen-eintrag .d-field { display: flex; flex-direction: column; gap: 5px; }
-  #screen-eintrag .d-val { font-size: 14px; font-weight: 400; line-height: 1.4; color: var(--text-muted); font-variant-numeric: tabular-nums; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-  #screen-eintrag .d-pair { display: flex; gap: 14px; }
-  #screen-eintrag .d-pair > div { flex: 1; min-width: 0; }
-  #screen-eintrag .d-seg { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 8px; background: var(--surface-alt); color: var(--text-muted); }
-  #screen-eintrag .d-swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-  /* „Eintrag löschen" ganz unten — in der Detailansicht und in den
-     Bearbeiten-Masken von Füttern, Windeln und Schlafen. */
+  /* „Eintrag löschen" ganz unten in den Masken von Füttern, Windeln und
+     Schlafen — beim Bearbeiten und solange ein laufender Eintrag zu sehen ist. */
   .d-del { width: 100%; flex-shrink: 0; padding: 13px 10px; border: 1px solid var(--border); border-radius: 14px; font-size: 15px; font-weight: 700; font-family: inherit; color: var(--warn); background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
   .d-del:disabled { opacity: .6; cursor: default; }
   /* „Eintrag aktualisieren" bleibt grau, solange nichts geändert wurde —
@@ -81,7 +67,7 @@
   /* Gemeinsame Historie */
   #screen-historie .h-chip { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 6px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); white-space: nowrap; cursor: pointer; font-family: inherit; }
   #screen-historie .h-chip.on { font-weight: 700; background: var(--chip-soft); border-color: var(--chip-border); color: var(--chip-strong); }
-  /* Eine Zeile ist ein Knopf in die Detailansicht des Eintrags. */
+  /* Eine Zeile ist ein Knopf in die Maske des Eintrags (openEintrag). */
   #screen-historie .h-row { display: flex; align-items: center; gap: 9px; padding: 10px 12px 10px 14px; border: none; border-bottom: 1px solid var(--border); background: none; width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer; }
   #screen-historie .h-row:active { background: var(--row-soft); }
   #screen-historie .h-row:focus-visible { outline: 2px solid var(--neutral-strong); outline-offset: -2px; }
@@ -1367,22 +1353,6 @@
     <nav class="tabbar" data-active="heute"></nav>
   </div>
 
-  <!-- Eintrag: Detailansicht aus Zeitverlauf oder Historie (renderEintragDetail) -->
-  <div id="screen-eintrag" style="
-    --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
-    --fuettern: oklch(72% 0.11 250); --fuettern-strong: oklch(48% 0.13 250); --fuettern-soft: oklch(93% 0.025 250);
-    --windeln: #39ABAB; --windeln-soft: #DFF2F2;
-    --schlafen: #6A5ACD; --schlafen-strong: #4B3F9E; --schlafen-soft: #E8E5F9;
-    --warn: oklch(58% 0.17 25);
-    --surface: oklch(99% 0.002 250); --surface-alt: oklch(93% 0.004 250);
-    --text: oklch(27% 0.006 250); --text-muted: oklch(52% 0.006 250); --border: oklch(87% 0.004 250);
-    height: 100vh; max-width: 480px; margin: 0 auto;
-    color: var(--text); display: none; flex-direction: column;
-  ">
-    <div id="eintrag-scroll" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 18px 24px 16px; display: flex; flex-direction: column; gap: 22px;"></div>
-    <nav class="tabbar" data-active="heute"></nav>
-  </div>
-
   <!-- Entwicklung: Wachstum und Meilensteine (Firestore) -->
   <div id="screen-entwicklung" style="
     --neutral-soft: oklch(93% 0.004 250); --neutral-strong: oklch(35% 0.006 250);
@@ -1523,7 +1493,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp, writeBatch, deleteField
+  getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { scaleBand, scaleLinear, scalePoint } from "./vendor/d3/d3-scale.js";
 import { line as d3Line, area as d3Area, curveLinear } from "./vendor/d3/d3-shape.js";
@@ -1692,7 +1662,6 @@ const screens = {
   schlafen: document.getElementById('screen-schlafen'),
   analyse: document.getElementById('screen-analyse'),
   historie: document.getElementById('screen-historie'),
-  eintrag: document.getElementById('screen-eintrag'),
   entwicklung: document.getElementById('screen-entwicklung'),
   gesundheit: document.getElementById('screen-gesundheit'),
   profil: document.getElementById('screen-profil')
@@ -1703,11 +1672,13 @@ const screens = {
 // (opts.edit — dann setzt enterXEdit die Maske, hier wird nichts zurückgesetzt).
 function showScreen(target, opts = {}) {
   currentScreen = target;
+  // Ein laufender Eintrag aus Zeitverlauf/Historie gilt nur, solange seine
+  // Eintragen-Seite offen ist.
+  if (target !== 'fuettern' && target !== 'schlafen') eintragRunning = false;
   Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
   if (target === 'heute') loadOverview();
   if (target === 'analyse') loadAnalyse();
   if (target === 'historie' && !opts.keep) loadHistorie(true);
-  if (target === 'eintrag') renderEintragDetail();
   if (target === 'entwicklung') openEntwicklung();
   if (target === 'gesundheit') openGesundheit();
   if (target === 'profil') loadProfilForm();
@@ -1760,7 +1731,8 @@ document.getElementById('heute-all-entries').addEventListener('click', () => sho
 // „‹ Zurück" und „Abbrechen" auf den Eintragen-Seiten: ein neuer Eintrag
 // führt zurück auf Heute, eine Bearbeitung (nur „‹ Zurück") verwirft die
 // Änderungen und kehrt dorthin zurück, woher der Eintrag geöffnet wurde
-// (Zeitverlauf oder Historie). Laufende Timer bleiben davon unberührt.
+// (Zeitverlauf oder Historie) — ebenso ein von dort geöffneter laufender
+// Eintrag. Laufende Timer bleiben davon unberührt.
 function leaveEntryScreen(cat, discard) {
   const editing = cat === 'fuettern' ? !!editingFeedingId
     : cat === 'windeln' ? !!editingDiaperId
@@ -1772,6 +1744,7 @@ function leaveEntryScreen(cat, discard) {
     returnToEintragOrigin();
     return;
   }
+  if (eintragRunning) { returnToEintragOrigin(); return; }
   if (discard && cat === 'fuettern') resetBreastSegments();
   showScreen('heute');
 }
@@ -1796,13 +1769,15 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
 // Hin- und Herwechseln keine Einträge, und von Heute aus schließt die Taste.
 // („Meilenstein eintragen" zählt wie „Messung eintragen" als Tiefe 2.)
 // Ein Eintrag aus dem Heute-Zeitverlauf oder der Historie (Bearbeiten-Maske
-// bzw. bei offenen Einträgen die Detailansicht) liegt eine Stufe unter seinem
-// Ursprung.
+// bzw. bei laufenden Einträgen die Eintragen-Seite mit dem Timer) liegt eine
+// Stufe unter seinem Ursprung.
 let currentScreen = 'heute';
 // Der geöffnete Eintrag (mit _cat/_type wie in der Historie) und woher er
-// geöffnet wurde: 'heute' oder 'historie'.
+// geöffnet wurde: 'heute' oder 'historie'. eintragRunning: er läuft noch und
+// wird auf seiner Eintragen-Seite abgeschlossen statt bearbeitet.
 let eintragEntry = null;
 let eintragOrigin = 'heute';
+let eintragRunning = false;
 // Stand der Bearbeiten-Maske direkt nach dem Öffnen (entryEditSignature);
 // „Eintrag aktualisieren" bleibt grau, solange die Maske ihm gleicht.
 let entryEditBaseline = null;
@@ -1814,10 +1789,9 @@ history.replaceState({ bt: 0 }, '');
 function uiNavDepth() {
   if (currentScreen === 'heute') return 0;
   const eintragDepth = eintragOrigin === 'historie' ? 2 : 1;
-  if (currentScreen === 'eintrag') return eintragDepth;
-  if (currentScreen === 'fuettern') return editingFeedingId ? eintragDepth : 1;
+  if (currentScreen === 'fuettern') return (editingFeedingId || eintragRunning) ? eintragDepth : 1;
   if (currentScreen === 'windeln') return editingDiaperId ? eintragDepth : 1;
-  if (currentScreen === 'schlafen') return (editingNightId || editingNapId) ? eintragDepth : 1;
+  if (currentScreen === 'schlafen') return (editingNightId || editingNapId || eintragRunning) ? eintragDepth : 1;
   if (currentScreen === 'entwicklung') return entDialogOpen() ? 2 : 1;
   // Übersicht 1, Medikament/Neu/Gabe 2, Editor oder Gabe aus dem Medikament 3
   if (currentScreen === 'gesundheit') return 1 + medState.stack.length;
@@ -1843,7 +1817,6 @@ function syncHistory() {
 // Ein Schritt zurück — dasselbe wie „‹ Zurück" auf der jeweiligen Seite.
 function navigateBackOneLevel() {
   if (['fuettern', 'windeln', 'schlafen'].includes(currentScreen)) leaveEntryScreen(currentScreen);
-  else if (currentScreen === 'eintrag') returnToEintragOrigin();
   else if (currentScreen === 'entwicklung' && entDialogOpen()) closeEntwicklungDialog();
   else if (currentScreen === 'gesundheit' && medState.stack.length) medBack();
   else if (currentScreen !== 'heute') showScreen('heute');
@@ -1870,7 +1843,15 @@ window.addEventListener('popstate', (e) => {
 let pendingTimelineFlash = null;
 // Die Einträge hinter den Zeilen des Zeitverlaufs, in derselben Reihenfolge.
 let heuteTimelineEntries = [];
+// War es ein laufender Eintrag aus dem Zeitverlauf oder der Historie, der
+// gerade abgeschlossen wurde, geht es dorthin zurück; in der Historie wird
+// seine Zeile mit dem fertigen Stand neu einsortiert.
 function afterNewEntrySaved(ts, color) {
+  if (eintragRunning && eintragOrigin === 'historie') {
+    refreshHistorieEntryRow(eintragEntry);
+    returnToEintragOrigin();
+    return;
+  }
   pendingTimelineFlash = ts ? { ts: ts.getTime(), color } : null;
   showScreen('heute');
 }
@@ -2028,6 +2009,9 @@ let pumpRight = true;
 let pendingPumpDocId = null;
 let pendingPumpStartedAt = null;
 let pendingPumpEndedAt = null;
+// Aus Zeitverlauf/Historie auf einen laufenden Eintrag getippt: dessen Timer
+// ('breast' | 'pump') aufschlagen, egal was sonst läuft (openEintrag).
+let fuetternForceType = null;
 
 // Seit Abpumpen dazugekommen ist, teilen sich drei Einträge die Zeile — daher
 // kleinere Schrift und schmalere Innenabstände als bei zwei.
@@ -2048,6 +2032,7 @@ function setBreastMode(mode) {
   feedBreastTimerBtn.setAttribute('style', breastSegStyle(mode === 'timer'));
   breastManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
   breastTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
+  renderEntryDeleteBtns();
 }
 feedBreastManualBtn.addEventListener('click', () => setBreastMode('manual'));
 feedBreastTimerBtn.addEventListener('click', () => setBreastMode('timer'));
@@ -2088,6 +2073,7 @@ function setFeedType(type) {
   breastPanel.style.display = type === 'breast' ? 'flex' : 'none';
   pumpPanel.style.display = type === 'pump' ? 'flex' : 'none';
   updateFuetternChromeForState();
+  renderEntryDeleteBtns();
 }
 feedBottleBtn.addEventListener('click', () => setFeedType('bottle'));
 feedBreastBtn.addEventListener('click', () => setFeedType('breast'));
@@ -2734,6 +2720,7 @@ const BREAST_RUN_MARK = '<svg width="8" height="8" viewBox="0 0 24 24" fill="cur
 const BREAST_PAUSE_MARK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color: var(--text-muted);"><rect x="6.5" y="5" width="4" height="14" rx="1.3"/><rect x="13.5" y="5" width="4" height="14" rx="1.3"/></svg>';
 
 function renderBreastTimerDisplay() {
+  renderEntryDeleteBtns();
   const running = !!openFeedingDocId;
   const sec = breastTimerSeconds();
   const leftIsSide = breastTimerSide === 'left';
@@ -3235,6 +3222,7 @@ function renderPumpFinishState() {
     pumpManualPanel.style.display = pumpMode === 'manual' ? 'flex' : 'none';
     pumpTimerPanel.style.display = pumpMode === 'timer' ? 'flex' : 'none';
   }
+  renderEntryDeleteBtns();
   if (!pending) return;
   const ready = pumpAmountIsValid(pumpTimerAmountInput, pumpTimerAmountErrorEl, false) && !!pumpSideValue();
   pumpFinishSaveBtn.style.background = ready ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
@@ -3245,6 +3233,8 @@ function renderPumpFinishState() {
 // dem anderen Gerät entstanden ist. Reihenfolge wie beim App-Start: die Brust
 // geht vor, sie betrifft das Baby und nicht die Vorratshaltung.
 async function resumeFuetternFromServer() {
+  const force = fuetternForceType;
+  fuetternForceType = null;
   let openBreast = null;
   let openPump = null;
   try {
@@ -3253,7 +3243,9 @@ async function resumeFuetternFromServer() {
     return;
   }
   if (editingFeedingId) return;
-  if (openBreast) {
+  if (force) {
+    showFuetternTimer(force);
+  } else if (openBreast) {
     setFeedType('breast');
     setBreastMode('timer');
   } else if (openPump) {
@@ -4018,6 +4010,7 @@ function setSchlafenMode(mode) {
   schlafenModeDayBtn.setAttribute('style', schlafenModeStyle(mode === 'day'));
   schlafenNightPanel.style.display = mode === 'night' ? 'flex' : 'none';
   schlafenDayPanel.style.display = mode === 'day' ? 'flex' : 'none';
+  renderEntryDeleteBtns();
 }
 schlafenModeNightBtn.addEventListener('click', () => setSchlafenMode('night'));
 schlafenModeDayBtn.addEventListener('click', () => setSchlafenMode('day'));
@@ -4034,6 +4027,8 @@ setSchlafenMode('night');
 // dort mit 12 Uhr als Schwelle) — beide beantworten unterschiedliche
 // Fragen und dürfen unterschiedliche Uhrzeiten verwenden.
 async function decideSchlafenDefault() {
+  const force = schlafenForceOpen;
+  schlafenForceOpen = null;
   try {
     await syncOpenNight();
   } catch (error) {
@@ -4051,6 +4046,10 @@ async function decideSchlafenDefault() {
   } catch (error) {
     /* Stand unverändert lassen */
   }
+
+  // Ein angetippter laufender Eintrag aus Zeitverlauf oder Historie.
+  if (force === 'nap') { setSchlafenMode('day'); setNapMode('timer'); await refreshLastNightPending(); return; }
+  if (force === 'night') { setSchlafenMode('night'); await goToDefaultNightPosition(); await refreshLastNightPending(); return; }
 
   // Kommt man über die Erinnerung aus der Übersicht, ist die Frage schon
   // beantwortet: es geht um die fehlende letzte Nacht. Das schlägt auch einen
@@ -4194,6 +4193,9 @@ let lastNightPending = false;
 // springt: decideSchlafenDefault() soll dann nicht heuristisch entscheiden,
 // sondern genau die fehlende Nacht zeigen.
 let schlafenForceLastNight = false;
+// Aus Zeitverlauf/Historie auf einen laufenden Eintrag getippt ('nap' |
+// 'night'): decideSchlafenDefault schlägt genau ihn auf (openEintrag).
+let schlafenForceOpen = null;
 
 // --- Offene Nacht: robust gegen Schließen der App, Zustand lebt in
 // Firestore (gleiches Prinzip wie der Nap-Timer via openNapDocId/findOpenNap
@@ -4288,6 +4290,7 @@ nightWaketimeInput.addEventListener('input', () => {
 // gerade gesetzten Feldwerte mit einem frischen Firestore-Lookup
 // überschreibt.
 function updateNightView() {
+  renderEntryDeleteBtns();
   const today = new Date();
   const isLastNightSlot = nightOffset === 0 && !nightShowTonight;
 
@@ -4706,6 +4709,7 @@ function setNapMode(mode) {
   napTimerBtn.setAttribute('style', napSegStyle(mode === 'timer'));
   napManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
   napTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
+  renderEntryDeleteBtns();
 }
 napManualBtn.addEventListener('click', () => setNapMode('manual'));
 napTimerBtn.addEventListener('click', () => setNapMode('timer'));
@@ -4806,6 +4810,7 @@ async function findOpenNap() {
 }
 
 function renderTimerDisplay() {
+  renderEntryDeleteBtns();
   napBackdate.setVisible(!openNapStartedAt);
   if (!openNapStartedAt) {
     renderBackdatePreview(napBackdate, timerDisplay, timerSublabel, 'Bereit zum Start');
@@ -5186,7 +5191,8 @@ function historieDetail(entry) {
 }
 
 // Eine Zeile ist ein Knopf: Antippen öffnet die Bearbeiten-Maske des
-// Eintrags (offene Einträge: die Detailansicht), dort wird auch gelöscht.
+// Eintrags (laufende: die Stelle, an der sie abgeschlossen werden), dort
+// wird auch gelöscht.
 function historieRow(entry) {
   const cat = HISTORIE_CAT[entry._cat];
   const ts = historieTs(entry);
@@ -5298,13 +5304,10 @@ document.querySelectorAll('#historie-chips .h-chip').forEach((chip) => {
 // --- Eintrag öffnen (aus Heute-Zeitverlauf oder Historie) ---
 // Ein abgeschlossener Eintrag öffnet direkt die Eintragen-Seite seines
 // Bereichs im Bearbeiten-Modus; „Eintrag aktualisieren" wird erst mit einer
-// Änderung aktiv, „Eintrag löschen" steht ganz unten. Offene Einträge
-// (laufende Timer, unvollständige Nächte) werden auf ihrer Eintragen-Seite
-// abgeschlossen — für sie gibt es nur eine gesperrte Detailansicht mit
-// Löschen. Zurück führt jeweils dorthin, woher der Eintrag geöffnet wurde.
-const eintragScrollEl = document.getElementById('eintrag-scroll');
-const EINTRAG_CAT_NAME = { fuettern: 'Füttern', windeln: 'Windeln', schlafen: 'Schlafen' };
-
+// Änderung aktiv, „Eintrag löschen" steht ganz unten. Ein laufender Eintrag
+// (Timer, unvollständige Nacht, Abpumpen ohne Menge) öffnet die Stelle, an der
+// er abgeschlossen wird — dort steht ebenfalls „Eintrag löschen" unten. Zurück
+// führt jeweils dorthin, woher der Eintrag geöffnet wurde.
 function openEintrag(entry, origin) {
   if (origin === 'historie') historieScrollTop = historieScrollEl.scrollTop;
   eintragEntry = entry;
@@ -5313,8 +5316,25 @@ function openEintrag(entry, origin) {
     openEintragEdit();
     return;
   }
-  showScreen('eintrag');
-  eintragScrollEl.scrollTop = 0;
+  eintragRunning = true;
+  // Die Seiten gleichen beim Öffnen mit Firestore ab und wählen dann selbst
+  // ein Panel; der Merker sorgt dafür, dass es das des angetippten Eintrags
+  // ist (etwa Abpumpen, auch wenn zugleich ein Brust-Timer läuft).
+  if (entry._cat === 'fuettern') {
+    const type = entry.type === 'pump' ? 'pump' : 'breast';
+    fuetternForceType = type;
+    showScreen('fuettern');
+    showFuetternTimer(type);
+  } else {
+    schlafenForceOpen = entry._type === 'night' ? 'night' : 'nap';
+    showScreen('schlafen');
+    if (schlafenForceOpen === 'nap') { setSchlafenMode('day'); setNapMode('timer'); } else setSchlafenMode('night');
+  }
+}
+
+function showFuetternTimer(type) {
+  setFeedType(type);
+  if (type === 'pump') setPumpMode('timer'); else setBreastMode('timer');
 }
 
 function returnToEintragOrigin() {
@@ -5327,118 +5347,6 @@ function returnToEintragOrigin() {
   }
 }
 
-// „Heute, 24.09." / „Gestern, 23.09." / „Mo 21.09."
-function eintragDateText(d) {
-  if (!d) return '–';
-  const label = dayLabel(d, new Date());
-  const short = String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.';
-  return label === 'Heute' || label === 'Gestern' ? label + ', ' + short : label;
-}
-
-// Beginn und Ende einer Brust- oder Abpump-Fütterung als "HH:MM"; fehlt das
-// Ende (Alteinträge), wird es aus der Dauer gerechnet — wie beim Bearbeiten.
-function eintragFeedingRange(entry) {
-  const start = fuetternTimeFieldValue(entry.startTime, entry.time);
-  let end = fuetternTimeFieldValue(entry.endTime, null);
-  if (!end && start) {
-    const endMin = (parseMinutes(start) + (Math.round(Number(entry.minutes)) || 0)) % 1440;
-    end = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
-  }
-  return { start: start || '--:--', end: end || '--:--' };
-}
-
-function eintragFieldsHtml(entry, open) {
-  const field = (label, value) => '<div class="d-field"><div class="d-lbl">' + label + '</div><div class="d-val">' + value + '</div></div>';
-  const pair = (a, b) => '<div class="d-pair"><div>' + a + '</div><div>' + b + '</div></div>';
-  const ts = historieTs(entry);
-  const dateField = field('Datum', eintragDateText(ts));
-  const parts = [];
-
-  if (entry._cat === 'fuettern' && entry.type === 'bottle') {
-    parts.push(field('Menge', entEsc((entry.amount || 0) + ' ml')));
-    parts.push(pair(dateField, field('Uhrzeit', ts ? formatTime(ts) : '--:--')));
-  } else if (entry._cat === 'fuettern' && entry.type === 'pump') {
-    const r = eintragFeedingRange(entry);
-    const side = entry.side === 'both' ? 'Links & rechts' : entry.side === 'left' ? 'Nur links' : entry.side === 'right' ? 'Nur rechts' : '–';
-    if (open) {
-      parts.push(field('Status', entry.endTime === null ? 'Läuft seit ' + r.start : 'Menge fehlt noch'));
-    } else {
-      parts.push(pair(field('Menge', entry.amount ? entEsc(entry.amount + ' ml') : '–'), field('Dauer', entEsc((entry.minutes || entry.durationMinutes || 0) + ' Min'))));
-    }
-    parts.push(field('Seite', side));
-    parts.push(pair(dateField, field(open ? 'Beginn' : 'Beginn – Ende', open ? r.start : r.start + ' – ' + r.end)));
-  } else if (entry._cat === 'fuettern') {
-    const r = eintragFeedingRange(entry);
-    if (open) {
-      parts.push(field('Status', 'Läuft seit ' + r.start));
-    } else {
-      const segs = breastSegmentsFromEntry(entry);
-      const sum = (side) => segs.filter((s) => s.side === side).reduce((a, s) => a + s.minutes, 0);
-      const hasSides = segs.some((s) => s.side);
-      parts.push(pair(field('Dauer', entEsc((entry.minutes || 0) + ' Min')), field('Seiten', hasSides ? 'L ' + sum('left') + ' · R ' + sum('right') + ' Min' : '–')));
-      if (hasSides && segs.length > 1) {
-        parts.push(field('Reihenfolge', segs.map((s) => '<span class="d-seg">' + (s.side === 'left' ? 'L' : s.side === 'right' ? 'R' : '?') + ' ' + s.minutes + '</span>').join('<span>→</span>')));
-      }
-    }
-    parts.push(pair(dateField, field(open ? 'Beginn' : 'Beginn – Ende', open ? r.start : r.start + ' – ' + r.end)));
-  } else if (entry._cat === 'windeln') {
-    const sizes = [];
-    if (entry.small) sizes.push('Klein');
-    if (entry.big) sizes.push('Groß');
-    parts.push(field('Art', sizes.join(' & ') || '–'));
-    if (entry.big) {
-      const color = entry.color && COLOR_BY_ID[entry.color];
-      const warn = !!(color && WARN_COLOR_IDS.includes(entry.color));
-      parts.push(field('Farbe', color
-        ? '<span class="d-swatch" style="background:' + color.hex + ';"></span>' + entEsc(color.label) +
-          (warn ? '<span style="display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:var(--warn);">' + WARN_ICON_SVG + '</span><span style="color:var(--warn); font-weight:600; font-size:12px;">Bitte beobachten</span>' : '')
-        : 'keine'));
-    }
-    parts.push(pair(dateField, field('Uhrzeit', ts ? formatTime(ts) : '--:--')));
-  } else if (entry._type === 'night') {
-    const start = entry.nightStart ? new Date(entry.nightStart + 'T00:00:00') : null;
-    const end = entry.nightEnd ? new Date(entry.nightEnd + 'T00:00:00') : null;
-    parts.push(field('Nacht', (start ? fmtDayDate(start) : '–') + ' → ' + (end ? fmtDayDate(end) : '…')));
-    parts.push(pair(field('Bettzeit', entEsc(entry.bedtime || '--:--')), field('Aufgewacht', open ? 'läuft' : entEsc(entry.wakeTime || '--:--'))));
-    if (!open) parts.push(pair(field('Dauer', schlafenDurationLabel(entry) || '–'), field('Nachts wach', (entry.wakeCount || 0) + '×')));
-  } else {
-    parts.push(pair(field('Start', ts ? formatTime(ts) : '--:--'), field('Ende', open ? 'läuft' : entEsc(schlafenEndTimeLabel(entry) || '--:--'))));
-    parts.push(pair(field('Dauer', open ? '–' : (schlafenDurationLabel(entry) || '–')), dateField));
-  }
-  return parts;
-}
-
-function renderEintragDetail() {
-  const entry = eintragEntry;
-  if (!entry) return;
-  const cat = HISTORIE_CAT[entry._cat];
-  const info = historieDetail(entry);
-  const open = historieIsOpen(entry);
-  const ts = historieTs(entry);
-  const title = entry._cat === 'windeln' ? 'Windel' : info.main;
-  const when = ts ? eintragDateText(ts).split(',')[0] + ', ' + formatTime(ts) : '';
-  const parts = eintragFieldsHtml(entry, open);
-  const sep = '<div class="d-sep"></div>';
-
-  eintragScrollEl.innerHTML =
-    '<button class="back-btn" data-eintrag-act="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Zurück</button>' +
-    '<div style="display:flex; align-items:center; gap:14px;">' +
-      '<div style="width:48px; height:48px; border-radius:16px; background:' + cat.soft + '; color:' + cat.strong + '; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + HISTORIE_ICONS[info.icon] + '</svg></div>' +
-      '<div style="min-width:0;"><div style="font-family:\'Fredoka\', sans-serif; font-size:24px; font-weight:600; line-height:1.2;">' + title + '</div>' +
-      '<div style="font-size:13px; color:var(--text-muted);">' + EINTRAG_CAT_NAME[entry._cat] + (when ? ' · ' + when : '') + '</div></div>' +
-    '</div>' +
-    '<div class="d-card">' + parts.map((p, i) => (i ? sep : '') + p).join('') + '</div>' +
-    '<button class="d-del" data-eintrag-act="delete">' + ENTRY_DELETE_LABEL + '</button>';
-}
-
-eintragScrollEl.addEventListener('click', (ev) => {
-  const btn = ev.target.closest('[data-eintrag-act]');
-  if (!btn || !eintragEntry) return;
-  const act = btn.dataset.eintragAct;
-  if (act === 'back') returnToEintragOrigin();
-  else if (act === 'delete') deleteEintrag(btn);
-});
-
 // Die Eintragen-Seite des Bereichs im Bearbeiten-Modus. Aus dem Heute-
 // Zeitverlauf steht das Datum fest — dort geht es um heute.
 function openEintragEdit() {
@@ -5448,8 +5356,8 @@ function openEintragEdit() {
   else if (entry._cat === 'windeln') enterWindelnEdit(entry);
   else enterSchlafenEdit(entry);
   setEntryDateLocked(eintragOrigin === 'heute');
-  entryDeleteBtns[entry._cat].style.display = 'flex';
   entryDeleteBtns[entry._cat].disabled = false;
+  renderEntryDeleteBtns();
   entryEditBaseline = entryEditSignature();
   refreshEntryUpdateBtn();
   syncHistory();
@@ -5497,7 +5405,10 @@ function refreshEntryUpdateBtn() {
   });
 });
 
-// „Eintrag löschen" ganz unten in jeder Bearbeiten-Maske, nur beim Bearbeiten.
+// „Eintrag löschen" ganz unten in Füttern, Windeln und Schlafen: beim
+// Bearbeiten, und solange das sichtbare Timer-Panel einen laufenden (bzw. bei
+// Abpumpen: auf die Menge wartenden) Eintrag zeigt — so lässt sich ein
+// versehentlich gestarteter Timer wieder loswerden.
 const ENTRY_DELETE_LABEL = HISTORIE_TRASH.replace('width="16" height="16"', 'width="17" height="17"') + 'Eintrag löschen';
 const entryDeleteBtns = {};
 [['fuettern', fuetternScrollEl], ['windeln', windelnScrollEl], ['schlafen', schlafenScrollEl]].forEach(([cat, scrollEl]) => {
@@ -5505,17 +5416,56 @@ const entryDeleteBtns = {};
   btn.className = 'd-del';
   btn.style.display = 'none';
   btn.innerHTML = ENTRY_DELETE_LABEL;
-  btn.addEventListener('click', () => { if (eintragEntry) deleteEintrag(btn); });
+  btn.addEventListener('click', () => {
+    if (entryIsBeingEdited(cat)) { if (eintragEntry) deleteEintrag(btn, eintragEntry, false); return; }
+    const running = runningEntryOnScreen(cat);
+    if (running) deleteEintrag(btn, running, true);
+  });
   scrollEl.appendChild(btn);
   entryDeleteBtns[cat] = btn;
 });
+// var statt let: renderEntryDeleteBtns läuft über die Render-Funktionen der
+// Timer schon beim Laden, bevor diese Zeile erreicht ist — bis dahin tut es
+// nichts (kein Zugriff in die temporale Totzone späterer Deklarationen).
+var entryDeleteReady = true;
 
-// Beim Verlassen des Bearbeitens (exitXEdit): Löschen ausblenden, Vergleich
-// vergessen. Ohne Zugriff auf entryDeleteBtns, weil exitXEdit auch schon
-// beim Start laufen kann, bevor diese Zeilen ausgeführt sind.
+function entryIsBeingEdited(cat) {
+  if (cat === 'fuettern') return !!editingFeedingId;
+  if (cat === 'windeln') return !!editingDiaperId;
+  return !!(editingNightId || editingNapId);
+}
+
+// Der laufende Eintrag, den das gerade sichtbare Panel zeigt — oder null.
+function runningEntryOnScreen(cat) {
+  const shown = (el) => el.style.display !== 'none';
+  if (cat === 'fuettern') {
+    if (feedType === 'breast' && shown(breastTimerPanel) && openFeedingDocId) return { id: openFeedingDocId, _cat: 'fuettern', type: 'breast' };
+    const pumpId = openPumpDocId || pendingPumpDocId;
+    if (feedType === 'pump' && shown(pumpTimerPanel) && pumpId) return { id: pumpId, _cat: 'fuettern', type: 'pump' };
+    return null;
+  }
+  if (cat === 'schlafen') {
+    if (shown(schlafenDayPanel) && shown(napTimerPanel) && openNapDocId) return { id: openNapDocId, _cat: 'schlafen', _type: 'nap' };
+    if (shown(schlafenNightPanel) && viewedNightEntry && viewedNightEntry._open) return { id: viewedNightEntry.id, _cat: 'schlafen', _type: 'night' };
+  }
+  return null;
+}
+
+// Aufgerufen von allem, was Panel oder Timer-Zustand umschaltet (setFeedType,
+// setXMode, die Timer-Anzeigen, updateNightView) sowie beim Bearbeiten.
+function renderEntryDeleteBtns() {
+  if (!entryDeleteReady) return;
+  ['fuettern', 'windeln', 'schlafen'].forEach((cat) => {
+    const on = entryIsBeingEdited(cat) || !!runningEntryOnScreen(cat);
+    entryDeleteBtns[cat].style.display = on ? 'flex' : 'none';
+  });
+}
+
+// Beim Verlassen des Bearbeitens (exitXEdit): Vergleich vergessen, Löschen
+// neu bestimmen.
 function endEntryEditChrome() {
   entryEditBaseline = null;
-  document.querySelectorAll('#screen-fuettern .d-del, #screen-windeln .d-del, #screen-schlafen .d-del').forEach((btn) => { btn.style.display = 'none'; });
+  renderEntryDeleteBtns();
 }
 
 // Sperrt bzw. löst das Datum aller Bearbeiten-Masken; bei Nächten sind das
@@ -5526,25 +5476,53 @@ function setEntryDateLocked(locked) {
   nightNextBtn.style.visibility = locked ? 'hidden' : '';
 }
 
+// Ordnet einen Eintrag in der geladenen Historie neu ein (Datum, Uhrzeit oder
+// Zustand können sich geändert haben) und lässt ihn kurz aufleuchten — die
+// Liste bleibt stehen, samt Scrollposition.
+function reinsertHistorieRow(entry) {
+  removeHistoryRow(historieListEl, entry.id);
+  const bufferIdx = historieBuffer.findIndex((e) => e.id === entry.id);
+  if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
+  const key = historieKey(entry);
+  const row = historieRow(entry);
+  const inserted = insertHistoryRow(historieListEl, row, key.dayKey, key.dayDate ? dayLabel(key.dayDate, new Date()) : 'Unbekanntes Datum', key.sort, historieAllLoaded());
+  // Rutscht der Eintrag hinter die geladenen Seiten, kommt er mit „Weitere laden".
+  if (!inserted) historieBuffer.push(entry);
+  else row.classList.add('h-flash');
+  historieLastDayKey = historyLastDayKey(historieListEl);
+}
+
+function entryCollectionName(entry) {
+  return entry._cat === 'fuettern' ? 'feedings' : entry._cat === 'windeln' ? 'diaperChanges' : (entry._type === 'night' ? 'nightWakeups' : 'naps');
+}
+
+// Ein laufender Eintrag aus der Historie wurde abgeschlossen: seinen fertigen
+// Stand einmal nachlesen und die Zeile damit ersetzen.
+async function refreshHistorieEntryRow(entry) {
+  if (!entry) return;
+  try {
+    const snap = await getDoc(doc(db, entryCollectionName(entry), entry.id));
+    if (!snap.exists()) {
+      removeHistoryRow(historieListEl, entry.id);
+      historieLastDayKey = historyLastDayKey(historieListEl);
+      return;
+    }
+    const fresh = { id: entry.id, _cat: entry._cat, ...snap.data() };
+    if (entry._type) fresh._type = entry._type;
+    reinsertHistorieRow(fresh);
+  } catch (error) {
+    /* Zeile bleibt im alten Stand; neu laden hilft */
+  }
+}
+
 // Nach dem Aktualisieren zurück dorthin, woher der Eintrag geöffnet wurde;
-// er leuchtet dort kurz auf. In der Historie wird nur die eine Zeile neu
-// einsortiert (Datum oder Uhrzeit können sich geändert haben) — die Liste
-// bleibt stehen, samt Scrollposition.
+// er leuchtet dort kurz auf.
 function returnToEintragAfterUpdate(changes) {
   const base = eintragEntry && eintragEntry.id === changes.id ? eintragEntry : {};
   const entry = { ...base, ...changes };
 
   if (eintragOrigin === 'historie') {
-    removeHistoryRow(historieListEl, entry.id);
-    const bufferIdx = historieBuffer.findIndex((e) => e.id === entry.id);
-    if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
-    const key = historieKey(entry);
-    const row = historieRow(entry);
-    const inserted = insertHistoryRow(historieListEl, row, key.dayKey, key.dayDate ? dayLabel(key.dayDate, new Date()) : 'Unbekanntes Datum', key.sort, historieAllLoaded());
-    // Rutscht der Eintrag hinter die geladenen Seiten, kommt er mit „Weitere laden".
-    if (!inserted) historieBuffer.push(entry);
-    else row.classList.add('h-flash');
-    historieLastDayKey = historyLastDayKey(historieListEl);
+    reinsertHistorieRow(entry);
   } else {
     // Eine Nacht steht im Zeitverlauf mit ihrem Aufwachen, nicht der Bettzeit.
     const ts = entry._type === 'night' ? timeOnDate(new Date(), entry.wakeTime) : historieTs(entry);
@@ -5553,11 +5531,47 @@ function returnToEintragAfterUpdate(changes) {
   returnToEintragOrigin();
 }
 
-async function deleteEintrag(delBtn) {
-  const entry = eintragEntry;
+// Nach dem Löschen eines laufenden Eintrags steht sein Timer wieder auf
+// „Bereit zum Start" (bzw. die Nacht auf ihrer Ausgangsposition).
+function clearRunningEntryState(entry) {
+  if (entry._cat === 'fuettern' && entry.type === 'breast') {
+    if (feedingTimerInterval) { clearInterval(feedingTimerInterval); feedingTimerInterval = null; }
+    openFeedingDocId = null;
+    openFeedingStartedAt = null;
+    breastTimerLeftSec = 0;
+    breastTimerRightSec = 0;
+    breastTimerSideSince = null;
+    renderBreastTimerDisplay();
+    applyBreastStartSide();
+  } else if (entry._cat === 'fuettern') {
+    if (pumpTimerInterval) { clearInterval(pumpTimerInterval); pumpTimerInterval = null; }
+    openPumpDocId = null;
+    openPumpStartedAt = null;
+    setPendingPump(null);
+    pumpLeft = true;
+    pumpRight = true;
+    renderPumpSides();
+  } else if (entry._type === 'nap') {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    openNapDocId = null;
+    openNapStartedAt = null;
+    renderTimerDisplay();
+  } else {
+    openNightDocId = null;
+    openNightData = null;
+    goToDefaultNightPosition();
+    refreshLastNightPending();
+  }
+  renderEntryDeleteBtns();
+}
+
+// running: ein laufender Eintrag von seiner Eintragen-Seite (Timer oder
+// offene Nacht) — danach geht es wie beim Abschließen zurück zum Ursprung,
+// sonst auf Heute.
+async function deleteEintrag(delBtn, entry, running) {
   const label = entry._cat === 'fuettern' ? (entry.type === 'pump' ? 'Abpump' : 'Fütterungs') : entry._cat === 'windeln' ? 'Windel' : (entry._type === 'night' ? 'Schlafen' : 'Nap');
   if (!confirm('Diesen ' + label + '-Eintrag wirklich löschen?')) return;
-  const name = entry._cat === 'fuettern' ? 'feedings' : entry._cat === 'windeln' ? 'diaperChanges' : (entry._type === 'night' ? 'nightWakeups' : 'naps');
+  const name = entryCollectionName(entry);
   delBtn.disabled = true;
   try {
     if (name === 'feedings') await deleteFeeding(entry.id);
@@ -5566,12 +5580,18 @@ async function deleteEintrag(delBtn) {
     delBtn.disabled = false;
     return;
   }
+  delBtn.disabled = false;
   removeHistoryRow(historieListEl, entry.id);
   historieLastDayKey = historyLastDayKey(historieListEl);
   const bufferIdx = historieBuffer.findIndex((e) => e.id === entry.id);
   if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
   if (entry._cat === 'fuettern' && entry.type === 'bottle') refreshFuetternAmountChips();
   if (entry._cat === 'fuettern' && entry.type === 'pump') { refreshPumpAmountChips(); syncPumpState(); }
+  if (running) {
+    clearRunningEntryState(entry);
+    if (eintragRunning) returnToEintragOrigin(); else showScreen('heute');
+    return;
+  }
   if (eintragEntry !== entry) return;
   if (currentScreen === 'fuettern' && editingFeedingId) exitFuetternEdit();
   else if (currentScreen === 'windeln' && editingDiaperId) exitWindelnEdit();
@@ -5875,8 +5895,8 @@ async function loadOverview() {
   }
 }
 
-// Ein Zeitverlauf-Eintrag öffnet seine Bearbeiten-Maske (offene Einträge:
-// die Detailansicht), wie ein Zeile der Historie.
+// Ein Zeitverlauf-Eintrag öffnet seine Bearbeiten-Maske (laufende: ihren
+// Timer bzw. die offene Nacht), wie eine Zeile der Historie.
 document.getElementById('timeline-container').addEventListener('click', (ev) => {
   const btn = ev.target.closest('[data-tl]');
   const entry = btn && heuteTimelineEntries[Number(btn.dataset.tl)];

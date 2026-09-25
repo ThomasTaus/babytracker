@@ -240,6 +240,11 @@
   .bd-x { display: none; width: 26px; height: 26px; margin: 0 0 2px 4px; border-radius: 50%; border: none; padding: 0; background: var(--surface-alt); color: var(--text-muted); align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
   .bd-err { display: none; margin-top: -6px; font-size: 12px; color: var(--warn); text-align: center; }
 
+  /* Brust, Abpumpen und Tagsüber öffnen im Timer. Der manuelle Modus liegt
+     hinter diesem Knopf unter der Karte; dort führt er zurück zum Timer. Der
+     negative Rand halbiert den Abstand der Seite, damit er zur Karte gehört. */
+  .mode-alt { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: -14px; padding: 12px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer; }
+
   #screen-fuettern .bt-add { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer; }
 
   /* Der Switcher steht dauerhaft im Kopf und führt auch zurück zur Übersicht.
@@ -645,11 +650,6 @@
       </div>
 
       <div id="breast-panel" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 14px;">
-        <div id="breast-mode-toggle" style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
-          <button id="feed-breast-manual-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Manuell</button>
-          <button id="feed-breast-timer-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Timer</button>
-        </div>
-
         <div id="breast-manual-panel" style="display: flex; flex-direction: column; gap: 14px;">
           <div style="display: flex; gap: 14px;">
             <div style="display: flex; align-items: center; gap: 10px; flex: 1.45; min-width: 0;">
@@ -751,18 +751,14 @@
           <button id="breast-timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong); margin-top:4px;">Start</button>
         </div>
       </div>
+      <button id="breast-mode-alt" class="mode-alt" type="button" style="display: none;"></button>
 
-      <!-- Abpumpen: wie Brust ein Manuell/Timer-Umschalter, aber ohne Segmente.
+      <!-- Abpumpen: wie Brust Timer oder manuell, aber ohne Segmente.
            Die Seitenwahl steht in beiden Modi an derselben Stelle — sie gehört
            zum Eintrag, nicht zur Erfassungsart, und springt beim Umschalten
            deshalb nicht. Links/Rechts sind wie Klein/Groß bei Windeln zwei
            unabhängige Schalter: beide an heißt „beide Seiten". -->
       <div id="pump-panel" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 14px;">
-        <div id="pump-mode-toggle" style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
-          <button id="feed-pump-manual-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Manuell</button>
-          <button id="feed-pump-timer-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Timer</button>
-        </div>
-
         <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Seite</div>
         <div style="display: flex; gap: 10px; margin-top: -6px;">
           <button id="pump-side-left" type="button">
@@ -910,6 +906,7 @@
           </div>
         </div>
       </div>
+      <button id="pump-mode-alt" class="mode-alt" type="button" style="display: none;"></button>
 
     </div>
 
@@ -1152,11 +1149,6 @@
       </div>
 
       <div id="schlafen-day-panel" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 14px;">
-        <div id="nap-mode-toggle" style="display: flex; background: var(--surface-alt); border-radius: 16px; padding: 4px; gap: 4px;">
-          <button id="nap-manual-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Manuell</button>
-          <button id="nap-timer-btn" style="flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer;">Timer</button>
-        </div>
-
         <div id="nap-manual-panel" style="display: flex; flex-direction: column; gap: 14px;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
@@ -1232,6 +1224,7 @@
           <button id="timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Start</button>
         </div>
       </div>
+      <button id="nap-mode-alt" class="mode-alt" type="button" style="display: none;"></button>
 
     </div>
 
@@ -1705,7 +1698,7 @@ function showScreen(target, opts = {}) {
   if (opts.edit) return;
   if (target === 'schlafen') {
     if (editingNightId || editingNapId) exitSchlafenEdit(false);
-    else { resetNapManualForm(); napBackdate.reset(); decideSchlafenDefault(); }
+    else { resetNapManualForm(); napBackdate.reset(); setNapMode('timer'); decideSchlafenDefault(); }
     if (openNapDocId) setNapMode('timer');
   }
   if (target === 'windeln') { if (editingDiaperId) exitWindelnEdit(false); else resetWindelnForm(); }
@@ -1946,10 +1939,8 @@ const fuetternSaveBtn = document.getElementById('fuettern-save');
 const fuetternBottleEditActions = document.getElementById('fuettern-bottle-edit-actions');
 const fuetternBottleUpdateBtn = document.getElementById('fuettern-bottle-update');
 
-// Brust: eigener Manuell/Timer-Umschalter, wie bei Schlafen → Tagsüber.
-const breastModeToggle = document.getElementById('breast-mode-toggle');
-const feedBreastManualBtn = document.getElementById('feed-breast-manual-btn');
-const feedBreastTimerBtn = document.getElementById('feed-breast-timer-btn');
+// Brust: Timer, manuell über den Knopf unter der Karte, wie bei Schlafen → Tagsüber.
+const breastModeAltBtn = document.getElementById('breast-mode-alt');
 const breastManualPanel = document.getElementById('breast-manual-panel');
 const breastTimerPanel = document.getElementById('breast-timer-panel');
 const breastDateInput = document.getElementById('breast-date');
@@ -1980,12 +1971,10 @@ const breastRightTimeEl = document.getElementById('breast-right-time');
 const breastLeftStatEl = document.getElementById('breast-left-stat');
 const breastRightStatEl = document.getElementById('breast-right-stat');
 
-// Abpumpen: eigener Manuell/Timer-Umschalter wie bei Brust, aber ohne
+// Abpumpen: Timer und manuell wie bei Brust, aber ohne
 // Segmente — ein Abpumpvorgang ist Start, Ende und die Seite(n).
 const pumpPanel = document.getElementById('pump-panel');
-const pumpModeToggle = document.getElementById('pump-mode-toggle');
-const feedPumpManualBtn = document.getElementById('feed-pump-manual-btn');
-const feedPumpTimerBtn = document.getElementById('feed-pump-timer-btn');
+const pumpModeAltBtn = document.getElementById('pump-mode-alt');
 const pumpManualPanel = document.getElementById('pump-manual-panel');
 const pumpTimerPanel = document.getElementById('pump-timer-panel');
 const pumpSideLeftBtn = document.getElementById('pump-side-left');
@@ -2016,11 +2005,11 @@ const pumpTimerAmountErrorEl = document.getElementById('pump-timer-amount-error'
 
 let feedType = 'bottle';
 let editingFeedingId = null;
-let breastMode = 'manual';
+let breastMode = 'timer';
 // Oben bei den anderen Modus-Variablen, nicht erst im Abpump-Block weiter
 // unten: setFeedType('bottle') läuft schon beim Laden und würde sonst in die
 // temporale Totzone der let-Deklaration greifen.
-let pumpMode = 'manual';
+let pumpMode = 'timer';
 let pumpLeft = true;
 let pumpRight = true;
 // Gestoppt, aber noch ohne Menge: der Eintrag steht schon in Firestore und
@@ -2040,29 +2029,50 @@ function segStyle(active) {
   return base + (active ? 'background: var(--accent); color: white;' : 'background: transparent; color: var(--text-muted);');
 }
 
-function breastSegStyle(active) {
-  return active
-    ? 'flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: var(--accent); color: white;'
-    : 'flex:1; padding:9px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: transparent; color: var(--text-muted);';
+// Knopf unter der Karte (.mode-alt): im Timer „Manuell eintragen", in der
+// manuellen Maske „Zurück zum Timer". Er fehlt, solange der Timer einen
+// laufenden Eintrag zeigt — ein manueller Eintrag daneben wäre ein zweiter.
+// In der manuellen Maske bleibt er immer da, auch wenn ein anderes Gerät
+// inzwischen einen Timer gestartet hat, sonst käme man nicht mehr zurück.
+const MODE_ALT_TO_MANUAL = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Manuell eintragen';
+const MODE_ALT_TO_TIMER = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M10 2.5h4"/></svg>Zurück zum Timer';
+function renderModeAlt(btn, mode, available, timerBusy) {
+  const show = available && (mode === 'manual' || !timerBusy);
+  btn.style.display = show ? 'flex' : 'none';
+  const html = mode === 'timer' ? MODE_ALT_TO_MANUAL : MODE_ALT_TO_TIMER;
+  if (btn.dataset.mode !== mode) { btn.innerHTML = html; btn.dataset.mode = mode; }
+}
+// Läuft über setFeedType schon beim Laden, bevor openFeedingDocId und
+// openPumpDocId deklariert sind — bis modeAltReady (unten, var) tut es nichts.
+function renderBreastModeAlt() {
+  if (!modeAltReady) return;
+  renderModeAlt(breastModeAltBtn, breastMode, feedType === 'breast' && !editingFeedingId, !!openFeedingDocId);
+}
+// Ein Abpump-Eintrag ohne Menge zeigt immer den Timer (renderPumpFinishState),
+// dann gibt es den Knopf in keinem Modus.
+function renderPumpModeAlt() {
+  if (!modeAltReady) return;
+  renderModeAlt(pumpModeAltBtn, pumpMode, feedType === 'pump' && !editingFeedingId && !pendingPumpDocId, !!openPumpDocId);
 }
 
 function setBreastMode(mode) {
   breastMode = mode;
-  feedBreastManualBtn.setAttribute('style', breastSegStyle(mode === 'manual'));
-  feedBreastTimerBtn.setAttribute('style', breastSegStyle(mode === 'timer'));
   breastManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
   breastTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
+  renderBreastModeAlt();
   renderEntryDeleteBtns();
 }
-feedBreastManualBtn.addEventListener('click', () => setBreastMode('manual'));
-feedBreastTimerBtn.addEventListener('click', () => setBreastMode('timer'));
+breastModeAltBtn.addEventListener('click', () => {
+  setBreastMode(breastMode === 'timer' ? 'manual' : 'timer');
+  fuetternScrollEl.scrollTop = 0;
+});
 
-// Beim Bearbeiten eines Brust-Eintrags gibt es keinen Manuell/Timer-Umschalter
+// Beim Bearbeiten eines Brust-Eintrags gibt es keinen Wechsel zum Timer
 // und keinen eigenen Speichern-Button mehr — stattdessen Aktualisieren/Abbrechen,
 // direkt in der Brust-Karte (wie bei Windeln, keine feste Leiste unten).
 function refreshBreastPanelForEditState() {
   const editing = !!editingFeedingId;
-  breastModeToggle.style.display = editing ? 'none' : 'flex';
+  renderBreastModeAlt();
   breastSaveBtn.parentElement.style.display = editing ? 'none' : 'flex';
   fuetternBreastEditActions.style.display = editing ? 'flex' : 'none';
   if (editing) setBreastMode('manual');
@@ -2103,8 +2113,8 @@ const napBackdate = wireBackdate('nap', () => renderTimerDisplay());
 const breastBackdate = wireBackdate('breast', () => renderBreastTimerDisplay());
 const pumpBackdate = wireBackdate('pump', () => renderPumpTimerDisplay());
 setFeedType('bottle');
-setBreastMode('manual');
-setPumpMode('manual');
+setBreastMode('timer');
+setPumpMode('timer');
 
 function chipStyle(selected) {
   return selected
@@ -2741,6 +2751,7 @@ const BREAST_PAUSE_MARK = '<svg width="12" height="12" viewBox="0 0 24 24" fill=
 
 function renderBreastTimerDisplay() {
   renderEntryDeleteBtns();
+  renderBreastModeAlt();
   const running = !!openFeedingDocId;
   const sec = breastTimerSeconds();
   const leftIsSide = breastTimerSide === 'left';
@@ -3024,21 +3035,21 @@ function pumpSideValue() {
 
 function setPumpMode(mode) {
   pumpMode = mode;
-  feedPumpManualBtn.setAttribute('style', breastSegStyle(mode === 'manual'));
-  feedPumpTimerBtn.setAttribute('style', breastSegStyle(mode === 'timer'));
   pumpManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
   pumpTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
   // Ein unvollständiger Eintrag hat Vorrang vor der Modus-Wahl.
   renderPumpFinishState();
 }
-feedPumpManualBtn.addEventListener('click', () => setPumpMode('manual'));
-feedPumpTimerBtn.addEventListener('click', () => setPumpMode('timer'));
+pumpModeAltBtn.addEventListener('click', () => {
+  setPumpMode(pumpMode === 'timer' ? 'manual' : 'timer');
+  fuetternScrollEl.scrollTop = 0;
+});
 
 // Beim Bearbeiten eines Abpump-Eintrags gibt es wie bei Brust keinen
-// Manuell/Timer-Umschalter mehr, sondern Aktualisieren/Abbrechen in der Karte.
+// Wechsel zum Timer mehr, sondern Aktualisieren/Abbrechen in der Karte.
 function refreshPumpPanelForEditState() {
   const editing = !!editingFeedingId;
-  pumpModeToggle.style.display = editing ? 'none' : 'flex';
+  renderPumpModeAlt();
   pumpSaveBtn.parentElement.style.display = editing ? 'none' : 'flex';
   fuetternPumpEditActions.style.display = editing ? 'flex' : 'none';
   if (editing) setPumpMode('manual');
@@ -3215,8 +3226,8 @@ async function findPendingPumping() {
 }
 
 // Solange ein Eintrag ohne Menge offen ist, gibt es keinen neuen: weder über
-// den Timer noch von Hand. Deshalb verschwinden Manuell/Timer-Umschalter und
-// die manuelle Maske, bis er vervollständigt (oder gelöscht) ist — sonst
+// den Timer noch von Hand. Deshalb verschwinden der Knopf „Manuell eintragen"
+// und die manuelle Maske, bis er vervollständigt (oder gelöscht) ist — sonst
 // entstünde ein zweiter Eintrag, während der erste liegen bleibt.
 function renderPumpFinishState() {
   // Beim Bearbeiten eines anderen Eintrags gilt die Sperre nicht — dort
@@ -3224,12 +3235,11 @@ function renderPumpFinishState() {
   const pending = !!pendingPumpDocId && !editingFeedingId;
   pumpFinishBlock.style.display = pending ? 'flex' : 'none';
   pumpTimerToggleBtn.style.display = pending ? 'none' : 'flex';
+  renderPumpModeAlt();
   if (pending) {
-    pumpModeToggle.style.display = 'none';
     pumpManualPanel.style.display = 'none';
     pumpTimerPanel.style.display = 'flex';
   } else if (!editingFeedingId) {
-    pumpModeToggle.style.display = 'flex';
     pumpManualPanel.style.display = pumpMode === 'manual' ? 'flex' : 'none';
     pumpTimerPanel.style.display = pumpMode === 'timer' ? 'flex' : 'none';
   }
@@ -3469,21 +3479,23 @@ function resetFuetternForm() {
   fuetternTimeInput.value = formatTime(new Date());
   fuetternDateInput.dispatchEvent(new Event('change'));
 
-  setBreastMode('manual');
+  setBreastMode('timer');
   breastDateInput.value = isoDate(new Date());
   breastStartInput.value = breastDefaultStartTime();
   breastDateInput.dispatchEvent(new Event('change'));
   resetBreastSegments();
 
-  setPumpMode('manual');
+  setPumpMode('timer');
   resetPumpManualForm();
 }
 
 // Über das „+" auf Heute kommt man immer für einen Eintrag von jetzt: Datum
 // und Uhrzeit rücken auf die aktuelle Zeit vor. Eine angefangene Brust-
 // Segmentliste bleibt stehen (nur „Abbrechen" verwirft sie), und ein laufender
-// Brust-Timer wird direkt gezeigt.
+// Brust-Timer wird direkt gezeigt. Sonst öffnen Brust und Abpumpen im Timer.
 function prepareFuetternForNewEntry() {
+  if (!breastSegments.length) setBreastMode('timer');
+  setPumpMode('timer');
   amountErrorEl.style.display = 'none';
   breastBackdate.reset();
   pumpBackdate.reset();
@@ -4021,6 +4033,7 @@ function setSchlafenMode(mode) {
   schlafenModeDayBtn.setAttribute('style', schlafenModeStyle(mode === 'day'));
   schlafenNightPanel.style.display = mode === 'night' ? 'flex' : 'none';
   schlafenDayPanel.style.display = mode === 'day' ? 'flex' : 'none';
+  renderNapModeAlt();
   renderEntryDeleteBtns();
 }
 schlafenModeNightBtn.addEventListener('click', () => setSchlafenMode('night'));
@@ -4125,7 +4138,6 @@ function enterSchlafenEdit(entry) {
     editingNightId = null;
     setSchlafenMode('day');
     setNapMode('manual');
-    napModeToggleEl.style.display = 'none';
     const startTs = schlafenBusinessTimestamp(entry);
     napDateInput.value = entry.date || (startTs ? isoDate(startTs) : isoDate(new Date()));
     napStartInput.value = entry.source === 'timer' ? formatTime(new Date(entry.startTime)) : entry.startTime;
@@ -4145,13 +4157,13 @@ function exitSchlafenEdit() {
   endEntryEditChrome();
   schlafenSubtitleEl.textContent = 'Neuer Eintrag';
   schlafenModeToggleEl.style.display = 'flex';
-  napModeToggleEl.style.display = 'flex';
   nightSaveBtn.style.display = '';
   nightEditActions.style.display = 'none';
   napSaveBtn.parentElement.style.display = 'flex';
   napEditActions.style.display = 'none';
   resetNightForm();
   resetNapManualForm();
+  setNapMode('timer');
   decideSchlafenDefault();
 }
 // Die Cancel-/Update-Button-Listener werden erst weiter unten registriert
@@ -4689,9 +4701,7 @@ function setupPastOnlyDateTimeRange(dateInput, startInput, endInput, errorEl) {
   };
 }
 
-// Nachmittagsschlaf: Manuell / Timer
-const napManualBtn = document.getElementById('nap-manual-btn');
-const napTimerBtn = document.getElementById('nap-timer-btn');
+// Nachmittagsschlaf: Timer, manuell über den Knopf unter der Karte
 const napManualPanel = document.getElementById('nap-manual-panel');
 const napTimerPanel = document.getElementById('nap-timer-panel');
 const napDateInput = document.getElementById('nap-date');
@@ -4702,7 +4712,7 @@ const napDurDisplay = document.getElementById('nap-dur-display');
 const napDurDecBtn = document.getElementById('nap-dur-dec');
 const napDurIncBtn = document.getElementById('nap-dur-inc');
 const napSaveBtn = document.getElementById('nap-save');
-const napModeToggleEl = document.getElementById('nap-mode-toggle');
+const napModeAltBtn = document.getElementById('nap-mode-alt');
 const napEditActions = document.getElementById('nap-edit-actions');
 const napUpdateBtn = document.getElementById('nap-update');
 const timerDisplay = document.getElementById('timer-display');
@@ -4710,21 +4720,23 @@ const timerSublabel = document.getElementById('timer-sublabel');
 const timerToggleBtn = document.getElementById('timer-toggle-btn');
 const timerRefreshBtn = document.getElementById('timer-refresh-btn');
 
-function napSegStyle(active) {
-  return active
-    ? 'flex:1; padding:10px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: var(--accent); color: white;'
-    : 'flex:1; padding:10px; border-radius:12px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: transparent; color: var(--text-muted);';
+let napMode = 'timer';
+function renderNapModeAlt() {
+  if (!modeAltReady) return;
+  renderModeAlt(napModeAltBtn, napMode, schlafenDayPanel.style.display !== 'none' && !editingNapId, !!openNapDocId);
 }
 function setNapMode(mode) {
-  napManualBtn.setAttribute('style', napSegStyle(mode === 'manual'));
-  napTimerBtn.setAttribute('style', napSegStyle(mode === 'timer'));
+  napMode = mode;
   napManualPanel.style.display = mode === 'manual' ? 'flex' : 'none';
   napTimerPanel.style.display = mode === 'timer' ? 'flex' : 'none';
+  renderNapModeAlt();
   renderEntryDeleteBtns();
 }
-napManualBtn.addEventListener('click', () => setNapMode('manual'));
-napTimerBtn.addEventListener('click', () => setNapMode('timer'));
-setNapMode('manual');
+napModeAltBtn.addEventListener('click', () => {
+  setNapMode(napMode === 'timer' ? 'manual' : 'timer');
+  schlafenScrollEl.scrollTop = 0;
+});
+setNapMode('timer');
 
 function renderNapDuration() {
   const minutes = Math.max(0, parseMinutes(napEndInput.value) - parseMinutes(napStartInput.value));
@@ -4822,6 +4834,7 @@ async function findOpenNap() {
 
 function renderTimerDisplay() {
   renderEntryDeleteBtns();
+  renderNapModeAlt();
   napBackdate.setVisible(!openNapStartedAt);
   if (!openNapStartedAt) {
     renderBackdatePreview(napBackdate, timerDisplay, timerSublabel, 'Bereit zum Start');
@@ -5419,6 +5432,12 @@ const entryDeleteBtns = {};
 // Timer schon beim Laden, bevor diese Zeile erreicht ist — bis dahin tut es
 // nichts (kein Zugriff in die temporale Totzone späterer Deklarationen).
 var entryDeleteReady = true;
+// Dasselbe für den Knopf unter der Karte (renderModeAlt): ab hier sind alle
+// Timer-Zustände deklariert, also einmal nachzeichnen.
+var modeAltReady = true;
+renderBreastModeAlt();
+renderPumpModeAlt();
+renderNapModeAlt();
 
 function entryIsBeingEdited(cat) {
   if (cat === 'fuettern') return !!editingFeedingId;

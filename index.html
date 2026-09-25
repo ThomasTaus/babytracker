@@ -66,7 +66,7 @@
      Titel bündig links bleiben. */
   .back-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 2px; margin: 0 0 -16px -4px; padding: 4px 10px 4px 2px; border: none; background: none; border-radius: 8px; color: var(--text-muted); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
 
-  .tl-all-btn { display: inline-flex; align-items: center; gap: 3px; border: none; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--neutral-strong); background: var(--surface-alt); border-radius: 10px; padding: 5px 7px 5px 10px; }
+  .tl-all-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; border: none; cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 700; color: var(--neutral-strong); background: var(--surface-alt); border-radius: 14px; padding: 13px 10px; }
 
   /* Gemeinsame Historie */
   #screen-historie .h-chip { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 6px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); white-space: nowrap; cursor: pointer; font-family: inherit; }
@@ -525,10 +525,7 @@
         </div>
       </div>
 
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Zeitverlauf</label>
-        <button id="heute-all-entries" class="tl-all-btn">Alle Einträge<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-      </div>
+      <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Zeitverlauf</label>
     </div>
 
     <div style="padding: 8px 24px 16px;">
@@ -536,6 +533,9 @@
         <div id="timeline-container" style="padding: 18px 22px 18px 18px; display: flex; flex-direction: column;">
           <div style="font-size: 13px; color: var(--text-muted);">Lade…</div>
         </div>
+      </div>
+      <div style="margin-top: 14px;">
+        <button id="heute-all-entries" class="tl-all-btn">Alle Einträge<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
       </div>
     </div>
     </div>

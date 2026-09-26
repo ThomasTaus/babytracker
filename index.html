@@ -3555,6 +3555,18 @@ function breastSegmentsFromEntry(entry) {
   return minutes > 0 ? [{ side: null, minutes }] : [];
 }
 
+// Seitenangabe für den Zeitverlauf: beide Seiten mit Minuten, eine Seite
+// nur als „nur L“/„nur R“ (die Gesamtdauer steht schon davor).
+function breastSidesDetail(entry) {
+  if (entry.leftMinutes == null || entry.rightMinutes == null) return '';
+  const left = Number(entry.leftMinutes) || 0;
+  const right = Number(entry.rightMinutes) || 0;
+  if (left > 0 && right > 0) return ' · ' + left + ' Min L · ' + right + ' Min R';
+  if (left > 0) return ' · nur L';
+  if (right > 0) return ' · nur R';
+  return '';
+}
+
 // Zeitfeld aus einem Eintrag: manuelle Einträge tragen "HH:MM", Timer-Einträge
 // einen ISO-Zeitstempel. Ohne beides bleibt der Ersatzwert.
 function fuetternTimeFieldValue(value, fallback) {
@@ -5751,8 +5763,7 @@ async function loadOverview() {
         ts,
         color: 'var(--fuettern)',
         label: f.type === 'bottle' ? 'Fläschchen' : 'Brust',
-        detail: f.type === 'bottle' ? ' · ' + f.amount + ' ml' : ' · ' + f.minutes + ' Min' +
-          (f.leftMinutes != null && f.rightMinutes != null ? ' · ' + (Number(f.leftMinutes) || 0) + ' Min L · ' + (Number(f.rightMinutes) || 0) + ' Min R' : ''),
+        detail: f.type === 'bottle' ? ' · ' + f.amount + ' ml' : ' · ' + f.minutes + ' Min' + breastSidesDetail(f),
         entry: { ...f, _cat: 'fuettern' }
       });
     });

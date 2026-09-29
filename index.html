@@ -6346,7 +6346,10 @@ function computeFuetternAnalysis(days, feedMap) {
       breastRightMin: breast.reduce((s, f) => s + (Number(f.rightMinutes) || 0), 0),
       pumpMl: pumped.reduce((s, f) => s + (Number(f.amount) || 0), 0),
       pumpCount: pumped.length,
-      intervalH: analyseIntervalH(docs)
+      intervalH: analyseIntervalH(docs),
+      // Für die Kacheln, wenn die Legende von „Fütterungen pro Tag“ eine Art isoliert
+      intervalBottleH: analyseIntervalH(bottle),
+      intervalBreastH: analyseIntervalH(breast)
     };
   });
   const totalDays = analyseTotalDays(days);
@@ -6362,7 +6365,10 @@ function computeFuetternAnalysis(days, feedMap) {
   const totalSideMin = totalLeftMin + totalRightMin;
   const totalPumpMl = perDay.reduce((s, d) => s + d.pumpMl, 0);
 
-  const avgIntervalH = analyseIntervalH(feedMap.flat().filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f)));
+  const allMeals = feedMap.flat().filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f));
+  const avgIntervalH = analyseIntervalH(allMeals);
+  const avgIntervalBottleH = analyseIntervalH(allMeals.filter((f) => f.type === 'bottle'));
+  const avgIntervalBreastH = analyseIntervalH(allMeals.filter((f) => f.type === 'breast'));
 
   const bottlePct = totalCount > 0 ? analyseRound(totalBottle / totalCount * 100) : 0;
   const breastPct = totalCount > 0 ? 100 - bottlePct : 0;
@@ -6372,7 +6378,7 @@ function computeFuetternAnalysis(days, feedMap) {
   return {
     perDay,
     avgPerDay: analyseRound(totalCount / totalDays),
-    avgIntervalH,
+    avgIntervalH, avgIntervalBottleH, avgIntervalBreastH,
     bottlePct, breastPct,
     avgBottleMl: analyseRound(totalMl / totalDays),
     avgBreastMin: analyseRound(totalBreastMin / totalDays),
@@ -7028,16 +7034,20 @@ const SCHLAFEN_CHARTS = {
 // Jede Funktion liefert die Werte einmal für den ganzen Ausschnitt (b == null)
 // und einmal für einen markierten Balken. Ein Wert ist entweder Text oder
 // { v, c } mit eigener Farbe.
+// Anzahl und Abstand folgen der Legende von „Fütterungen pro Tag“: ist dort
+// Fläschchen oder Brust isoliert, zählen die beiden Kacheln nur diese Art.
 function fuetternStatValues(a, b) {
+  const only = analyseFilter['fu-anzahl'];
+  const hours = (h) => (h === null ? '–' : analyseDe1(h) + ' h');
   if (!b) return {
-    count: analyseDe1(a.avgPerDayExact),
-    interval: a.avgIntervalH === null ? '–' : analyseDe1(a.avgIntervalH) + ' h',
+    count: analyseDe1(only === 'bottle' ? a.avgBottleCountExact : only === 'breast' ? a.avgBreastCountExact : a.avgPerDayExact),
+    interval: hours(only === 'bottle' ? a.avgIntervalBottleH : only === 'breast' ? a.avgIntervalBreastH : a.avgIntervalH),
     mm: a.mmPctExact === null ? '–' : analyseRound(a.mmPctExact) + ' %'
   };
-  const total = b.bottleCount + b.breastCount;
+  const total = only === 'bottle' ? b.bottleCount : only === 'breast' ? b.breastCount : b.bottleCount + b.breastCount;
   return {
     count: analyseCount(total / b.daysElapsed, b.daysElapsed === 1),
-    interval: b.intervalH === null ? '–' : analyseDe1(b.intervalH) + ' h',
+    interval: hours(only === 'bottle' ? b.intervalBottleH : only === 'breast' ? b.intervalBreastH : b.intervalH),
     mm: b.bottleMl > 0 ? analyseRound(b.bottleMmMl / b.bottleMl * 100) + ' %' : '–'
   };
 }

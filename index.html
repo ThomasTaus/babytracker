@@ -216,6 +216,9 @@
   #screen-fuettern .bt-numfield input::-webkit-outer-spin-button,
   #screen-fuettern .bt-numfield input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   #screen-fuettern .bt-numfield .u { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  /* Fläschchen: Muttermilch oder Pre-Nahrung. Gleiche Farben wie die Mengen-Chips. */
+  #screen-fuettern .milk-chip { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 8px; border-radius: 11px; font-size: 13.5px; font-weight: 600; font-family: inherit; white-space: nowrap; cursor: pointer; background: var(--surface-alt); color: var(--text-muted); border: 1.5px solid transparent; }
+  #screen-fuettern .milk-chip.on { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
   #screen-fuettern .bt-chip { width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-strong); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: none; font-family: inherit; cursor: pointer; }
   #screen-fuettern .bt-chip.bt-chip-empty { background: var(--surface-alt); color: var(--text-muted); }
   #screen-fuettern .bt-stp { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
@@ -600,6 +603,28 @@
       </div>
 
       <div id="bottle-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
+            <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
+            <line x1="9" y1="12" x2="15" y2="12"/>
+          </svg>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Milch</div>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button type="button" class="milk-chip" data-milk="breastmilk">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 4c3.2 4.1 6.4 7.8 6.4 11.4A6.4 6.4 0 1 1 5.6 15.4C5.6 11.8 8.8 8.1 12 4z"/></svg>
+                Muttermilch
+              </button>
+              <button type="button" class="milk-chip" data-milk="formula">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="5.5" y="7" width="13" height="13.5" rx="2.5"/><path d="M6.5 7V5.2c0-.7.5-1.2 1.2-1.2h8.6c.7 0 1.2.5 1.2 1.2V7"/><line x1="9" y1="12.5" x2="15" y2="12.5"/></svg>
+                Pre-Nahrung
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 1px; background: var(--border);"></div>
+
         <div style="display: flex; align-items: center; gap: 10px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
             <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
@@ -2364,6 +2389,33 @@ async function refreshFuetternAmountChips() {
   buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
 }
 
+// Fläschchen: Muttermilch oder Pre-Nahrung (Feld `milk`). Einträge von vor
+// der Unterscheidung haben kein Feld und zählen als Pre-Nahrung. Ein neuer
+// Eintrag startet mit der Milch, die auf diesem Gerät zuletzt gespeichert wurde.
+// Die Mengen-Chips bleiben für beide Milcharten dieselben.
+const BOTTLE_MILK_KEY = 'babytracker.flaschenMilch';
+const milkChipEls = document.querySelectorAll('#bottle-panel .milk-chip');
+function entryMilk(entry) {
+  return entry.milk === 'breastmilk' ? 'breastmilk' : 'formula';
+}
+function milkLabel(entry) {
+  return entryMilk(entry) === 'breastmilk' ? 'Muttermilch' : 'Pre';
+}
+function lastUsedMilk() {
+  try { return localStorage.getItem(BOTTLE_MILK_KEY) === 'breastmilk' ? 'breastmilk' : 'formula'; } catch (e) { return 'formula'; }
+}
+let bottleMilk = lastUsedMilk();
+function setBottleMilk(milk) {
+  bottleMilk = milk === 'breastmilk' ? 'breastmilk' : 'formula';
+  milkChipEls.forEach((el) => {
+    const on = el.dataset.milk === bottleMilk;
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+milkChipEls.forEach((el) => el.addEventListener('click', () => setBottleMilk(el.dataset.milk)));
+setBottleMilk(bottleMilk);
+
 buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
 amountInput.addEventListener('input', () => { buildChips(amountChipsEl, fuetternAmountChips, '', amountInput); amountIsValid(); });
 
@@ -2375,6 +2427,7 @@ fuetternSaveBtn.addEventListener('click', async () => {
   if (!currentUser || !fuetternTimeIsValid() || !amountIsValid()) return;
   const entry = {
     type: 'bottle',
+    milk: bottleMilk,
     amount: Number(amountInput.value),
     minutes: null,
     date: fuetternDateInput.value,
@@ -2385,6 +2438,7 @@ fuetternSaveBtn.addEventListener('click', async () => {
   fuetternSaveBtn.disabled = true;
   try {
     await addFeeding(entry);
+    try { localStorage.setItem(BOTTLE_MILK_KEY, entry.milk); } catch (e) {}
     fuetternSaveBtn.disabled = false;
     refreshFuetternAmountChips();
     afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--fuettern)');
@@ -3481,6 +3535,7 @@ const fuetternScrollEl = screens.fuettern.firstElementChild;
 
 function resetFuetternForm() {
   setFeedType('bottle');
+  setBottleMilk(lastUsedMilk());
   amountInput.value = fuetternAmountChips[Math.floor(fuetternAmountChips.length / 2)];
   buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
   amountErrorEl.style.display = 'none';
@@ -3582,6 +3637,7 @@ function enterFuetternEdit(entry) {
   editingFeedingId = entry.id;
   setFeedType(entry.type);
   if (entry.type === 'bottle') {
+    setBottleMilk(entryMilk(entry));
     amountInput.value = entry.amount || fuetternAmountChips[Math.floor(fuetternAmountChips.length / 2)];
     buildChips(amountChipsEl, fuetternAmountChips, '', amountInput);
     amountErrorEl.style.display = 'none';
@@ -3651,6 +3707,7 @@ async function handleFuetternUpdate(triggerBtn) {
     if (!fuetternTimeIsValid() || !amountIsValid()) return;
     entry = {
       type: 'bottle',
+      milk: bottleMilk,
       amount: Number(amountInput.value),
       minutes: null,
       durationMinutes: null,
@@ -5196,7 +5253,7 @@ function historieIsOpen(entry) {
 function historieDetail(entry) {
   const open = historieIsOpen(entry);
   if (entry._cat === 'fuettern') {
-    if (entry.type === 'bottle') return { icon: 'bottle', main: 'Fläschchen', rest: (entry.amount || 0) + ' ml' };
+    if (entry.type === 'bottle') return { icon: 'bottle', main: 'Fläschchen', rest: milkLabel(entry) + ' · ' + (entry.amount || 0) + ' ml' };
     if (entry.type === 'pump') return { icon: 'pump', main: 'Abpumpen', rest: !open ? pumpDetailText(entry) : (entry.endTime === null ? 'Läuft…' : 'unvollständig') };
     return { icon: 'breast', main: 'Brust', rest: open ? 'Läuft…' : breastDetailText(entry) };
   }
@@ -5392,7 +5449,7 @@ function openEintragEdit() {
 // Felder, die die jeweiligen Aktualisieren-Handler schreiben.
 function entryEditSignature() {
   if (editingFeedingId) {
-    if (feedType === 'bottle') return JSON.stringify(['bottle', amountInput.value, fuetternDateInput.value, fuetternTimeInput.value]);
+    if (feedType === 'bottle') return JSON.stringify(['bottle', bottleMilk, amountInput.value, fuetternDateInput.value, fuetternTimeInput.value]);
     if (feedType === 'pump') return JSON.stringify(['pump', pumpDateInput.value, pumpStartInput.value, pumpEndInput.value, pumpLeft, pumpRight, pumpAmountInput.value]);
     return JSON.stringify(['breast', breastDateInput.value, breastStartInput.value, breastSegments.map((s) => [s.side, s.minutes])]);
   }
@@ -5747,7 +5804,7 @@ async function loadOverview() {
       fuetternBadge.style.display = 'none';
       fuetternAgoEl.textContent = timeAgo(entryBusinessTimestamp(lastFeeding));
       document.getElementById('fuettern-detail').textContent = lastFeeding.type === 'bottle'
-        ? 'Fläschchen · ' + lastFeeding.amount + ' ml'
+        ? 'Fläschchen · ' + milkLabel(lastFeeding) + ' · ' + lastFeeding.amount + ' ml'
         : 'Brust · ' + lastFeeding.minutes + ' Min';
     } else {
       fuetternBadge.style.display = 'none';
@@ -5763,7 +5820,7 @@ async function loadOverview() {
         ts,
         color: 'var(--fuettern)',
         label: f.type === 'bottle' ? 'Fläschchen' : 'Brust',
-        detail: f.type === 'bottle' ? ' · ' + f.amount + ' ml' : ' · ' + f.minutes + ' Min' + breastSidesDetail(f),
+        detail: f.type === 'bottle' ? ' · ' + milkLabel(f) + ' · ' + f.amount + ' ml' : ' · ' + f.minutes + ' Min' + breastSidesDetail(f),
         entry: { ...f, _cat: 'fuettern' }
       });
     });

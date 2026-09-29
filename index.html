@@ -6335,6 +6335,9 @@ function computeFuetternAnalysis(days, feedMap) {
       weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
       bottleCount: bottle.length, breastCount: breast.length,
       bottleMl: bottle.reduce((s, f) => s + (f.amount || 0), 0),
+      // Nach Milchart getrennt; ohne Angabe zählt ein Fläschchen als Pre.
+      bottleMmMl: bottle.filter((f) => entryMilk(f) === 'breastmilk').reduce((s, f) => s + (f.amount || 0), 0),
+      bottlePreMl: bottle.filter((f) => entryMilk(f) === 'formula').reduce((s, f) => s + (f.amount || 0), 0),
       breastMin: breast.reduce((s, f) => s + (f.minutes || 0), 0),
       // Seitenzeiten getrennt: Einträge ohne Seitenangabe zählen hier nicht
       // mit, deshalb ist links + rechts nicht zwangsläufig breastMin. Die
@@ -6351,6 +6354,8 @@ function computeFuetternAnalysis(days, feedMap) {
   const totalBottle = perDay.reduce((s, d) => s + d.bottleCount, 0);
   const totalBreast = perDay.reduce((s, d) => s + d.breastCount, 0);
   const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
+  const totalMmMl = perDay.reduce((s, d) => s + d.bottleMmMl, 0);
+  const totalPreMl = perDay.reduce((s, d) => s + d.bottlePreMl, 0);
   const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
   const totalLeftMin = perDay.reduce((s, d) => s + d.breastLeftMin, 0);
   const totalRightMin = perDay.reduce((s, d) => s + d.breastRightMin, 0);
@@ -6377,6 +6382,10 @@ function computeFuetternAnalysis(days, feedMap) {
     avgBottleCountExact: totalBottle / totalDays,
     avgBreastCountExact: totalBreast / totalDays,
     avgBottleMlExact: totalMl / totalDays,
+    avgBottleMmMlExact: totalMmMl / totalDays,
+    avgBottlePreMlExact: totalPreMl / totalDays,
+    // Anteil der Muttermilch an der Fläschchen-Menge; ohne Fläschchen null.
+    mmPctExact: totalMl > 0 ? totalMmMl / totalMl * 100 : null,
     avgBreastMinExact: totalBreastMin / totalDays,
     avgBreastLeftMinExact: totalLeftMin / totalDays,
     avgBreastRightMinExact: totalRightMin / totalDays,
@@ -6912,8 +6921,13 @@ const FUETTERN_CHARTS = {
   },
   'fu-menge': {
     type: 'area',
-    title: 'Trinkmenge (Fläschchen)',
-    series: [{ key: 'ml', label: 'Trinkmenge', color: FUETTERN_COLOR, value: (d) => d.bottleMl / d.daysElapsed, mean: (a) => a.avgBottleMlExact }],
+    // Gestapelt: Muttermilch unten und dunkel, Pre darüber und hell. „(Fläschchen)"
+    // entfällt, sonst bricht der Titel neben der Legende um — ml gibt es nur dort.
+    title: 'Trinkmenge',
+    series: [
+      { key: 'mm', label: 'Muttermilch', color: FUETTERN_COLOR, value: (d) => d.bottleMmMl / d.daysElapsed, mean: (a) => a.avgBottleMmMlExact },
+      { key: 'pre', label: 'Pre', color: FUETTERN_BREAST_COLOR, value: (d) => d.bottlePreMl / d.daysElapsed, mean: (a) => a.avgBottlePreMlExact }
+    ],
     headline: (v) => 'Ø ' + analyseRound(v) + ' ml / Tag',
     tipValue: (v) => analyseRound(v) + ' ml',
     detail: (v) => analyseRound(v) + ' ml'
@@ -7018,14 +7032,13 @@ function fuetternStatValues(a, b) {
   if (!b) return {
     count: analyseDe1(a.avgPerDayExact),
     interval: a.avgIntervalH === null ? '–' : analyseDe1(a.avgIntervalH) + ' h',
-    split: a.bottlePct + '% / ' + a.breastPct + '%'
+    mm: a.mmPctExact === null ? '–' : analyseRound(a.mmPctExact) + ' %'
   };
   const total = b.bottleCount + b.breastCount;
-  const bottlePct = total > 0 ? analyseRound(b.bottleCount / total * 100) : 0;
   return {
     count: analyseCount(total / b.daysElapsed, b.daysElapsed === 1),
     interval: b.intervalH === null ? '–' : analyseDe1(b.intervalH) + ' h',
-    split: total > 0 ? bottlePct + '% / ' + (100 - bottlePct) + '%' : '–'
+    mm: b.bottleMl > 0 ? analyseRound(b.bottleMmMl / b.bottleMl * 100) + ' %' : '–'
   };
 }
 
@@ -7097,7 +7110,7 @@ const ANALYSE_SECTION_UI = {
     tiles: [
       { key: 'count', cap: 'FÜTTERUNGEN', capAvg: 'Ø / TAG' },
       { key: 'interval', cap: 'ABSTAND', capAvg: 'Ø ABSTAND' },
-      { key: 'split', cap: 'FLASCHE / BRUST' }
+      { key: 'mm', cap: 'MUTTERMILCH' }
     ],
     stats: fuetternStatValues,
     insight: { bg: 'var(--fuettern-soft)', fg: 'oklch(38% 0.09 250)' }
@@ -7298,26 +7311,40 @@ function secAreaInner(chartId, cfg, analysis) {
   const baseline = 95, topY = 5;
   // Auch die Flächendiagramme fragen die sichtbare Reihe ab: die Stilldauer
   // wird von der Seitenwahl der Balance-Karte gesteuert.
-  const se = secVisibleSeries(chartId, cfg)[0];
-  const totals = bs.map((b) => se.value(b));
-  const mean = se.mean(analysis) || 0;
+  // Zwei sichtbare Reihen (Trinkmenge: Muttermilch/Pre) werden gestapelt: die
+  // erste liegt unten, die Linie zeichnet die Summe. Linie, Punkte und Ø nehmen
+  // die Farbe der ersten Reihe.
+  const series = secVisibleSeries(chartId, cfg);
+  const se = series[0];
+  const stacked = series.length > 1;
+  const totals = bs.map((b) => series.reduce((s, r) => s + r.value(b), 0));
+  const mean = series.reduce((s, r) => s + (r.mean(analysis) || 0), 0);
   const maxVal = Math.max(1, ...totals, mean);
   const x = scalePoint().domain(bs.map((_, i) => i)).range([19, 289]);
   const y = scaleLinear().domain([0, maxVal]).range([baseline, topY]);
   const cxOf = (i) => x(i);
   const step = bs.length > 1 ? x(1) - x(0) : 270;
   analyseRender[chartId] = {
-    cfg, bs, series: [se], totals, mean, cxOf, yOf: (v) => y(v), step,
+    cfg, bs, series, totals, mean, cxOf, yOf: (v) => y(v), step,
     idxAt: (vx) => Math.round((vx - x(0)) / step)
   };
 
-  const pts = bs.map((b, i) => ({ x: x(i), y: y(se.value(b)) }));
-  const areaPath = d3Area().x((p) => p.x).y0(baseline).y1((p) => p.y).curve(curveLinear).digits(10)(pts);
+  const pts = bs.map((b, i) => ({ x: x(i), y: y(totals[i]) }));
   const linePath = d3Line().x((p) => p.x).y((p) => p.y).curve(curveLinear).digits(10)(pts);
   const gid = 'grad-' + chartId, cid = 'clip-' + chartId;
-  const curve = '<path d="' + areaPath + '" fill="url(#' + gid + ')"/>' +
-    '<path d="' + linePath + '" fill="none" stroke="' + se.color +
+  const line = '<path d="' + linePath + '" fill="none" stroke="' + se.color +
     '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
+  let curve;
+  if (stacked) {
+    const lows = bs.map((b, i) => ({ x: x(i), y0: y(0), y1: y(se.value(b)), yt: pts[i].y }));
+    const lowPath = d3Area().x((p) => p.x).y0((p) => p.y0).y1((p) => p.y1).curve(curveLinear).digits(10)(lows);
+    const topPath = d3Area().x((p) => p.x).y0((p) => p.y1).y1((p) => p.yt).curve(curveLinear).digits(10)(lows);
+    curve = '<path d="' + topPath + '" fill="' + series[1].color + '" fill-opacity="0.75"/>' +
+      '<path d="' + lowPath + '" fill="' + se.color + '" fill-opacity="0.85"/>' + line;
+  } else {
+    const areaPath = d3Area().x((p) => p.x).y0(baseline).y1((p) => p.y).curve(curveLinear).digits(10)(pts);
+    curve = '<path d="' + areaPath + '" fill="url(#' + gid + ')"/>' + line;
+  }
 
   let out = '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
       '<stop offset="0%" stop-color="' + se.color + '" stop-opacity="0.35"/>' +

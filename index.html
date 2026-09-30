@@ -4537,10 +4537,7 @@ function nightWindowText() {
 // Eine Nacht (das Fenster, das an `day` endet) aus Sicht aller Schlafspannen.
 // pending: das Fenster ist noch nicht vorbei. missing: kein Schlaf im Fenster —
 // dann zählt die volle Fensterlänge als wach, damit die Lücke auffällt.
-// Wach ist das ganze Fenster minus Schlaf — auch die Zeit vor dem ersten und
-// nach dem letzten Schlaf (seit 2026-09-30; zuvor zählten nur die Lücken
-// dazwischen, dann fehlte etwa ein wacher Abend bis Mitternacht). Schlaf und
-// wach ergeben so immer die Fensterlänge.
+// Wach sind nur die Lücken zwischen erstem und letztem Schlaf im Fenster.
 // bed/wake: Beginn des ersten und Ende des letzten Schlafs, der ins Fenster
 // reicht — echte Uhrzeiten, auch außerhalb des Fensters.
 function analyseNightWindow(day, sleeps, now) {
@@ -4549,14 +4546,13 @@ function analyseNightWindow(day, sleeps, now) {
   if (win.end > now) return { pending: true, win, windowMin };
   const hits = sleeps.filter((iv) => spanOverlapMinutes(iv, win) > 0).sort((a, b) => a.start - b.start);
   if (!hits.length) return { missing: true, win, windowMin, sleepMin: 0, wakeMin: windowMin };
-  // Überlappende Einträge zusammenlegen, damit doppelt erfasster Schlaf nicht
-  // doppelt zählt.
-  let sleepMin = 0, curStart = null, curEnd = null;
+  let sleepMin = 0, wakeMin = 0, curStart = null, curEnd = null;
   hits.forEach((iv) => {
     const s = Math.max(iv.start, win.start), e = Math.min(iv.end, win.end);
     if (curEnd === null) { curStart = s; curEnd = e; return; }
     if (s > curEnd) {
       sleepMin += (curEnd - curStart) / 60000;
+      wakeMin += (s - curEnd) / 60000;
       curStart = s;
       curEnd = e;
     } else {
@@ -4565,7 +4561,7 @@ function analyseNightWindow(day, sleeps, now) {
   });
   sleepMin += (curEnd - curStart) / 60000;
   const wake = new Date(Math.max(...hits.map((iv) => iv.end.getTime())));
-  return { win, windowMin, sleepMin, wakeMin: windowMin - sleepMin, bed: hits[0].start, wake };
+  return { win, windowMin, sleepMin, wakeMin, bed: hits[0].start, wake };
 }
 
 napUpdateBtn.addEventListener('click', async () => {
@@ -6494,7 +6490,7 @@ const SCHLAFEN_CHARTS = {
     tipValue: (v) => analyseHhmm(v) + ' Std.',
     detail: (v) => analyseHhmm(v)
   },
-  // Nachtfenster minus Schlaf (siehe analyseNightWindow). Eine Nacht ohne
+  // Wach zwischen erstem und letztem Schlaf im Nachtfenster. Eine Nacht ohne
   // Einträge steht mit der vollen Fensterlänge und in Warnfarbe da; die
   // Ø-Linie rechnet sie nicht mit.
   'schlaf-wach': {

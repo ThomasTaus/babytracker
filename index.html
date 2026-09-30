@@ -300,15 +300,6 @@
   #screen-analyse .a-ov-primary .unit { font-family: 'Work Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: var(--text-muted); margin-left: 5px; }
   #screen-analyse .a-ov-secondary { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   #screen-analyse .a-ov-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 11.5px; font-weight: 600; margin-top: 2px; }
-  #screen-analyse .a-hist-wrap { position: relative; }
-  #screen-analyse .a-hist-scroller { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-  #screen-analyse .a-hist-scroller::-webkit-scrollbar { display: none; }
-  #screen-analyse .a-hist-fade { position: absolute; top: 0; bottom: 0; width: 22px; pointer-events: none; opacity: 0; transition: opacity .15s ease; z-index: 1; }
-  #screen-analyse .a-hist-fade-l { left: 0; background: linear-gradient(to right, var(--surface), transparent); }
-  #screen-analyse .a-hist-fade-r { right: 0; background: linear-gradient(to left, var(--surface), transparent); }
-  #screen-analyse .a-hist-chev { position: absolute; top: 0; bottom: 0; width: 14px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s ease; z-index: 2; color: var(--text-muted); pointer-events: none; }
-  #screen-analyse .a-hist-chev-l { left: -15px; transform: scaleX(-1); }
-  #screen-analyse .a-hist-chev-r { right: -15px; }
 
   /* --- Interaktive Diagramme (Schlafen) --------------------------------- */
   /* Kontextzeile direkt unter den Einheiten-Chips: sagt, welcher Ausschnitt
@@ -4567,21 +4558,6 @@ function analyseNightWindow(day, sleeps, now) {
   return { win, windowMin, sleepMin, wakeMin, wakeCount, bed: hits[0].start, wake };
 }
 
-// Der Tag, zu dem ein Schlaf in der Analyse gehört: Schlaf ab Beginn des
-// Nachtfensters zählt schon zum nächsten Morgen (wie die Nacht selbst).
-function sleepDayKey(iv) {
-  const d = new Date(iv.start);
-  d.setHours(0, 0, 0, 0);
-  const next = new Date(d);
-  next.setDate(next.getDate() + 1);
-  if (iv.start >= nightWindowEnding(next).start) return isoDate(next);
-  if (iv.start < nightWindowEnding(d).start) {
-    d.setDate(d.getDate() - 1);
-    return isoDate(d);
-  }
-  return isoDate(d);
-}
-
 napUpdateBtn.addEventListener('click', async () => {
   if (!currentUser || !editingNapId || !napTimeIsValid()) return;
   const minutes = renderNapDuration();
@@ -5923,29 +5899,25 @@ function computeWindelnAnalysis(days, diaperMap) {
   };
 }
 
-// Uhrzeit des Schlafs: wann ein Schlaf beginnt, über den ganzen Tag. Seit es
-// keine eigene Nacht-Eingabe mehr gibt, liegt Schlaf zu jeder Stunde an; das
-// Nachtfenster ist im Diagramm hinterlegt (nightHourBins).
-const NAP_HIST_START = 0, NAP_HIST_END = 24, NAP_HIST_BINS = NAP_HIST_END - NAP_HIST_START;
-// Side margin for the histogram's own SVG coordinate space — wide enough
-// that a text-anchor:middle two-digit hour label (e.g. "20") at the very
-// first/last tick doesn't overflow the viewBox and get clipped.
-const NAP_HIST_MARGIN_X = 12;
+// Uhrzeit des Schlafs: jeder Tag als 24-Stunden-Band ab Beginn seiner Nacht
+// (die Nacht gehört zum Morgen), geteilt in 96 Viertelstunden. Je Viertelstunde
+// zählt, wie viel davon geschlafen wurde (0–1, minutengenau); über mehrere
+// Tage wird gemittelt — „Anteil der Tage mit Schlaf". Viertelstunden in der
+// Zukunft und vor dem ersten erfassten Schlaf zählen nicht mit; eine Nacht
+// ohne Einträge zählt als 0.
+const SLEEP_SLOT_MIN = 15, SLEEP_SLOTS = 96;
 
-function computeNapHistogram(sleeps) {
-  const bins = new Array(NAP_HIST_BINS).fill(0);
-  sleeps.forEach((iv) => { bins[iv.start.getHours()]++; });
-  return bins;
-}
-
-// Welche Stunden-Säulen im Nachtfenster liegen (die Mitte der Stunde zählt).
-function nightHourBins() {
-  const p = readProfil();
-  const from = parseMinutes(p.nightFrom), to = parseMinutes(p.nightTo);
-  return Array.from({ length: NAP_HIST_BINS }, (_, h) => {
-    const m = h * 60 + 30;
-    return from > to ? (m >= from || m < to) : (m >= from && m < to);
+// Überlappende Schlafspannen zusammenlegen (doppelt erfasster Schlaf zählt
+// einmal). Ergebnis nach Beginn sortiert, in Millisekunden.
+function mergeSleepSpans(spans) {
+  const sorted = spans.map((iv) => [iv.start.getTime(), iv.end.getTime()]).sort((a, b) => a[0] - b[0]);
+  const out = [];
+  sorted.forEach(([s, e]) => {
+    const last = out[out.length - 1];
+    if (last && s <= last[1]) last[1] = Math.max(last[1], e);
+    else out.push([s, e]);
   });
+  return out;
 }
 
 // „Die Nacht auf Sonntag, 28. September" — die Nacht heißt nach ihrem Morgen.
@@ -5967,16 +5939,22 @@ function computeSchlafenAnalysis(days, sleepSpans) {
   const sleeps = sleepSpans.map((iv) => {
     const total = (iv.end - iv.start) / 60000;
     const nightMin = sleepNightMinutes(iv);
-    return { start: iv.start, end: iv.end, dayMin: total - nightMin, isNight: sleepIsNight(iv), dayKey: sleepDayKey(iv) };
+    return { start: iv.start, end: iv.end, dayMin: total - nightMin, isNight: sleepIsNight(iv) };
   });
   const dataStart = sleeps.length ? Math.min(...sleeps.map((iv) => iv.start.getTime())) : null;
   const p = readProfil();
   const clock = (base, offsetMin) => minutesToHHMM(parseMinutes(base) + offsetMin);
   const allNights = [];
+  const merged = mergeSleepSpans(sleeps);
+  let mergedIdx = 0;
+  const slotMs = SLEEP_SLOT_MIN * 60000;
+  const allSlotSum = new Array(SLEEP_SLOTS).fill(0), allSlotCount = new Array(SLEEP_SLOTS).fill(0);
+  const share = (sum, count) => sum.map((s, i) => (count[i] ? s / count[i] : null));
 
   const perDay = days.map((d) => {
     const nights = [];
-    const startedHere = [];
+    const slotSum = new Array(SLEEP_SLOTS).fill(0), slotCount = new Array(SLEEP_SLOTS).fill(0);
+    let spans = null;
     let dayMin = 0, napCount = 0;
     d.dayKeys.forEach((key) => {
       const day = new Date(key + 'T00:00:00');
@@ -5993,8 +5971,30 @@ function computeSchlafenAnalysis(days, sleepSpans) {
         // Ein Schläfchen zählt an dem Tag, auf den der größte Teil seines
         // Tagesanteils fällt.
         if (ov > 0 && !iv.isNight && ov * 2 >= iv.dayMin) napCount++;
-        if (iv.dayKey === key) startedHere.push(iv);
       });
+      // Uhrzeit des Schlafs: das 24-Stunden-Band dieses Tages.
+      const band = nightWindowEnding(day).start.getTime();
+      for (let i = 0; i < SLEEP_SLOTS; i++) {
+        const s = band + i * slotMs, e = s + slotMs;
+        if (e > now.getTime() || dataStart === null || e <= dataStart) continue;
+        // Tage und Viertelstunden laufen aufsteigend: bereits beendeter Schlaf
+        // muss nie wieder angesehen werden.
+        while (mergedIdx < merged.length && merged[mergedIdx][1] <= s) mergedIdx++;
+        let ov = 0;
+        for (let k = mergedIdx; k < merged.length && merged[k][0] < e; k++) {
+          ov += Math.min(merged[k][1], e) - Math.max(merged[k][0], s);
+        }
+        slotSum[i] += ov / slotMs;
+        slotCount[i]++;
+        allSlotSum[i] += ov / slotMs;
+        allSlotCount[i]++;
+      }
+      // Ein einzelner Tag zeigt seine echten Schlafblöcke (Minuten ab Bandbeginn).
+      if (d.dayKeys.length === 1) {
+        const end = Math.min(band + 1440 * 60000, now.getTime());
+        spans = merged.filter(([a, b]) => b > band && a < end)
+          .map(([a, b]) => [(Math.max(a, band) - band) / 60000, (Math.min(b, end) - band) / 60000]);
+      }
     });
     const valid = nights.filter((n) => !n.missing);
     return {
@@ -6015,9 +6015,10 @@ function computeSchlafenAnalysis(days, sleepSpans) {
       wakeCount: valid.length ? analyseAvg(valid.map((n) => n.wakeCount)) : null,
       bedtime: valid.length ? clock(p.nightFrom, analyseAvg(valid.map((n) => (n.bed - n.win.start) / 60000))) : null,
       waketime: valid.length ? clock(p.nightTo, analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000))) : null,
-      // Eigenes Uhrzeit-Histogramm je Bucket, damit die unterste Karte dem
-      // markierten Balken folgen kann, ohne neu zu laden.
-      napHistogram: computeNapHistogram(startedHere)
+      // Uhrzeit des Schlafs je Bucket, damit die unterste Karte dem markierten
+      // Balken folgen kann, ohne neu zu rechnen.
+      sleepShare: share(slotSum, slotCount),
+      sleepSpans: spans
     };
   });
 
@@ -6033,8 +6034,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
   const avgBedtime = valid.length ? clock(p.nightFrom, analyseAvg(valid.map((n) => (n.bed - n.win.start) / 60000))) : '–';
   const avgWaketime = valid.length ? clock(p.nightTo, analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000))) : '–';
 
-  const napHistogram = new Array(NAP_HIST_BINS).fill(0);
-  perDay.forEach((d) => d.napHistogram.forEach((c, h) => { napHistogram[h] += c; }));
+  const sleepShare = share(allSlotSum, allSlotCount);
 
   // Hinweis: zuerst die Nächte ohne Einträge (antippen trägt die letzte nach),
   // sonst die Nacht mit der längsten Wachzeit.
@@ -6053,7 +6053,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
   }
 
   return {
-    perDay, avgBedtime, avgWaketime, napHistogram,
+    perDay, avgBedtime, avgWaketime, sleepShare,
     avgNightHExact, avgNapHExact, avgWakeExact, avgWakeCountExact, avgNapCountExact,
     missingNightKey, insight
   };
@@ -6079,133 +6079,78 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
   return '<line x1="4" y1="' + y + '" x2="304" y2="' + y + '" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>';
 }
 
-// Unlike the other Analyse charts, this one is rendered at an explicit
-// pixel scale (not a fluid viewBox) so binPx — measured live from a sibling
-// bar chart's rendered bar width, see initNapHistogram — maps 1:1 to real
-// on-screen pixels. That's what makes the plot wider than its card and lets
-// it scroll horizontally once there are more (now hourly) bins than fit.
-// It's also why text here uses font-size 11.5 instead of the 13 every other
-// chart's <text> uses: those render inside a fluid viewBox="0 0 308 118"
-// width="100%" height="105" svg, which scales everything down by the
-// height-bound factor 105/118 ≈ 0.89 — so their nominal "13" renders at an
-// effective ~11.5px on screen. This chart has no such implicit scaling
-// (1 SVG unit = 1 real px), so it has to write the already-scaled value
-// directly to look the same size as its sibling charts.
-// showCounts: bei einem einzelnen markierten Tag steht über den Balken die
-// Anzahl statt eines Anteils — "33 %" dreimal nebeneinander sagt bei drei
-// Schläfchen nichts, "1" schon.
-// shade: je Säule, ob sie im Nachtfenster liegt — dort liegt eine helle
-// Fläche hinter den Balken.
-function svgHistogram(bins, binStartHour, binEndHour, color, binPx, showCounts, shade) {
-  const baseline = 95, maxPx = 78, m = NAP_HIST_MARGIN_X;
-  const plotW = 2 * m + bins.length * binPx;
-  const x = scaleLinear().domain([0, bins.length]).range([m, m + bins.length * binPx]);
-  const binWidthHours = (binEndHour - binStartHour) / bins.length;
-  const maxVal = Math.max(1, ...bins);
-  const totalCount = Math.max(1, bins.reduce((s, c) => s + c, 0));
-  const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx]);
-  let bars = '';
-  (shade || []).forEach((on, i) => {
-    if (on) bars += '<rect x="' + x(i) + '" y="2" width="' + binPx + '" height="' + (baseline - 2) + '" fill="#E8E5F9"/>';
-  });
-  bins.forEach((count, i) => {
-    const bx = x(i) + 1;
-    const w = binPx - 2;
-    const h = baseline - y(count);
-    bars += '<rect x="' + bx + '" y="' + (baseline - h) + '" width="' + w + '" height="' + h + '" rx="4" fill="' + color + '"/>';
-    if (count > 0) {
-      const label = showCounts ? String(count) : analyseRound(count / totalCount * 100) + '%';
-      bars += '<text x="' + (bx + w / 2) + '" y="' + Math.max(12, baseline - h - 4) + '" font-family="Work Sans, sans-serif" font-size="11.5" font-weight="700" fill="' + color + '" text-anchor="middle">' + label + '</text>';
+// Uhrzeit des Schlafs. Ein einzelner markierter Tag zeigt seine echten
+// Schlafblöcke — ohne Beschriftung darin, ohne Glättung (sonst verschöben sich
+// Einschlafen und Aufwachen). Sonst die geglättete Fläche „Anteil der Tage mit
+// Schlaf" je Viertelstunde: gleitender Mittelwert über 3 Viertelstunden, dann
+// eine monotone Kurve (Fritsch-Carlson), die nie über 100 % oder unter 0 %
+// schießt. Die Achse läuft 24 Stunden ab Beginn des Nachtfensters, das
+// Fenster ist hinterlegt. Gleiche Koordinaten wie die anderen Karten
+// (viewBox 308 × 118), passt ganz in die Karte, kein seitliches Scrollen.
+function svgSleepClock(spans, shareArr) {
+  const p = readProfil();
+  const fromMin = parseMinutes(p.nightFrom);
+  const winMin = (parseMinutes(p.nightTo) - fromMin + 1440) % 1440;
+  const x0 = 4, x1 = 304, top = 16, base = 95;
+  const x = (min) => x0 + min / 1440 * (x1 - x0);
+  const y = (v) => base - v * (base - top);
+  let out = '<rect x="' + x0 + '" y="2" width="' + (x(winMin) - x0) + '" height="' + (base - 2) + '" fill="#E8E5F9"/>' +
+    '<text x="' + (x0 + 5) + '" y="13" font-family="Work Sans, sans-serif" font-size="10.5" font-weight="700" fill="#4B3F9E">Nachtfenster</text>';
+
+  if (spans) {
+    spans.forEach(([a, b]) => {
+      out += '<rect x="' + x(a) + '" y="' + top + '" width="' + Math.max(1.5, x(b) - x(a)) + '" height="' + (base - top) +
+        '" fill="#4B3F9E" fill-opacity="0.8" stroke="#4B3F9E" stroke-width="1"/>';
+    });
+  } else {
+    [0.5, 1].forEach((v) => {
+      out += '<line x1="' + x0 + '" y1="' + y(v) + '" x2="' + x1 + '" y2="' + y(v) + '" stroke="oklch(87% 0.004 250)" stroke-dasharray="2,3"/>' +
+        '<text x="' + x1 + '" y="' + (y(v) - 3) + '" font-family="Work Sans, sans-serif" font-size="10" fill="oklch(52% 0.006 250)" text-anchor="end">' + (v * 100) + ' %</text>';
+    });
+    const vals = shareArr.map((v) => (v === null ? 0 : v));
+    const sm = vals.map((_, i) => {
+      const w = vals.slice(Math.max(0, i - 1), i + 2);
+      return w.reduce((s, v) => s + v, 0) / w.length;
+    });
+    const dx = (x1 - x0) / sm.length;
+    const px = sm.map((_, i) => x0 + (i + 0.5) * dx), py = sm.map(y);
+    const n = sm.length, slope = [], tan = [];
+    for (let i = 0; i < n - 1; i++) slope.push((py[i + 1] - py[i]) / dx);
+    for (let i = 0; i < n; i++) {
+      if (i === 0) tan.push(slope[0]);
+      else if (i === n - 1) tan.push(slope[n - 2]);
+      else tan.push(slope[i - 1] * slope[i] <= 0 ? 0 : 2 / (1 / slope[i - 1] + 1 / slope[i]));
     }
-  });
-  let labels = '';
-  for (let i = 0; i <= bins.length; i++) {
-    const hour = (binStartHour + i * binWidthHours) % 24;
-    labels += '<text x="' + x(i) + '" y="111">' + hour + '</text>';
+    let seg = '';
+    for (let i = 0; i < n - 1; i++) {
+      seg += ' C' + (px[i] + dx / 3) + ',' + (py[i] + tan[i] * dx / 3) + ' ' + (px[i + 1] - dx / 3) + ',' + (py[i + 1] - tan[i + 1] * dx / 3) + ' ' + px[i + 1] + ',' + py[i + 1];
+    }
+    const line = 'M' + x0 + ',' + py[0] + ' L' + px[0] + ',' + py[0] + seg + ' L' + x1 + ',' + py[n - 1];
+    out += '<path d="' + line + ' L' + x1 + ',' + base + ' L' + x0 + ',' + base + ' Z" fill="#4B3F9E" fill-opacity="0.8"/>' +
+      '<path d="' + line + '" fill="none" stroke="#4B3F9E" stroke-width="1.6" stroke-linejoin="round"/>';
   }
-  return '<svg viewBox="0 0 ' + plotW + ' 118" width="' + plotW + '" height="118">' +
-    '<line x1="' + m + '" y1="95" x2="' + (plotW - m) + '" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' + bars +
-    '<g font-family="Work Sans, sans-serif" font-size="11.5" fill="oklch(52% 0.006 250)" text-anchor="middle">' + labels + '</g>' +
-    '</svg>';
+
+  out += '<line x1="' + x0 + '" y1="' + base + '" x2="' + x1 + '" y2="' + base + '" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
+  // Volle Stunden alle 4 Stunden, ab der ersten vollen Stunde im Band.
+  let labels = '';
+  for (let h = Math.ceil(fromMin / 60); h * 60 - fromMin <= 1440; h += 4) {
+    const off = h * 60 - fromMin;
+    const anchor = off < 10 ? 'start' : (off > 1430 ? 'end' : 'middle');
+    labels += '<text x="' + x(off) + '" y="111" text-anchor="' + anchor + '">' + (h % 24) + '</text>';
+  }
+  return out + '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)">' + labels + '</g>';
 }
 
-// Measures the actual rendered bar width of the "Schläfchen tagsüber" chart
-// (so the two charts read as one visual rhythm) and initially scrolls to
-// the start, where the night window begins.
-//
-// Both that measurement and scroller.clientWidth below return 0 if this
-// runs while the Schlafen view is display:none (e.g. loadAnalyse() firing
-// while a different Analyse tab is active) — getBoundingClientRect() on
-// anything inside a hidden subtree is always all-zero. A 0 binPx collapses
-// every bin to the same x position, which is what broke the chart in the
-// screenshot: bars too degenerate to render, their labels all stacked on
-// top of each other at the left edge. Guard the measurement itself, and
-// showAnalyseView() re-runs this once the view is actually visible so the
-// real bar width gets used instead of just falling back forever.
-let lastNapHistogram = null;
-let lastNapOpts = {};
-let lastNapBinPx = 0;
-// opts.keepScroll: beim Wechsel der Markierung bleibt die Scrollposition, wo
-// sie ist — sonst würde das Diagramm beim Wischen über die Balken darüber
-// ständig unter dem Finger wegspringen. opts.showCounts siehe svgHistogram().
-function initNapHistogram(napHistogram, opts) {
-  const o = opts || {};
-  lastNapHistogram = napHistogram;
-  lastNapOpts = o;
-  const scroller = document.getElementById('nap-hist-scroller');
-  if (!scroller) return;
-  // Die gemessene Balkenbreite ändert sich nur, wenn sich das Layout ändert.
-  // Beim Nachziehen einer Markierung den gemerkten Wert nehmen, statt bei
-  // jeder Fingerbewegung ein erzwungenes Layout auszulösen.
-  let binPx = o.keepScroll ? lastNapBinPx : 0;
-  if (!(binPx > 0)) {
-    const dayBar = document.querySelector('#analyse-view-schlafen svg[data-chart="schlaf-naps"] .bk rect');
-    binPx = dayBar ? dayBar.getBoundingClientRect().width : 0;
-  }
-  if (!(binPx > 0)) binPx = 30;
-  else lastNapBinPx = binPx;
-  // Die Achse beginnt mit der Stunde, in der das Nachtfenster beginnt (bei
-  // 20–8 Uhr: 20, 21 … 0 … 19) — so steht die Nacht, die zum Morgen gehört,
-  // als ein Block vorne. napHistogram bleibt nach Uhrzeit (0–23) indiziert.
-  const off = Math.floor(parseMinutes(readProfil().nightFrom) / 60);
-  const rotate = (arr) => arr.map((_, i) => arr[(off + i) % NAP_HIST_BINS]);
-  const bins = rotate(napHistogram);
-  const n = bins.length;
-  const prevScroll = scroller.scrollLeft;
-  scroller.innerHTML = svgHistogram(bins, off, off + NAP_HIST_BINS, '#4B3F9E', binPx, o.showCounts, rotate(nightHourBins()));
-
-  const plotW = 2 * NAP_HIST_MARGIN_X + n * binPx;
-  const viewportW = scroller.clientWidth;
-  const maxScroll = Math.max(0, plotW - viewportW);
-  if (o.keepScroll) {
-    scroller.scrollLeft = Math.min(maxScroll, Math.max(0, prevScroll));
-  } else {
-    // Beim Neuaufbau am Anfang stehen: dort beginnt das Nachtfenster.
-    scroller.scrollLeft = 0;
-  }
-
-  const wrap = scroller.parentElement;
-  const fadeL = wrap.querySelector('.a-hist-fade-l');
-  const fadeR = wrap.querySelector('.a-hist-fade-r');
-  const chevL = wrap.querySelector('.a-hist-chev-l');
-  const chevR = wrap.querySelector('.a-hist-chev-r');
-  function updateFades() {
-    const showL = scroller.scrollLeft > 2 ? '1' : '0';
-    const showR = scroller.scrollLeft < maxScroll - 2 ? '1' : '0';
-    fadeL.style.opacity = showL;
-    fadeR.style.opacity = showR;
-    chevL.style.opacity = showL;
-    chevR.style.opacity = showR;
-  }
-  // Das Kartengerüst bleibt jetzt über Neuladen hinweg stehen, der Scroller
-  // also auch — ohne diese Sperre würde sich bei jedem Aufruf ein weiterer
-  // Scroll-Listener stapeln. Der Handler liest maxScroll frisch aus der
-  // Closure der jeweils letzten Registrierung, deshalb wird er hier gemerkt
-  // und beim erneuten Verdrahten ersetzt.
-  if (scroller._fadeHandler) scroller.removeEventListener('scroll', scroller._fadeHandler);
-  scroller._fadeHandler = updateFades;
-  scroller.addEventListener('scroll', updateFades);
-  updateFades();
+// Folgt der Markierung: ein Tag → Blöcke, eine Woche/ein Monat oder keine
+// Markierung → Fläche über den jeweiligen Ausschnitt.
+function renderSleepClock(a, b) {
+  const svgEl = document.getElementById('sleep-clock');
+  const valueEl = document.querySelector('#analyse-view-schlafen [data-clock-value]');
+  if (!svgEl || !a) return;
+  const spans = b && b.daysElapsed === 1 ? b.sleepSpans : null;
+  svgEl.innerHTML = svgSleepClock(spans, (b || a).sleepShare);
+  const total = spans ? spans.reduce((s, [x, y]) => s + y - x, 0) : 0;
+  valueEl.textContent = spans ? analyseHhmm(total / 60) + ' Std. Schlaf' : 'Anteil der Tage mit Schlaf';
 }
 
 // selIdx >= 0: der markierte Tag trägt den kräftigen Ton statt „heute" —
@@ -6698,21 +6643,14 @@ const ANALYSE_SECTION_UI = {
     ],
     stats: schlafenStatValues,
     extra: {
+      // Bewusst keine Klasse a-chart und kein data-chart: das Wischen über die
+      // Balkendiagramme soll diese Karte nicht erfassen.
       shell: () => '<div class="a-card">' +
         '<div class="a-card-label">Uhrzeit des Schlafs</div>' +
-        '<div class="a-hist-wrap">' +
-          '<div class="a-hist-chev a-hist-chev-l">' + ANALYSE_ICON_CHEVRON + '</div>' +
-          '<div class="a-hist-chev a-hist-chev-r">' + ANALYSE_ICON_CHEVRON + '</div>' +
-          '<div class="a-hist-fade a-hist-fade-l"></div><div class="a-hist-fade a-hist-fade-r"></div>' +
-          '<div id="nap-hist-scroller" class="a-hist-scroller"></div>' +
-        '</div></div>',
-      // center = Neuaufbau: neu vermessen und an den Anfang (Beginn des
-      // Nachtfensters). Sonst bleibt die Scrollposition unter dem Finger stehen.
-      update: (a, b, center) => initNapHistogram(b ? b.napHistogram : a.napHistogram, {
-        keepScroll: !center, showCounts: !!b && b.daysElapsed === 1
-      }),
-      // Im versteckten Tab misst jede Messung 0 — beim Sichtbarwerden neu.
-      onShow: () => { lastNapBinPx = 0; }
+        '<div class="a-card-value" data-clock-value style="margin-bottom:8px;"></div>' +
+        '<svg id="sleep-clock" viewBox="0 0 308 118" width="100%" height="105" style="display:block;"></svg>' +
+        '</div>',
+      update: (a, b) => renderSleepClock(a, b)
     },
     insight: { bg: 'var(--schlafen-soft)', fg: '#3A306E' }
   }

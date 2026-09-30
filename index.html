@@ -6173,7 +6173,7 @@ function showSleepClockAt(svgEl, clientX) {
   const { x0, x1, top, base } = SLEEP_CLOCK;
   const box = svgEl.getBoundingClientRect();
   if (!(box.width > 0)) return;
-  const vx = Math.max(x0, Math.min(x1, (clientX - box.left) / box.width * 308));
+  const vx = Math.max(x0, Math.min(x1, svgViewX(svgEl, clientX)));
   const off = (vx - x0) / (x1 - x0) * 1440;
   const clock = (min) => minutesToHHMM(st.fromMin + min);
   let cx = vx, cy, value, sub;
@@ -6212,10 +6212,7 @@ function showSleepClockAt(svgEl, clientX) {
   tip.innerHTML = '<div class="a-tip-v">' + value + '</div><div class="a-tip-s">' + sub + '</div>';
   // Genau wie bei den anderen Diagrammen (applySecSelection): waagerecht auf
   // die Markierung zentriert, aber in die Karte hineingeschoben.
-  const wrapW = wrap.getBoundingClientRect().width;
-  const tipW = tip.getBoundingClientRect().width;
-  tip.style.left = (wrapW > 0 && tipW > 0)
-    ? Math.round(Math.min(Math.max(cx / 308 * wrapW - tipW / 2, -14), wrapW - tipW + 14)) + 'px' : '';
+  positionAnalyseTip(tip, wrap, svgEl, cx);
 }
 
 function hideSleepClockTip(svgEl) {
@@ -7155,11 +7152,7 @@ function applySecSelection(view, center) {
     // Waagerecht auf den Balken zentriert, aber in die Karte hineingeschoben,
     // damit es am Rand nicht abgeschnitten wird. Misst live — schlägt die
     // Messung fehl (verstecktes Tab), bleibt es mittig statt zu zerbrechen.
-    const wrapW = wrap.getBoundingClientRect().width;
-    const tipW = tip.getBoundingClientRect().width;
-    tip.style.left = (wrapW > 0 && tipW > 0)
-      ? Math.round(Math.min(Math.max(cx / 308 * wrapW - tipW / 2, -14), wrapW - tipW + 14)) + 'px'
-      : '';
+    positionAnalyseTip(tip, wrap, svgEl, cx);
   });
 }
 
@@ -7243,10 +7236,32 @@ document.getElementById('analyse-view-schlafen').addEventListener('click', (e) =
 // den Balken liefern einen sinnvollen Wert.
 function secIndexAt(svgEl, clientX) {
   const r = analyseRender[svgEl.dataset.chart];
+  if (!r || !(svgEl.getBoundingClientRect().width > 0)) return 0;
+  return Math.max(0, Math.min(r.bs.length - 1, r.idxAt(svgViewX(svgEl, clientX))));
+}
+
+// Die Diagramme sind 105 px hoch bei voller Kartenbreite. Der Browser skaliert
+// die Zeichnung (viewBox 308 × 118) deshalb proportional an der Höhe und lässt
+// links und rechts Leerraum (auf einem 412 px breiten Handy je 26 px).
+// Umrechnungen zwischen Finger und Zeichnung gehen darum über die echte
+// Bildschirm-Transformation des SVG — mit der Annahme „viewBox = volle
+// Breite" lag der Punkt zu den Rändern hin immer weiter innen als der Finger.
+function svgViewX(svgEl, clientX) {
+  const m = svgEl.getScreenCTM();
+  if (m && m.a) return (clientX - m.e) / m.a;
   const box = svgEl.getBoundingClientRect();
-  if (!r || !(box.width > 0)) return 0;
-  const vx = (clientX - box.left) / box.width * 308;
-  return Math.max(0, Math.min(r.bs.length - 1, r.idxAt(vx)));
+  return (clientX - box.left) / box.width * 308;
+}
+
+// Label über der Markierung (viewBox-x cx) zentrieren, in die Karte
+// hineingeschoben — für alle Diagramme gleich.
+function positionAnalyseTip(tip, wrap, svgEl, cx) {
+  const wrapBox = wrap.getBoundingClientRect();
+  const tipW = tip.getBoundingClientRect().width;
+  const m = svgEl.getScreenCTM();
+  if (!(wrapBox.width > 0 && tipW > 0 && m && m.a)) { tip.style.left = ''; return; }
+  const center = m.a * cx + m.e - wrapBox.left;
+  tip.style.left = Math.round(Math.min(Math.max(center - tipW / 2, -14), wrapBox.width - tipW + 14)) + 'px';
 }
 
 // toggle: nur beim Tippen/Tastatur — beim Zurückwischen auf denselben Balken

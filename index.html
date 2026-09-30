@@ -511,14 +511,6 @@
           <div id="schlafen-detail" style="font-size: 13.5px;"></div>
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
             <span id="schlafen-stats" style="font-size: 11px; color: var(--text-muted);"></span>
-            <!-- Erinnerung an eine nicht erfasste Nacht: übernimmt den Platz der
-                 Statuszeile (nur eines von beidem ist je sichtbar) und trägt das
-                 Farbpaar der Analyse-Hinweise, damit es als Hinweis und nicht als
-                 Warnung liest. -->
-            <button id="schlafen-night-hint" style="display: none; align-items: center; gap: 6px; border: none; cursor: pointer; font-family: inherit; text-align: left; font-size: 11px; font-weight: 600; background: var(--schlafen-soft); color: var(--schlafen-ink); border-radius: 10px; padding: 4px 9px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/></svg>
-              <span id="schlafen-night-hint-text">Letzte Nacht fehlt</span>
-            </button>
             <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
               <button class="quick-btn" data-target="schlafen" title="Eintrag hinzufügen" aria-label="Schlafen: Eintrag hinzufügen">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1084,101 +1076,11 @@
         </div>
       </div>
 
-      <div id="schlafen-mode-toggle" style="display: flex; background: var(--surface-alt); border-radius: 18px; padding: 5px; gap: 5px;">
-        <button id="schlafen-mode-night-btn" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer;">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
-          Nachts
-        </button>
-        <button id="schlafen-mode-day-btn" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer;">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
-          Tagsüber
-        </button>
-      </div>
-
-      <div id="schlafen-night-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-        <!-- Steht die Karte auf "Heute Nacht", während die letzte Nacht noch
-             gar nicht erfasst ist, ist die fehlende Nacht sonst unsichtbar —
-             der Navigator zeigt sie erst nach einem Schritt zurück. Format und
-             Farben der Insight-Kästen aus der Analyse; sichtbar gesteuert von
-             updateNightView(). -->
-        <button id="night-pending-hint" style="display: none; align-items: center; gap: 9px; width: 100%; border: none; cursor: pointer; font-family: inherit; text-align: left; background: var(--accent-soft); color: var(--accent-ink); border-radius: 14px; padding: 11px 13px; font-size: 12px; line-height: 1.45; margin: -2px 0 0;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/></svg>
-          <span style="flex: 1;">Letzte Nacht fehlt noch</span>
-          <span style="font-weight: 700; flex-shrink: 0;">Ergänzen</span>
-        </button>
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 0;">
-          <button id="night-prev" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <div style="text-align: center;">
-            <div id="night-label" style="font-size: 18px; font-weight: 600;"></div>
-            <div id="night-sublabel" style="font-size: 12px; color: var(--text-muted);"></div>
-          </div>
-          <button id="night-next" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:default; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        </div>
-        <div style="height: 1px; background: var(--border);"></div>
-
-        <div id="night-running-badge" style="display: none; align-items: center; justify-content: center; gap: 5px; background: var(--accent-soft); color: var(--accent-strong); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; align-self: center; margin: -6px 0 -2px;">
-          <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--accent-strong); display: inline-block;"></span>
-          <span id="night-running-badge-text">läuft seit --:--</span>
-        </div>
-
-        <div style="display: flex; gap: 14px;">
-          <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
-              <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
-            </svg>
-            <div style="min-width: 0; flex: 1;">
-              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Start</div>
-              <input id="night-bedtime" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
-              <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
-            </svg>
-            <div style="min-width: 0; flex: 1;">
-              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende</div>
-              <input id="night-waketime" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
-            </div>
-          </div>
-        </div>
-        <div id="night-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
-        <div style="height: 1px; background: var(--border);"></div>
-
-        <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">Aufgewacht</div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 22px; padding: 2px 0; margin-top: -8px;">
-          <button id="wake-dec" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-          <div style="text-align: center; min-width: 64px;">
-            <div id="wake-count" style="font-size: 18px; font-weight: 600; line-height: 1;">1</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Mal</div>
-          </div>
-          <button id="wake-inc" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-alt); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-          <button id="night-save" style="flex:1; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Eintrag speichern</button>
-          <button id="night-unlock-cancel-btn" style="display:none; flex:1; padding:13px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color: var(--text-muted); background: var(--surface); white-space: nowrap;">Abbrechen</button>
-        </div>
-        <div id="night-locked-row" style="display: none; gap: 10px;">
-          <button disabled style="flex:1; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; color: var(--text-muted); background: var(--surface-alt); cursor:not-allowed;">Änderungen speichern</button>
-          <button id="night-pencil-btn" title="Bearbeiten" style="width:48px; flex-shrink:0; border:none; border-radius:14px; background: var(--accent-strong); color:white; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-          </button>
-        </div>
-        <div id="night-edit-actions" style="display: none; gap: 10px;">
-          <button id="night-update" class="upd-btn" style="flex: 1; padding:13px 10px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--accent-strong); white-space: nowrap;">Eintrag aktualisieren</button>
-        </div>
-      </div>
-
-      <div id="schlafen-day-panel" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 14px;">
+      <div id="schlafen-day-panel" style="display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; flex-direction: column; gap: 14px;">
         <div id="nap-manual-panel" style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- Alte Nacht-Einträge (Collection nightWakeups, bis 2026-09-30)
+               lassen sich nur noch ansehen und löschen. -->
+          <div id="nap-legacy-note" style="display: none; background: var(--accent-soft); color: var(--accent-ink); border-radius: 14px; padding: 11px 13px; font-size: 12px; line-height: 1.45;">Früherer Nacht-Eintrag. Er lässt sich nur noch ansehen oder löschen.</div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;">
               <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7"/><line x1="16" y1="3.5" x2="16" y2="7"/>
@@ -1204,7 +1106,10 @@
                 <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/>
               </svg>
               <div style="min-width: 0; flex: 1;">
-                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende</div>
+                <!-- Ende vor Start heißt Folgetag (Schlaf über Mitternacht); der
+                     Hinweis sitzt in der Beschriftungszeile, damit die Felder
+                     nicht springen. -->
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ende<span id="nap-end-nextday" style="display: none; text-transform: none; letter-spacing: 0; background: var(--accent-soft); color: var(--accent-strong); font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px; white-space: nowrap;">+1 Tag</span></div>
                 <input id="nap-end" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
               </div>
             </div>
@@ -1485,6 +1390,32 @@
         </div>
       </div>
 
+      <!-- Nachtfenster: entscheidet nur in der Auswertung (Analyse, Heute-Kachel),
+           welcher Schlaf als Nacht zählt. Die Einträge selbst bleiben unberührt. -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Nachtfenster</label>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Von</div>
+                <input id="profil-night-from" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink:0;"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Bis</div>
+                <input id="profil-night-to" type="time" style="border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text); padding: 2px 0 0; outline: none; width: 100%; min-width: 0; text-align: center; font-family: inherit;">
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">Schlaf in diesem Zeitraum zählt in der Analyse als Nachtschlaf, alles andere als Schlaf am Tag. Die Nacht gehört zum Morgen, an dem sie endet.</div>
+          <button id="profil-night-save" style="width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; color:white; background: var(--neutral-strong); font-family: inherit;">Änderungen speichern</button>
+        </div>
+      </div>
+
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Konto</label>
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
@@ -1687,10 +1618,9 @@ onAuthStateChanged(auth, async (user) => {
   startMedSync();
   startFeedStatsSync();
   loadOverview();
-  // Laufende Timer und eine offene Nacht nur abgleichen, nicht aufschlagen:
-  // Heute zeigt sie mit „läuft"-Abzeichen, antippen führt hin.
+  // Laufende Timer nur abgleichen, nicht aufschlagen: Heute zeigt sie mit
+  // „läuft"-Abzeichen, antippen führt hin.
   syncNapState().catch(() => {});
-  syncOpenNight().catch(() => {});
   syncFeedingOnStart().catch(() => {});
   refreshFuetternAmountChips();
   refreshPumpAmountChips();
@@ -1765,13 +1695,9 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
   });
 });
 
-// Die ganze Kachel (samt „+") öffnet die Eintragen-Seite. Die Erinnerung an
-// die fehlende Nacht hat ihren eigenen Handler und wird hier übergangen.
+// Die ganze Kachel (samt „+") öffnet die Eintragen-Seite.
 document.querySelectorAll('.heute-card').forEach((card) => {
-  card.addEventListener('click', (e) => {
-    if (e.target.closest('#schlafen-night-hint')) return;
-    showScreen(card.dataset.target);
-  });
+  card.addEventListener('click', () => showScreen(card.dataset.target));
 });
 document.getElementById('heute-all-entries').addEventListener('click', () => showScreen('historie'));
 
@@ -1902,13 +1828,6 @@ function afterNewEntrySaved(ts, color) {
   pendingTimelineFlash = ts ? { ts: ts.getTime(), color, at: Date.now() } : null;
   showScreen('heute');
 }
-
-// Die Erinnerung an die fehlende Nacht führt in den Schlafen-Bereich und dort
-// direkt auf die betroffene Nacht (siehe schlafenForceLastNight).
-document.getElementById('schlafen-night-hint').addEventListener('click', () => {
-  schlafenForceLastNight = document.getElementById('schlafen-night-hint').dataset.force === '1';
-  showScreen('schlafen');
-});
 
 // Wires a Datum+Uhrzeit pair (used identically by Füttern and Windeln) so it
 // can never represent a future point in time: the date input's native `max`
@@ -4091,140 +4010,84 @@ function parseMinutes(hhmm) {
   return h * 60 + m;
 }
 
-const schlafenModeNightBtn = document.getElementById('schlafen-mode-night-btn');
-const schlafenModeDayBtn = document.getElementById('schlafen-mode-day-btn');
-const schlafenNightPanel = document.getElementById('schlafen-night-panel');
+// Seit 2026-09-30 gibt es nur noch einen Schlaf-Eintrag (Collection naps):
+// Timer oder manuell, ohne Unterscheidung nach Nacht und Tag. Ob ein Schlaf
+// zur Nacht zählt, entscheidet erst die Auswertung über das Nachtfenster aus
+// dem Profil (siehe sleepInterval/nightWindowEnding weiter unten).
 const schlafenDayPanel = document.getElementById('schlafen-day-panel');
-const schlafenModeToggleEl = document.getElementById('schlafen-mode-toggle');
 const schlafenSubtitleEl = document.getElementById('schlafen-subtitle');
 const schlafenScrollEl = screens.schlafen.firstElementChild;
+const napLegacyNoteEl = document.getElementById('nap-legacy-note');
+// editingNightId: ein alter Nacht-Eintrag (nightWakeups) ist geöffnet. Er
+// lässt sich nur noch ansehen und löschen, nicht mehr bearbeiten.
 let editingNightId = null;
 let editingNapId = null;
+// Beim Öffnen der Seite vorgegeben: 'nap' = ein angetippter laufender Timer
+// aus Zeitverlauf/Historie, 'manual' = aus der Analyse eine Nacht nachtragen.
+let schlafenForceOpen = null;
 
-function schlafenModeStyle(active) {
-  return active
-    ? 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: var(--accent); color: white;'
-    : 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; border:none; font-weight:600; font-size:14px; cursor:pointer; background: transparent; color: var(--text-muted);';
-}
-function setSchlafenMode(mode) {
-  schlafenModeNightBtn.setAttribute('style', schlafenModeStyle(mode === 'night'));
-  schlafenModeDayBtn.setAttribute('style', schlafenModeStyle(mode === 'day'));
-  schlafenNightPanel.style.display = mode === 'night' ? 'flex' : 'none';
-  schlafenDayPanel.style.display = mode === 'day' ? 'flex' : 'none';
-  renderNapModeAlt();
-  renderEntryDeleteBtns();
-}
-schlafenModeNightBtn.addEventListener('click', () => setSchlafenMode('night'));
-schlafenModeDayBtn.addEventListener('click', () => setSchlafenMode('day'));
-setSchlafenMode('night');
-
-// Vorauswahl beim Öffnen der Schlafen-Seite: "Tagsüber", wenn die letzte
-// Nacht schon vollständig erfasst ist und es noch nicht Abend ist (ab
-// 18 Uhr ist ohnehin kein Tagesschläfchen mehr zu erwarten) — sonst
-// "Nachts" (die letzte Nacht ist noch offen, oder es ist schon Abend/Nacht,
-// dann ist "Einschlafen"/Vervollständigen der wahrscheinlichere nächste
-// Eintrag). Läuft gerade ein Nap-Timer, hat das Vorrang vor dieser
-// Heuristik. Eigene, separate Abfrage von der "letzte Nacht vs. heute
-// Nacht"-Position innerhalb der Nachts-Karte (goToDefaultNightPosition,
-// dort mit 12 Uhr als Schwelle) — beide beantworten unterschiedliche
-// Fragen und dürfen unterschiedliche Uhrzeiten verwenden.
+// Den Timer-Stand beim Öffnen frisch holen: er kann auf dem anderen Gerät
+// gestartet worden sein, nachdem diese App schon geladen war. Schlägt die
+// Abfrage fehl, bleibt der bisherige Stand stehen.
 async function decideSchlafenDefault() {
   const force = schlafenForceOpen;
   schlafenForceOpen = null;
-  try {
-    await syncOpenNight();
-  } catch (error) {
-    openNightDocId = null;
-    openNightData = null;
-  }
-
-  // Den Nap-Timer ebenso frisch holen: er kann auf dem anderen Gerät gestartet
-  // worden sein, nachdem diese App schon geladen war. Ohne das entschiede die
-  // Heuristik unten auf einem veralteten Stand. Schlägt die Abfrage fehl,
-  // bleibt der bisherige Stand stehen — anders als bei der Nacht, wo ein
-  // Fehlschlag den offenen Eintrag bewusst verwirft.
+  if (force === 'manual') { setNapMode('manual'); return; }
   try {
     await syncNapState();
   } catch (error) {
     /* Stand unverändert lassen */
   }
-
-  // Ein angetippter laufender Eintrag aus Zeitverlauf oder Historie.
-  if (force === 'nap') { setSchlafenMode('day'); setNapMode('timer'); await refreshLastNightPending(); return; }
-  if (force === 'night') { setSchlafenMode('night'); await goToDefaultNightPosition(); await refreshLastNightPending(); return; }
-
-  // Kommt man über die Erinnerung aus der Übersicht, ist die Frage schon
-  // beantwortet: es geht um die fehlende letzte Nacht. Das schlägt auch einen
-  // laufenden Nap-Timer, sonst führte die Erinnerung ins Tagsüber-Panel.
-  if (schlafenForceLastNight) {
-    schlafenForceLastNight = false;
-    setSchlafenMode('night');
-    nightOffset = 0;
-    nightShowTonight = false;
-    nightUnlocked = false;
-    await loadNightPosition();
-    await refreshLastNightPending();
-    return;
-  }
-
-  if (openNapDocId) { setSchlafenMode('day'); setNapMode('timer'); await refreshLastNightPending(); return; }
-
-  let mode = 'night';
-  if (!openNightDocId) {
-    let lastNight = null;
-    try { lastNight = await findNightByEnd(isoDate(new Date())); } catch (error) { lastNight = null; }
-    const lastNightComplete = !!(lastNight && lastNight.wakeTime);
-    const hour = new Date().getHours();
-    if (lastNightComplete && hour < 18) mode = 'day';
-  }
-  setSchlafenMode(mode);
-  await goToDefaultNightPosition();
-  await refreshLastNightPending();
+  if (force === 'nap' || openNapDocId) setNapMode('timer');
 }
 
-// Bearbeiten (Eintrag im Zeitverlauf oder in der Historie antippen) öffnet ein eigenes "Fenster", wie
-// bei Windeln/Füttern: der Nachts/Tagsüber-Umschalter wird versteckt (man bearbeitet einen
-// bereits feststehenden Eintrag, kein Umschalten mehr nötig), die passende
-// Maske (Nacht- oder Nap-Panel) zeigt die Werte vorausgefüllt, und die
-// Fußzeile wechselt zu Aktualisieren. Zwei getrennte IDs, weil
-// Nächte und Naps in unterschiedlichen Collections liegen (anders als bei
-// Füttern, wo Fläschchen/Brust dieselbe `feedings`-Collection teilen).
-function enterSchlafenEdit(entry) {
-  schlafenModeToggleEl.style.display = 'none';
-  schlafenSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
-    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
-    'Eintrag bearbeiten</span>';
+// Sperrt die manuelle Maske für einen alten Nacht-Eintrag: Werte sichtbar,
+// aber weder Felder noch Dauer-Stepper bedienbar.
+function setNapFormLocked(locked) {
+  [napDateInput, napStartInput, napEndInput].forEach((input) => { input.disabled = locked; });
+  [napDurDecBtn, napDurIncBtn].forEach((btn) => {
+    btn.style.pointerEvents = locked ? 'none' : '';
+    btn.style.opacity = locked ? '0.4' : '';
+  });
+  napLegacyNoteEl.style.display = locked ? 'block' : 'none';
+}
 
+// Bearbeiten (Eintrag im Zeitverlauf oder in der Historie antippen) öffnet ein
+// eigenes "Fenster", wie bei Windeln/Füttern: die manuelle Maske zeigt die
+// Werte vorausgefüllt, die Fußzeile wechselt zu Aktualisieren. Ein alter
+// Nacht-Eintrag erscheint in derselben Maske, gesperrt und nur mit Löschen.
+function enterSchlafenEdit(entry) {
+  setNapMode('manual');
+  // Eine Meldung aus einer früheren, abgebrochenen Eingabe gehört nicht hierher.
+  napTimeError.style.display = 'none';
   if (entry._type === 'night') {
     editingNightId = entry.id;
     editingNapId = null;
-    setSchlafenMode('night');
-    const nightEndDate = new Date(entry.nightEnd + 'T00:00:00');
-    nightOffset = Math.max(0, Math.round((todayStartDate() - nightEndDate) / 86400000));
-    nightUnlocked = false;
-    nightShowTonight = false;
-    wakeCount = entry.wakeCount || 0;
-    nightBedtimeInput.value = entry.bedtime;
-    nightWaketimeInput.value = entry.wakeTime;
-    updateNightView();
-    nightSaveBtn.style.display = 'none';
-    nightUnlockCancelBtn.style.display = 'none';
-    nightLockedRow.style.display = 'none';
-    nightEditActions.style.display = 'flex';
+    schlafenSubtitleEl.textContent = 'Eintrag ansehen';
+    const iv = sleepInterval(entry);
+    napDateInput.value = iv ? isoDate(iv.start) : (entry.nightStart || isoDate(new Date()));
+    napStartInput.value = entry.bedtime || '';
+    napEndInput.value = entry.wakeTime || entry.bedtime || '';
+    napSaveBtn.parentElement.style.display = 'none';
+    napEditActions.style.display = 'none';
+    setNapFormLocked(true);
   } else {
     editingNapId = entry.id;
     editingNightId = null;
-    setSchlafenMode('day');
-    setNapMode('manual');
+    schlafenSubtitleEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; color:var(--accent-strong); font-weight:700;">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+      'Eintrag bearbeiten</span>';
     const startTs = schlafenBusinessTimestamp(entry);
     napDateInput.value = entry.date || (startTs ? isoDate(startTs) : isoDate(new Date()));
     napStartInput.value = entry.source === 'timer' ? formatTime(new Date(entry.startTime)) : entry.startTime;
     napEndInput.value = entry.endTime ? (entry.source === 'timer' ? formatTime(new Date(entry.endTime)) : entry.endTime) : napStartInput.value;
+    setNapFormLocked(false);
     napDateInput.dispatchEvent(new Event('change'));
-    renderNapDuration();
     napSaveBtn.parentElement.style.display = 'none';
     napEditActions.style.display = 'flex';
   }
+  renderNapDuration();
+  renderNapModeAlt();
   schlafenScrollEl.scrollTop = 0;
 }
 
@@ -4232,519 +4095,19 @@ function exitSchlafenEdit() {
   editingNightId = null;
   editingNapId = null;
   setEntryDateLocked(false);
+  setNapFormLocked(false);
   endEntryEditChrome();
   schlafenSubtitleEl.textContent = 'Neuer Eintrag';
-  schlafenModeToggleEl.style.display = 'flex';
-  nightSaveBtn.style.display = '';
-  nightEditActions.style.display = 'none';
   napSaveBtn.parentElement.style.display = 'flex';
   napEditActions.style.display = 'none';
-  resetNightForm();
   resetNapManualForm();
   setNapMode('timer');
   decideSchlafenDefault();
 }
 // Die Cancel-/Update-Button-Listener werden erst weiter unten registriert
 // (nach der Schlafen-Historie-Sektion), weil ihre Ziel-Buttons/-Konstanten
-// (nightUpdateBtn, napUpdateBtn, napTimeIsValid, ...) an dieser Stelle im
-// Skript noch nicht deklariert sind.
-
-const nightPrevBtn = document.getElementById('night-prev');
-const nightNextBtn = document.getElementById('night-next');
-const nightLabelEl = document.getElementById('night-label');
-const nightSublabelEl = document.getElementById('night-sublabel');
-const wakeCountEl = document.getElementById('wake-count');
-const wakeDecBtn = document.getElementById('wake-dec');
-const wakeIncBtn = document.getElementById('wake-inc');
-const nightSaveBtn = document.getElementById('night-save');
-const nightBedtimeInput = document.getElementById('night-bedtime');
-const nightWaketimeInput = document.getElementById('night-waketime');
-const nightTimeError = document.getElementById('night-time-error');
-const nightEditActions = document.getElementById('night-edit-actions');
-const nightUpdateBtn = document.getElementById('night-update');
-const nightRunningBadge = document.getElementById('night-running-badge');
-const nightRunningBadgeText = document.getElementById('night-running-badge-text');
-const nightLockedRow = document.getElementById('night-locked-row');
-const nightPencilBtn = document.getElementById('night-pencil-btn');
-const nightUnlockCancelBtn = document.getElementById('night-unlock-cancel-btn');
-const nightPendingHint = document.getElementById('night-pending-hint');
-
-let nightOffset = 0;
-let wakeCount = 1;
-// Das per ◀/▶ gerade angezeigte Dokument (offen, vollständig oder — bei
-// leerem `viewedNightEntry` — noch gar nicht angelegt). Treibt Label, Felder
-// und den Text/die Aktion des einzigen Speichern-Buttons unten.
-let viewedNightEntry = null;
-let nightUnlocked = false;
-// nightOffset 0 ist strukturell IMMER "die Nacht, die mit heute endet" (die
-// letzte Nacht) — das bleibt für ältere Nächte (nightOffset > 0) und den
-// Historie-Bearbeiten-Flow unverändert. "Heute Nacht" (die noch gar nicht
-// begonnen hat, endet also erst morgen) ist keine eigene Zahl, sondern
-// dieses Flag bei nightOffset 0: false = letzte Nacht anzeigen (klassisch,
-// nie "Einschlafen" — die Bettzeit liegt dort immer schon in der
-// Vergangenheit), true = heutige Nacht anzeigen ("Einschlafen" möglich).
-// Nur relevant, während editingNightId leer ist.
-let nightShowTonight = false;
-// True, solange für die letzte Nacht (nightEnd = heute) kein vollständiger
-// Eintrag existiert und auch keine offene Nacht läuft, die genau diese Nacht
-// wird. Steuert die beiden Erinnerungen (Übersichtskarte und Nachts-Karte),
-// wird von refreshLastNightPending() nachgeführt.
-let lastNightPending = false;
-// Setzt die Erinnerung in der Übersicht, bevor sie in den Schlafen-Bereich
-// springt: decideSchlafenDefault() soll dann nicht heuristisch entscheiden,
-// sondern genau die fehlende Nacht zeigen.
-let schlafenForceLastNight = false;
-// Aus Zeitverlauf/Historie auf einen laufenden Eintrag getippt ('nap' |
-// 'night'): decideSchlafenDefault schlägt genau ihn auf (openEintrag).
-let schlafenForceOpen = null;
-
-// --- Offene Nacht: robust gegen Schließen der App, Zustand lebt in
-// Firestore (gleiches Prinzip wie der Nap-Timer via openNapDocId/findOpenNap
-// weiter unten) ---
-let openNightDocId = null;
-let openNightData = null;
-
-async function findOpenNight() {
-  const docs = await cachedQueryDocs('night-open', '', () => query(collection(db, 'nightWakeups'), where('nightEnd', '==', null)));
-  return docs[0] || null;
-}
-// Die Nacht, die heute endet, fragt Heute bei jedem Besuch ab — nur sie läuft
-// über die Live-Abfrage; andere Tage (Nachts-Karte blättert) wie bisher direkt.
-async function findNightByEnd(dateStr) {
-  const makeQuery = () => query(collection(db, 'nightWakeups'), where('nightEnd', '==', dateStr));
-  if (dateStr === isoDate(new Date())) {
-    const docs = await cachedQueryDocs('night-end-today', dateStr, makeQuery);
-    return docs[0] || null;
-  }
-  const snap = await getDocs(makeQuery());
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
-}
-async function syncOpenNight() {
-  const open = await findOpenNight();
-  openNightDocId = open ? open.id : null;
-  openNightData = open;
-  return open;
-}
-
-// Für exitSchlafenEdit (siehe Schlafen-Historie weiter unten) — setzt nur
-// die Navigationsposition zurück; welche Werte in den Feldern landen,
-// entscheidet goToDefaultNightPosition() selbst anhand dessen, was für die
-// letzte Nacht/heutige Nacht in Firestore existiert.
-function resetNightForm() {
-  goToDefaultNightPosition();
-}
-
-// Ob die Aufwachzeit gegen "nicht in der Zukunft" geklemmt werden muss: gilt
-// für die letzte Nacht (nightEnd = heute) und für einen offenen Eintrag
-// (dessen nightEnd beim Abschließen ebenfalls auf heute gesetzt wird) — bei
-// "Heute Nacht" (endet erst morgen) ist jede Ende-Uhrzeit unweigerlich
-// "zukünftig" relativ zu jetzt, eine Prüfung ergäbe dort keinen Sinn.
-// Während der Historie-Bearbeitung (editingNightId) gilt weiterhin exakt die
-// ursprüngliche Regel (nightOffset 0 = die bearbeitete Nacht endet heute) —
-// viewedNightEntry ist in dem Modus nicht aktuell und darf nicht mitzählen.
-function nightWaketimeNeedsFutureClamp() {
-  if (editingNightId) return nightOffset === 0;
-  if (viewedNightEntry && viewedNightEntry._open) return true;
-  return nightOffset === 0 && !nightShowTonight;
-}
-function clampNightWaketime() {
-  if (nightWaketimeNeedsFutureClamp()) {
-    nightWaketimeInput.max = formatTime(new Date());
-    if (nightWaketimeInput.value && nightWaketimeInput.value > nightWaketimeInput.max) {
-      nightWaketimeInput.value = nightWaketimeInput.max;
-    }
-  } else {
-    nightWaketimeInput.removeAttribute('max');
-  }
-  nightTimeError.style.display = 'none';
-}
-function nightTimeIsValid() {
-  if (!nightWaketimeNeedsFutureClamp() || !nightWaketimeInput.value) return true;
-  const future = timeOnDate(new Date(), nightWaketimeInput.value).getTime() > Date.now();
-  nightTimeError.style.display = future ? 'block' : 'none';
-  return !future;
-}
-nightWaketimeInput.addEventListener('change', clampNightWaketime);
-// Leichtgewichtige Reaktion aufs Tippen (kein Firestore-Aufruf): solange
-// noch kein Eintrag für "heute" existiert, wechselt der Button live
-// zwischen "Einschlafen" (Ende leer) und "Eintrag speichern" (Ende
-// ausgefüllt); ist die Nacht bereits offen, blendet ein leeres Ende-Feld
-// den Button nur ab (man kann keine Nacht ohne Aufwachzeit abschließen).
-nightWaketimeInput.addEventListener('input', () => {
-  if (editingNightId) return;
-  if (viewedNightEntry && viewedNightEntry._open) {
-    const needsEnd = !nightWaketimeInput.value;
-    nightSaveBtn.style.opacity = needsEnd ? '0.5' : '1';
-    nightSaveBtn.style.cursor = needsEnd ? 'not-allowed' : 'pointer';
-  } else if (!viewedNightEntry && nightOffset === 0 && nightShowTonight) {
-    nightSaveBtn.textContent = nightWaketimeInput.value ? 'Eintrag speichern' : 'Einschlafen';
-  }
-});
-
-// updateNightView() zeichnet Label/Badge/Sperre/Button-Text rein aus dem
-// bereits bekannten viewedNightEntry + den aktuellen Feldwerten — ohne
-// Firestore-Zugriff. loadNightPosition() macht zusätzlich davor den Lookup
-// für die aktuelle Position und befüllt die Felder daraus. Getrennt, damit
-// z.B. der Aufwach-Stepper (nur Wertänderung) nicht bei jedem Klick die
-// gerade gesetzten Feldwerte mit einem frischen Firestore-Lookup
-// überschreibt.
-function updateNightView() {
-  renderEntryDeleteBtns();
-  const today = new Date();
-  const isLastNightSlot = nightOffset === 0 && !nightShowTonight;
-
-  // Während der Historie-Bearbeitung (enterSchlafenEdit) sind die Felder
-  // schon mit den Werten des zu bearbeitenden Eintrags belegt — hier nur
-  // Label/Navigator nachziehen, kein Umschalten des Speichern-Buttons (das
-  // übernimmt night-update, zurück führt „‹ Zurück“).
-  if (editingNightId) {
-    const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
-    const nightStart = new Date(nightEnd); nightStart.setDate(nightStart.getDate() - 1);
-    nightLabelEl.textContent = fmtDayDate(nightStart) + ' → ' + fmtDayDate(nightEnd);
-    nightSublabelEl.textContent = isLastNightSlot ? 'Letzte Nacht' : '';
-    nightNextBtn.style.opacity = isLastNightSlot ? '0.4' : '1';
-    nightNextBtn.style.cursor = isLastNightSlot ? 'default' : 'pointer';
-    nightRunningBadge.style.display = 'none';
-    nightLockedRow.style.display = 'none';
-    nightPendingHint.style.display = 'none';
-    wakeCountEl.textContent = wakeCount;
-    clampNightWaketime();
-    return;
-  }
-
-  const entry = viewedNightEntry;
-  const isOpen = !!(entry && entry._open);
-  const isComplete = !!(entry && !entry._open);
-  const locked = isComplete && !nightUnlocked;
-  // "Heute Nacht": nightOffset 0 + der Umschalter zeigt vorwärts (weil
-  // offen, oder weil noch nichts erfasst ist) — die einzige Position, an
-  // der "Einschlafen" je Sinn ergibt.
-  const isTonightSlot = nightOffset === 0 && nightShowTonight;
-  const isTonightBlank = isTonightSlot && !isOpen;
-
-  let nightStart, nightEnd;
-  if (isOpen) {
-    nightStart = new Date(entry.nightStart + 'T00:00:00');
-    nightEnd = null;
-  } else if (isTonightBlank) {
-    nightStart = new Date(today);
-    nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() + 1);
-  } else if (isComplete) {
-    // Zeigt die tatsächlich gespeicherten Werte des gefundenen Eintrags,
-    // nicht die aus nightOffset zurückgerechneten — die stimmen im
-    // Normalfall überein, aber falls ein Eintrag aus irgendeinem Grund
-    // einen abweichenden nightStart hat, macht das den Datensatz hier
-    // sichtbar statt ihn durch eine "schöngerechnete" Anzeige zu
-    // verschleiern (siehe Historie, die immer die echten Werte zeigt).
-    nightStart = new Date(entry.nightStart + 'T00:00:00');
-    nightEnd = new Date(entry.nightEnd + 'T00:00:00');
-  } else {
-    nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
-    nightStart = new Date(nightEnd); nightStart.setDate(nightStart.getDate() - 1);
-  }
-  nightLabelEl.textContent = isOpen ? (fmtDayDate(nightStart) + ' → …') : (fmtDayDate(nightStart) + ' → ' + fmtDayDate(nightEnd));
-  nightSublabelEl.textContent = isOpen ? '' : (isTonightBlank ? 'Heute Nacht' : (isLastNightSlot ? 'Letzte Nacht' : ''));
-  // "Weiter" ist nur gesperrt, wenn wir schon an der neuesten Position sind
-  // (heutige Nacht, offen oder noch leer) — von der letzten Nacht (oder
-  // älter) aus geht es immer noch einen Schritt weiter nach vorne.
-  nightNextBtn.style.opacity = isTonightSlot ? '0.4' : '1';
-  nightNextBtn.style.cursor = isTonightSlot ? 'default' : 'pointer';
-
-  // Nur auf "Heute Nacht" nötig: an jeder anderen Position steht die fehlende
-  // Nacht entweder selbst vor einem, oder man ist bewusst weiter zurück.
-  nightPendingHint.style.display = (lastNightPending && isTonightSlot) ? 'flex' : 'none';
-
-  nightRunningBadge.style.display = isOpen ? 'flex' : 'none';
-  if (isOpen) nightRunningBadgeText.textContent = 'läuft seit ' + entry.bedtime;
-
-  wakeCountEl.textContent = wakeCount;
-
-  nightBedtimeInput.disabled = locked;
-  nightWaketimeInput.disabled = locked;
-  [wakeDecBtn, wakeIncBtn].forEach((btn) => {
-    btn.style.pointerEvents = locked ? 'none' : 'auto';
-    btn.style.opacity = locked ? '0.4' : '1';
-  });
-
-  clampNightWaketime();
-
-  nightLockedRow.style.display = locked ? 'flex' : 'none';
-  nightSaveBtn.style.display = locked ? 'none' : 'block';
-  nightUnlockCancelBtn.style.display = (isComplete && nightUnlocked) ? 'block' : 'none';
-
-  if (!locked) {
-    if (isComplete && nightUnlocked) {
-      nightSaveBtn.textContent = 'Änderungen speichern';
-      nightSaveBtn.style.opacity = '1';
-      nightSaveBtn.style.cursor = 'pointer';
-    } else if (isOpen) {
-      nightSaveBtn.textContent = 'Nacht vervollständigen';
-      const needsEnd = !nightWaketimeInput.value;
-      nightSaveBtn.style.opacity = needsEnd ? '0.5' : '1';
-      nightSaveBtn.style.cursor = needsEnd ? 'not-allowed' : 'pointer';
-    } else if (isTonightBlank) {
-      // Hier und nur hier ergibt "Einschlafen" Sinn — jede andere Position
-      // (auch die leere letzte Nacht) liegt per Definition schon in der
-      // Vergangenheit, siehe else-Zweig.
-      nightSaveBtn.textContent = nightWaketimeInput.value ? 'Eintrag speichern' : 'Einschlafen';
-      nightSaveBtn.style.opacity = '1';
-      nightSaveBtn.style.cursor = 'pointer';
-    } else {
-      nightSaveBtn.textContent = 'Eintrag speichern';
-      nightSaveBtn.style.opacity = '1';
-      nightSaveBtn.style.cursor = 'pointer';
-    }
-  }
-}
-
-// Zeigt genau die Nacht, auf die der Navigator gerade steht — und zwar mit
-// ihrem echten Firestore-Zustand (noch nichts erfasst / offen, weil per
-// "Einschlafen" gestartet / bereits vollständig), nicht bloß mit lokal
-// berechneten Default-Werten. Wird bei jeder Positionsänderung aufgerufen
-// (◀/▶, nach dem Speichern), nicht bei bloßen Wertänderungen innerhalb
-// derselben Position (siehe updateNightView). "Heute Nacht" wird nie
-// nachgeschlagen — dort kann per Konstruktion noch kein Eintrag existieren,
-// außer dem ohnehin separat behandelten offenen (siehe unten).
-async function loadNightPosition() {
-  if (editingNightId) { updateNightView(); return; }
-
-  if (nightOffset === 0 && nightShowTonight) {
-    if (openNightDocId) {
-      viewedNightEntry = { id: openNightDocId, ...openNightData, _open: true };
-      nightBedtimeInput.value = viewedNightEntry.bedtime;
-      nightWaketimeInput.value = '';
-      wakeCount = viewedNightEntry.wakeCount || 0;
-    } else {
-      viewedNightEntry = null;
-      nightUnlocked = false;
-      nightBedtimeInput.value = formatTime(new Date());
-      nightWaketimeInput.value = '';
-      wakeCount = 1;
-    }
-    updateNightView();
-    return;
-  }
-
-  // nightOffset 0 (ohne nightShowTonight) = letzte Nacht, sonst weiter
-  // zurückliegende Nächte — unverändert wie vor "Heute Nacht".
-  const today = new Date();
-  const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
-  const nightEndStr = isoDate(nightEnd);
-
-  let entry = null;
-  try { entry = await findNightByEnd(nightEndStr); } catch (error) { entry = null; }
-  viewedNightEntry = entry;
-  if (!entry) nightUnlocked = false;
-
-  if (entry) {
-    nightBedtimeInput.value = entry.bedtime;
-    nightWaketimeInput.value = entry.wakeTime || '';
-    wakeCount = entry.wakeCount || 0;
-  } else {
-    nightBedtimeInput.value = '19:30';
-    nightWaketimeInput.value = '';
-    wakeCount = 1;
-  }
-
-  updateNightView();
-}
-
-// Bestimmt beim (Wieder-)Öffnen der Nachts-Karte automatisch, ob "letzte
-// Nacht" (noch etwas zu tun) oder "heute Nacht" (letzte Nacht bereits
-// erfasst, oder es ist schon Nachmittag/Abend) die sinnvollere
-// Startposition ist — siehe Konversation: fertig erfasste letzte Nacht soll
-// nicht blockieren, und "Einschlafen" soll nicht mehr auftauchen, wenn es
-// eigentlich schon der nächste Morgen ist (dann klassisch nachtragen).
-async function goToDefaultNightPosition() {
-  nightOffset = 0;
-  nightUnlocked = false;
-  if (openNightDocId) {
-    nightShowTonight = true;
-    await loadNightPosition();
-    return;
-  }
-  let lastNight = null;
-  try { lastNight = await findNightByEnd(isoDate(new Date())); } catch (error) { lastNight = null; }
-  const lastNightComplete = !!(lastNight && lastNight.wakeTime);
-  const hour = new Date().getHours();
-  nightShowTonight = lastNightComplete || hour >= 12;
-  if (nightShowTonight) {
-    viewedNightEntry = null;
-    nightBedtimeInput.value = formatTime(new Date());
-    nightWaketimeInput.value = '';
-    wakeCount = 1;
-  } else {
-    viewedNightEntry = lastNight;
-    if (lastNight) {
-      nightBedtimeInput.value = lastNight.bedtime;
-      nightWaketimeInput.value = lastNight.wakeTime || '';
-      wakeCount = lastNight.wakeCount || 0;
-    } else {
-      nightBedtimeInput.value = '19:30';
-      nightWaketimeInput.value = '';
-      wakeCount = 1;
-    }
-  }
-  updateNightView();
-}
-// Führt lastNightPending nach: steht für die letzte Nacht (die mit heute
-// endet) noch ein Eintrag aus? Eine offene Nacht von gestern zählt nicht als
-// Lücke — sie IST diese Nacht und wird als Erstes zum Vervollständigen
-// angeboten. Aufgerufen beim Öffnen des Bereichs und nach jedem Speichern.
-async function refreshLastNightPending() {
-  let lastNight = null;
-  try { lastNight = await findNightByEnd(isoDate(new Date())); } catch (error) { lastNight = null; }
-  lastNightPending = !(lastNight && lastNight.wakeTime) && !openNightIsLastNight();
-  updateNightView();
-}
-// Eine offene Nacht, die gestern begonnen hat, endet heute — sie belegt also
-// den Platz der letzten Nacht. Eine, die heute begonnen hat, ist die kommende.
-function openNightIsLastNight() {
-  if (!openNightData) return false;
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return openNightData.nightStart === isoDate(yesterday);
-}
-// Ein Schritt zurück auf die fehlende Nacht — dasselbe wie der linke Pfeil,
-// nur mit dem Hinweis als Anlass.
-nightPendingHint.addEventListener('click', () => {
-  nightOffset = 0;
-  nightShowTonight = false;
-  nightUnlocked = false;
-  loadNightPosition();
-});
-nightPrevBtn.addEventListener('click', () => {
-  if (nightOffset === 0 && nightShowTonight) { nightShowTonight = false; } else { nightOffset += 1; }
-  nightUnlocked = false;
-  loadNightPosition();
-});
-nightNextBtn.addEventListener('click', () => {
-  if (nightOffset > 0) { nightOffset -= 1; }
-  else if (!nightShowTonight) { nightShowTonight = true; }
-  else { return; }
-  nightUnlocked = false;
-  loadNightPosition();
-});
-wakeDecBtn.addEventListener('click', () => { if (nightWaketimeInput.disabled) return; wakeCount = Math.max(0, wakeCount - 1); updateNightView(); });
-wakeIncBtn.addEventListener('click', () => { if (nightWaketimeInput.disabled) return; wakeCount += 1; updateNightView(); });
-nightPencilBtn.addEventListener('click', () => { nightUnlocked = true; updateNightView(); });
-nightUnlockCancelBtn.addEventListener('click', () => { nightUnlocked = false; loadNightPosition(); });
-goToDefaultNightPosition();
-
-// Einziger Speichern-Button für die Nachts-Karte: was er tut, hängt allein
-// davon ab, was loadNightPosition() für die aktuelle Navigator-Position
-// (viewedNightEntry) gefunden hat — siehe die Zustandstabelle in der
-// zugehörigen Konversation: kein Eintrag+Ende leer → "Einschlafen" (legt
-// offenen Eintrag an); kein Eintrag+Ende ausgefüllt → "Eintrag speichern"
-// (legt vollständigen Eintrag an); offener Eintrag → "Nacht
-// vervollständigen" (ergänzt Ende); entsperrter vollständiger Eintrag →
-// "Änderungen speichern" (Update). Ersetzt den alten reinen
-// addDoc-Handler.
-nightSaveBtn.addEventListener('click', async () => {
-  if (!currentUser || nightSaveBtn.disabled) return;
-  const isComplete = viewedNightEntry && !viewedNightEntry._open;
-  const isOpen = viewedNightEntry && viewedNightEntry._open;
-
-  // leave: eine vollständig erfasste Nacht führt zurück auf Heute (wie jeder
-  // neue Eintrag). Einschlafen und das Ändern über den Stift bleiben auf der
-  // Karte — dort geht es direkt weiter.
-  async function finish(mutate, leave) {
-    if (!nightTimeIsValid()) return;
-    nightSaveBtn.disabled = true;
-    try {
-      await mutate();
-      if (leave) {
-        nightSaveBtn.disabled = false;
-        refreshLastNightPending();
-        const wake = nightWaketimeInput.value;
-        afterNewEntrySaved(wake ? timeOnDate(new Date(), wake) : null, 'var(--schlafen)');
-        return;
-      }
-      nightSaveBtn.textContent = 'Gespeichert ✓';
-      setTimeout(async () => {
-        await loadNightPosition();
-        await refreshLastNightPending();
-        nightSaveBtn.disabled = false;
-      }, 1200);
-    } catch (error) {
-      nightSaveBtn.textContent = 'Fehler beim Speichern';
-      setTimeout(async () => { nightSaveBtn.disabled = false; await loadNightPosition(); }, 1600);
-    }
-  }
-
-  if (isComplete && nightUnlocked) {
-    await finish(async () => {
-      const changes = {
-        bedtime: nightBedtimeInput.value,
-        wakeTime: nightWaketimeInput.value,
-        wakeCount
-      };
-      await updateDoc(doc(db, 'nightWakeups', viewedNightEntry.id), changes);
-      nightUnlocked = false;
-    });
-    return;
-  }
-
-  if (isOpen) {
-    if (!nightWaketimeInput.value) return;
-    await finish(async () => {
-      const changes = {
-        nightEnd: isoDate(new Date()),
-        bedtime: nightBedtimeInput.value,
-        wakeTime: nightWaketimeInput.value,
-        wakeCount
-      };
-      await updateDoc(doc(db, 'nightWakeups', viewedNightEntry.id), changes);
-      openNightDocId = null;
-      openNightData = null;
-    }, true);
-    return;
-  }
-
-  // Nur erreichbar, wenn weder ein offener noch ein vollständiger Eintrag
-  // gefunden wurde — also entweder "Heute Nacht" (nightShowTonight) oder
-  // eine leere letzte/ältere Nacht. Beide brauchen ihre eigene
-  // Start/Ende-Berechnung: "Heute Nacht" beginnt heute und endet morgen,
-  // unabhängig von nightOffset (das bei "Heute Nacht" immer 0 ist, aber
-  // 0 sonst "letzte Nacht" bedeutet, siehe loadNightPosition).
-  const isTonight = nightOffset === 0 && nightShowTonight;
-  const today = new Date();
-  let nightStart, nightEndDate;
-  if (isTonight) {
-    nightStart = new Date(today);
-    nightEndDate = new Date(today); nightEndDate.setDate(nightEndDate.getDate() + 1);
-  } else {
-    nightStart = new Date(today); nightStart.setDate(nightStart.getDate() - 1 - nightOffset);
-    nightEndDate = new Date(today); nightEndDate.setDate(nightEndDate.getDate() - nightOffset);
-  }
-  const startOnly = isTonight && !nightWaketimeInput.value;
-  const entry = startOnly
-    ? {
-        nightStart: isoDate(today),
-        nightEnd: null,
-        bedtime: nightBedtimeInput.value,
-        wakeTime: null,
-        wakeCount,
-        createdBy: currentUser.email,
-        createdAt: serverTimestamp()
-      }
-    : {
-        nightStart: isoDate(nightStart),
-        nightEnd: isoDate(nightEndDate),
-        bedtime: nightBedtimeInput.value,
-        wakeTime: nightWaketimeInput.value,
-        wakeCount,
-        createdBy: currentUser.email,
-        createdAt: serverTimestamp()
-      };
-
-  await finish(async () => {
-    const ref = await addDoc(collection(db, 'nightWakeups'), entry);
-    if (startOnly) { openNightDocId = ref.id; openNightData = entry; }
-  }, !startOnly);
-});
+// (napUpdateBtn, napTimeIsValid, ...) an dieser Stelle im Skript noch nicht
+// deklariert sind.
 
 // Same past-only guarantee as setupPastOnlyDateTime (Füttern/Windeln), but
 // for one date shared by two time fields (Start/Ende) instead of a single
@@ -4801,7 +4164,7 @@ const timerRefreshBtn = document.getElementById('timer-refresh-btn');
 let napMode = 'timer';
 function renderNapModeAlt() {
   if (!modeAltReady) return;
-  renderModeAlt(napModeAltBtn, napMode, schlafenDayPanel.style.display !== 'none' && !editingNapId, !!openNapDocId);
+  renderModeAlt(napModeAltBtn, napMode, !editingNapId && !editingNightId, !!openNapDocId);
 }
 function setNapMode(mode) {
   napMode = mode;
@@ -4816,16 +4179,24 @@ napModeAltBtn.addEventListener('click', () => {
 });
 setNapMode('timer');
 
+// Liegt das Ende vor dem Start, endet der Schlaf am Folgetag (über
+// Mitternacht). Gleiche Uhrzeiten sind 0 Minuten, nicht 24 Stunden.
+function napSpanMinutes(start, end) {
+  if (!start || !end) return 0;
+  return (parseMinutes(end) - parseMinutes(start) + 1440) % 1440;
+}
+const napEndNextDayEl = document.getElementById('nap-end-nextday');
 function renderNapDuration() {
-  const minutes = Math.max(0, parseMinutes(napEndInput.value) - parseMinutes(napStartInput.value));
+  const minutes = napSpanMinutes(napStartInput.value, napEndInput.value);
   napDurDisplay.textContent = minutes > 0 ? Math.floor(minutes / 60) + ':' + String(minutes % 60).padStart(2, '0') : '–';
   napSaveBtn.style.background = minutes > 0 ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
+  napEndNextDayEl.style.display = minutes > 0 && parseMinutes(napEndInput.value) < parseMinutes(napStartInput.value) ? 'inline' : 'none';
   return minutes;
 }
 // Dauer-Stepper verstellt das Ende (Start bleibt stehen), in 15-Minuten-Schritten.
 function stepNapDuration(deltaMin) {
   const startMin = parseMinutes(napStartInput.value);
-  const currentMin = Math.max(0, parseMinutes(napEndInput.value) - startMin);
+  const currentMin = napSpanMinutes(napStartInput.value, napEndInput.value);
   const nextMin = Math.max(0, Math.min(23 * 60 + 45, currentMin + deltaMin));
   const endMin = (startMin + nextMin) % 1440;
   napEndInput.value = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
@@ -4862,7 +4233,22 @@ napEndInput.value = formatTime(napDefaultNow);
 napStartInput.addEventListener('input', renderNapDuration);
 napEndInput.addEventListener('input', renderNapDuration);
 renderNapDuration();
-const napTimeIsValid = setupPastOnlyDateTimeRange(napDateInput, napStartInput, napEndInput, napTimeError);
+setupPastOnlyDateTimeRange(napDateInput, napStartInput, napEndInput, napTimeError);
+// Die Prüfung aus setupPastOnlyDateTimeRange legt beide Uhrzeiten auf das eine
+// Datum. Beim Schlaf über Mitternacht liegt das Ende aber am Folgetag — also
+// gegen den tatsächlichen Endzeitpunkt prüfen.
+function napManualInterval() {
+  if (!napDateInput.value || !napStartInput.value || !napEndInput.value) return null;
+  const start = timeOnDate(new Date(napDateInput.value + 'T00:00:00'), napStartInput.value);
+  return { start, end: new Date(start.getTime() + napSpanMinutes(napStartInput.value, napEndInput.value) * 60000) };
+}
+function napTimeIsValid() {
+  const iv = napManualInterval();
+  if (!iv) return false;
+  const future = iv.end.getTime() > Date.now();
+  napTimeError.style.display = future ? 'block' : 'none';
+  return !future;
+}
 
 // Für exitSchlafenEdit (siehe Schlafen-Historie weiter unten) — dieselben
 // Default-Werte wie oben, aber als wiederverwendbare Funktion.
@@ -5073,32 +4459,110 @@ function schlafenDurationLabel(entry) {
   return m > 0 ? (h + ' Std ' + m + ' Min') : (h + ' Std');
 }
 
-
-nightUpdateBtn.addEventListener('click', async () => {
-  if (!currentUser || !editingNightId || !nightTimeIsValid()) return;
-  const updatedId = editingNightId;
-  const today = new Date();
-  const nightStart = new Date(today); nightStart.setDate(nightStart.getDate() - 1 - nightOffset);
-  const nightEnd = new Date(today); nightEnd.setDate(nightEnd.getDate() - nightOffset);
-  const entry = {
-    nightStart: isoDate(nightStart),
-    nightEnd: isoDate(nightEnd),
-    bedtime: nightBedtimeInput.value,
-    wakeTime: nightWaketimeInput.value,
-    wakeCount
-  };
-  nightUpdateBtn.disabled = true;
-  try {
-    await updateDoc(doc(db, 'nightWakeups', updatedId), entry);
-    exitSchlafenEdit();
-    returnToEintragAfterUpdate({ id: updatedId, _type: 'night', ...entry });
-  } catch (error) {
-    nightUpdateBtn.textContent = 'Fehler beim Speichern';
-    setTimeout(() => { nightUpdateBtn.textContent = 'Eintrag aktualisieren'; }, 1600);
-  } finally {
-    nightUpdateBtn.disabled = false;
+// --- Schlaf: Zeitspanne und Nachtfenster ---
+// Jeder Schlaf ist eine Zeitspanne von Beginn bis Ende. Alte Nacht-Einträge
+// zählen als ein durchgehender Schlaf von Bettzeit bis Aufwachzeit, die Zahl
+// der Aufwacher entfällt. Ob Nacht oder Tag, entscheidet allein das
+// Nachtfenster aus dem Profil, und zwar minutengenau: ein Schlaf über die
+// Fenstergrenze wird geteilt. null = noch nicht beendet (laufender Timer).
+function sleepInterval(entry) {
+  if (entry._type === 'night') {
+    if (!entry.nightStart || !entry.bedtime || !entry.wakeTime) return null;
+    const start = schlafenBusinessTimestamp(entry);
+    return { start, end: new Date(start.getTime() + nightDurationMinutes(entry) * 60000) };
   }
-});
+  if (entry.endTime == null) return null;
+  if (entry.source === 'timer') return { start: new Date(entry.startTime), end: new Date(entry.endTime) };
+  // Manuelle Einträge von vor der Datumsauswahl tragen noch kein `date`.
+  const base = entry.date ? new Date(entry.date + 'T00:00:00')
+    : (entry.createdAt && typeof entry.createdAt.toDate === 'function' ? entry.createdAt.toDate() : null);
+  if (!base || !entry.startTime) return null;
+  const start = timeOnDate(base, entry.startTime);
+  const mins = entry.durationMinutes != null ? entry.durationMinutes : napSpanMinutes(entry.startTime, entry.endTime);
+  return { start, end: new Date(start.getTime() + mins * 60000) };
+}
+
+// Das Nachtfenster, das am Kalendertag `day` endet — die Nacht gehört zum
+// Morgen, an dem sie endet. Liegt „von" nach „bis" (20–8 Uhr), beginnt es am
+// Vorabend.
+function nightWindowEnding(day) {
+  const p = readProfil();
+  const base = new Date(day);
+  base.setHours(0, 0, 0, 0);
+  const start = timeOnDate(base, p.nightFrom);
+  if (parseMinutes(p.nightFrom) >= parseMinutes(p.nightTo)) start.setDate(start.getDate() - 1);
+  return { start, end: timeOnDate(base, p.nightTo) };
+}
+
+// Der Tag zwischen der Nacht, die an `day` endet, und der nächsten.
+function dayWindowOf(day) {
+  const next = new Date(day);
+  next.setHours(0, 0, 0, 0);
+  next.setDate(next.getDate() + 1);
+  return { start: nightWindowEnding(day).end, end: nightWindowEnding(next).start };
+}
+
+function spanOverlapMinutes(a, b) {
+  return Math.max(0, (Math.min(a.end, b.end) - Math.max(a.start, b.start)) / 60000);
+}
+
+// Wie viel eines Schlafs in Nachtfenster fällt — über alle Fenster, die er
+// berühren kann.
+function sleepNightMinutes(iv) {
+  let sum = 0;
+  const d = new Date(iv.start);
+  d.setHours(0, 0, 0, 0);
+  const last = new Date(iv.end);
+  last.setHours(0, 0, 0, 0);
+  last.setDate(last.getDate() + 1);
+  for (; d <= last; d.setDate(d.getDate() + 1)) sum += spanOverlapMinutes(iv, nightWindowEnding(d));
+  return sum;
+}
+
+// Mond oder Sonne, und ob ein Schlaf als Schläfchen zählt: der größere Teil
+// entscheidet. Ohne Dauer (laufender Timer) entscheidet der Beginn.
+function sleepIsNight(iv) {
+  const total = (iv.end - iv.start) / 60000;
+  if (total <= 0) return sleepNightMinutes({ start: iv.start, end: new Date(iv.start.getTime() + 60000) }) > 0;
+  return sleepNightMinutes(iv) * 2 >= total;
+}
+
+// „20 und 8 Uhr" bzw. „19:30 und 7 Uhr" für Hinweistexte.
+function nightWindowText() {
+  const p = readProfil();
+  const short = (t) => (t.endsWith(':00') ? String(parseInt(t, 10)) : t);
+  return short(p.nightFrom) + ' und ' + short(p.nightTo) + ' Uhr';
+}
+
+// Eine Nacht (das Fenster, das an `day` endet) aus Sicht aller Schlafspannen.
+// pending: das Fenster ist noch nicht vorbei. missing: kein Schlaf im Fenster —
+// dann zählt die volle Fensterlänge als wach, damit die Lücke auffällt.
+// Wach sind nur die Lücken zwischen erstem und letztem Schlaf im Fenster.
+// bed/wake: Beginn des ersten und Ende des letzten Schlafs, der ins Fenster
+// reicht — echte Uhrzeiten, auch außerhalb des Fensters.
+function analyseNightWindow(day, sleeps, now) {
+  const win = nightWindowEnding(day);
+  const windowMin = (win.end - win.start) / 60000;
+  if (win.end > now) return { pending: true, win, windowMin };
+  const hits = sleeps.filter((iv) => spanOverlapMinutes(iv, win) > 0).sort((a, b) => a.start - b.start);
+  if (!hits.length) return { missing: true, win, windowMin, sleepMin: 0, wakeMin: windowMin };
+  let sleepMin = 0, wakeMin = 0, curStart = null, curEnd = null;
+  hits.forEach((iv) => {
+    const s = Math.max(iv.start, win.start), e = Math.min(iv.end, win.end);
+    if (curEnd === null) { curStart = s; curEnd = e; return; }
+    if (s > curEnd) {
+      sleepMin += (curEnd - curStart) / 60000;
+      wakeMin += (s - curEnd) / 60000;
+      curStart = s;
+      curEnd = e;
+    } else {
+      curEnd = Math.max(curEnd, e);
+    }
+  });
+  sleepMin += (curEnd - curStart) / 60000;
+  const wake = new Date(Math.max(...hits.map((iv) => iv.end.getTime())));
+  return { win, windowMin, sleepMin, wakeMin, bed: hits[0].start, wake };
+}
 
 napUpdateBtn.addEventListener('click', async () => {
   if (!currentUser || !editingNapId || !napTimeIsValid()) return;
@@ -5245,7 +4709,8 @@ function historieIsOpen(entry) {
   // auf der Füttern-Seite abgeschlossen, nicht hier bearbeitet.
   if (entry._cat === 'fuettern' && entry.type === 'pump') return entry.endTime === null || entry.pendingAmount === true;
   if (entry._cat === 'fuettern') return entry.type === 'breast' && entry.endTime === null;
-  if (entry._cat === 'schlafen') return entry._type === 'nap' ? entry.endTime === null : entry.wakeTime == null;
+  // Alte Nacht-Einträge sind nie offen: sie lassen sich nur ansehen und löschen.
+  if (entry._cat === 'schlafen') return entry._type === 'nap' && entry.endTime === null;
   return false;
 }
 
@@ -5264,12 +4729,13 @@ function historieDetail(entry) {
     const color = entry.big && entry.color && COLOR_BY_ID[entry.color];
     return { icon: 'diaper', main: sizes.join(' & ') || 'Windel', rest: color ? color.label : '', warn: !!(color && WARN_COLOR_IDS.includes(entry.color)) };
   }
-  if (entry._type === 'night') {
-    if (open) return { icon: 'night', main: 'Nacht', rest: 'Läuft…' };
-    return { icon: 'night', main: 'Nacht', rest: 'bis ' + (schlafenEndTimeLabel(entry) || '--:--') + ' · ' + (schlafenDurationLabel(entry) || '–') + ' · ' + (entry.wakeCount || 0) + 'x' };
-  }
-  if (open) return { icon: 'nap', main: 'Schläfchen', rest: 'Läuft…' };
-  return { icon: 'nap', main: 'Schläfchen', rest: 'bis ' + (schlafenEndTimeLabel(entry) || '--:--') + ' · ' + (schlafenDurationLabel(entry) || '–') };
+  // Schlaf, egal ob Timer, manuell oder alter Nacht-Eintrag. Mond oder Sonne
+  // rechnet das Nachtfenster aus; ein laufender Timer zählt nach seinem Beginn.
+  const iv = sleepInterval(entry);
+  const startTs = schlafenBusinessTimestamp(entry);
+  const icon = (iv || startTs) && sleepIsNight(iv || { start: startTs, end: startTs }) ? 'night' : 'nap';
+  if (open) return { icon, main: 'Schlaf', rest: 'Läuft…' };
+  return { icon, main: 'Schlaf', rest: 'bis ' + (schlafenEndTimeLabel(entry) || '--:--') + ' · ' + (schlafenDurationLabel(entry) || '–') };
 }
 
 // Eine Zeile ist ein Knopf: Antippen öffnet die Bearbeiten-Maske des
@@ -5408,9 +4874,9 @@ function openEintrag(entry, origin) {
     showScreen('fuettern');
     showFuetternTimer(type);
   } else {
-    schlafenForceOpen = entry._type === 'night' ? 'night' : 'nap';
+    schlafenForceOpen = 'nap';
     showScreen('schlafen');
-    if (schlafenForceOpen === 'nap') { setSchlafenMode('day'); setNapMode('timer'); } else setSchlafenMode('night');
+    setNapMode('timer');
   }
 }
 
@@ -5454,7 +4920,6 @@ function entryEditSignature() {
     return JSON.stringify(['breast', breastDateInput.value, breastStartInput.value, breastSegments.map((s) => [s.side, s.minutes])]);
   }
   if (editingDiaperId) return JSON.stringify([small, big, big ? diaperColor : null, windelnDateInput.value, windelnTimeInput.value]);
-  if (editingNightId) return JSON.stringify([nightOffset, nightBedtimeInput.value, nightWaketimeInput.value, wakeCount]);
   if (editingNapId) return JSON.stringify([napDateInput.value, napStartInput.value, napEndInput.value]);
   return null;
 }
@@ -5462,7 +4927,6 @@ function entryEditSignature() {
 function entryUpdateBtn() {
   if (editingFeedingId) return feedType === 'bottle' ? fuetternBottleUpdateBtn : feedType === 'pump' ? fuetternPumpUpdateBtn : fuetternBreastUpdateBtn;
   if (editingDiaperId) return windelnUpdateBtn;
-  if (editingNightId) return nightUpdateBtn;
   if (editingNapId) return napUpdateBtn;
   return null;
 }
@@ -5533,14 +4997,13 @@ function runningEntryOnScreen(cat) {
     return null;
   }
   if (cat === 'schlafen') {
-    if (shown(schlafenDayPanel) && shown(napTimerPanel) && openNapDocId) return { id: openNapDocId, _cat: 'schlafen', _type: 'nap' };
-    if (shown(schlafenNightPanel) && viewedNightEntry && viewedNightEntry._open) return { id: viewedNightEntry.id, _cat: 'schlafen', _type: 'night' };
+    if (shown(napTimerPanel) && openNapDocId) return { id: openNapDocId, _cat: 'schlafen', _type: 'nap' };
   }
   return null;
 }
 
 // Aufgerufen von allem, was Panel oder Timer-Zustand umschaltet (setFeedType,
-// setXMode, die Timer-Anzeigen, updateNightView) sowie beim Bearbeiten.
+// setXMode, die Timer-Anzeigen) sowie beim Bearbeiten.
 function renderEntryDeleteBtns() {
   if (!entryDeleteReady) return;
   ['fuettern', 'windeln', 'schlafen'].forEach((cat) => {
@@ -5556,12 +5019,11 @@ function endEntryEditChrome() {
   renderEntryDeleteBtns();
 }
 
-// Sperrt bzw. löst das Datum aller Bearbeiten-Masken; bei Nächten sind das
-// die Pfeile, mit denen man zu einer anderen Nacht blättert.
+// Sperrt bzw. löst das Datum aller Bearbeiten-Masken. Ein alter
+// Nacht-Eintrag bleibt ganz gesperrt (setNapFormLocked).
 function setEntryDateLocked(locked) {
-  [fuetternDateInput, breastDateInput, pumpDateInput, windelnDateInput, napDateInput].forEach((input) => { input.disabled = locked; });
-  nightPrevBtn.style.visibility = locked ? 'hidden' : '';
-  nightNextBtn.style.visibility = locked ? 'hidden' : '';
+  [fuetternDateInput, breastDateInput, pumpDateInput, windelnDateInput].forEach((input) => { input.disabled = locked; });
+  napDateInput.disabled = locked || !!editingNightId;
 }
 
 // Ordnet einen Eintrag in der geladenen Historie neu ein (Datum, Uhrzeit oder
@@ -5612,8 +5074,7 @@ function returnToEintragAfterUpdate(changes) {
   if (eintragOrigin === 'historie') {
     reinsertHistorieRow(entry);
   } else {
-    // Eine Nacht steht im Zeitverlauf mit ihrem Aufwachen, nicht der Bettzeit.
-    const ts = entry._type === 'night' ? timeOnDate(new Date(), entry.wakeTime) : historieTs(entry);
+    const ts = historieTs(entry);
     pendingTimelineFlash = ts ? { ts: ts.getTime(), color: 'var(--' + entry._cat + ')', at: Date.now() } : null;
   }
   returnToEintragOrigin();
@@ -5644,11 +5105,6 @@ function clearRunningEntryState(entry) {
     openNapDocId = null;
     openNapStartedAt = null;
     renderTimerDisplay();
-  } else {
-    openNightDocId = null;
-    openNightData = null;
-    goToDefaultNightPosition();
-    refreshLastNightPending();
   }
   renderEntryDeleteBtns();
 }
@@ -5657,7 +5113,7 @@ function clearRunningEntryState(entry) {
 // offene Nacht) — danach geht es wie beim Abschließen zurück zum Ursprung,
 // sonst auf Heute.
 async function deleteEintrag(delBtn, entry, running) {
-  const label = entry._cat === 'fuettern' ? (entry.type === 'pump' ? 'Abpump' : 'Fütterungs') : entry._cat === 'windeln' ? 'Windel' : (entry._type === 'night' ? 'Schlafen' : 'Nap');
+  const label = entry._cat === 'fuettern' ? (entry.type === 'pump' ? 'Abpump' : 'Fütterungs') : entry._cat === 'windeln' ? 'Windel' : 'Schlaf';
   if (!confirm('Diesen ' + label + '-Eintrag wirklich löschen?')) return;
   const name = entryCollectionName(entry);
   delBtn.disabled = true;
@@ -5718,6 +5174,20 @@ async function getTodayDocs(name) {
   return cachedQueryDocs('today-' + name, isoDate(start), () => query(collection(db, name), where('createdAt', '>=', start)));
 }
 
+// Schlaf seit gestern 0 Uhr — genug für die Nacht, die heute endet, auch wenn
+// ihr erster Schlaf schon am Vorabend begann. Nachgetragene Einträge haben ein
+// späteres createdAt und sind damit ohnehin dabei. Alte Nacht-Einträge gehen
+// nach ihrem Aufwach-Tag.
+async function getRecentSleepDocs(name) {
+  const since = todayStartDate();
+  since.setDate(since.getDate() - 1);
+  const key = isoDate(since);
+  if (name === 'nightWakeups') {
+    return cachedQueryDocs('recent-nights', key, () => query(collection(db, name), where('nightEnd', '>=', key)));
+  }
+  return cachedQueryDocs('recent-' + name + '-since', key, () => query(collection(db, name), where('createdAt', '>=', since)));
+}
+
 function timeOnDate(baseDate, hhmm) {
   const [h, m] = hhmm.split(':').map(Number);
   const d = new Date(baseDate);
@@ -5760,12 +5230,6 @@ async function getMostRecentByBusinessTime(name, predicate) {
   return docs[0];
 }
 
-// Manual naps store endTime as a bare "HH:MM" string, timer naps as a full
-// ISO datetime — new Date() can't parse "HH:MM" directly, so branch by source.
-function napEndDate(n, baseDate) {
-  return n.source === 'timer' ? new Date(n.endTime) : timeOnDate(baseDate, n.endTime);
-}
-
 function renderHeuteDate(now) {
   const ageWeeks = profilAgeWeeks(now);
   document.getElementById('heute-date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) +
@@ -5783,7 +5247,7 @@ async function loadOverview() {
   const fuetternCountsAsMeal = (f) => fuetternIsMeal(f) && fuetternIsFinished(f);
   const feedData = Promise.all([findOpenFeeding(), getMostRecentByBusinessTime('feedings', fuetternCountsAsMeal), getTodayDocs('feedings')]);
   const diaperData = Promise.all([getMostRecentByBusinessTime('diaperChanges'), getTodayDocs('diaperChanges')]);
-  const sleepData = Promise.all([findOpenNap(), findNightByEnd(isoDate(now)), findOpenNight(), getTodayDocs('naps')]);
+  const sleepData = Promise.all([findOpenNap(), getRecentSleepDocs('naps'), getRecentSleepDocs('nightWakeups'), getTodayDocs('naps')]);
   [feedData, diaperData, sleepData].forEach((p) => p.catch(() => {}));
 
   // Füttern
@@ -5901,89 +5365,49 @@ async function loadOverview() {
 
   // Schlafen
   try {
-    // Gezielt die Nacht, die mit heute endet (statt der zuletzt angelegten):
-    // nur sie gehört auf die Heute-Karte, und nur an ihr hängt die Erinnerung
-    // weiter unten. Die offene Nacht dazu, um eine begonnene von einer gar
-    // nicht erfassten Nacht unterscheiden zu können.
-    const [openNap, lastNight, openNight, todayNapsRaw] = await sleepData;
+    // Die Schlafspannen seit gestern früh (dazu alte Nacht-Einträge, die heute
+    // oder gestern endeten) — genug für die Nacht, die heute endet, samt Schlaf,
+    // der schon am Vorabend begann.
+    const [openNap, recentNaps, recentNights, todayNapsRaw] = await sleepData;
     const todayNaps = todayNapsRaw.filter((n) => entryIsToday(n, now));
+    const sleeps = recentNaps.map(sleepInterval)
+      .concat(recentNights.map((n) => sleepInterval({ ...n, _type: 'night' })))
+      .filter(Boolean);
 
     const badge = document.getElementById('schlafen-running-badge');
     const schlafenAgoEl = document.getElementById('schlafen-ago');
-    const completed = todayNaps.filter((n) => n.endTime).sort((a, b) => napEndDate(b, now) - napEndDate(a, now));
-    const wakeIsToday = !!(lastNight && lastNight.bedtime && lastNight.wakeTime);
-
-    // Das „läuft"-Abzeichen gilt für ein laufendes Schläfchen wie für eine
-    // offene Nacht; die Zeile darunter bleibt bei den Schläfchen.
-    badge.style.display = openNap || openNight ? 'flex' : 'none';
+    badge.style.display = openNap ? 'flex' : 'none';
     if (openNap) {
       schlafenAgoEl.textContent = '';
       const elapsedMin = Math.max(0, Math.round((Date.now() - new Date(openNap.startTime).getTime()) / 60000));
       document.getElementById('schlafen-detail').textContent = 'Schläft seit ' + formatTime(new Date(openNap.startTime)) + ' · ' + elapsedMin + ' Min';
     } else {
-      document.getElementById('schlafen-detail').textContent = completed.length
-        ? 'Schläfchen: ' + formatDuration(completed[0].durationMinutes)
-        : 'Noch kein Schläfchen heute';
-
-      const candidates = [];
-      if (completed.length) candidates.push(napEndDate(completed[0], now));
-      if (wakeIsToday) candidates.push(timeOnDate(now, lastNight.wakeTime));
-      const lastSchlafenTs = candidates.length ? new Date(Math.max(...candidates.map((d) => d.getTime()))) : null;
-      // Neben dem Abzeichen einer offenen Nacht kein „vor x Std".
-      schlafenAgoEl.textContent = lastSchlafenTs && !openNight ? timeAgo(lastSchlafenTs) : '';
+      // Der zuletzt beendete Schlaf — auch einer, der gestern Abend begann.
+      const last = sleeps.filter((iv) => iv.end <= now).sort((a, b) => b.end - a.end)[0] || null;
+      document.getElementById('schlafen-detail').textContent = last && isoDate(last.end) === isoDate(now)
+        ? 'Schlaf: ' + formatDuration(Math.round((last.end - last.start) / 60000))
+        : 'Heute noch kein Schlaf';
+      schlafenAgoEl.textContent = last ? timeAgo(last.end) : '';
     }
 
-    const nightHintBtn = document.getElementById('schlafen-night-hint');
+    // Die Nacht, die heute endet, sobald ihr Fenster vorbei ist — auf Stunden
+    // gerundet. Ohne einen einzigen Schlaf darin zählt das ganze Fenster als
+    // wach und steht in Warnfarbe da, damit es nachgetragen wird.
     const nightStatsEl = document.getElementById('schlafen-stats');
-    nightStatsEl.style.display = '';
-    if (openNight) {
-      // Eine offene Nacht ist das Aktuelle, vor der Bilanz der letzten und
-      // statt der Erinnerung an sie. Im Zeitverlauf steht sie als „Schlaf"
-      // mit „läuft"-Abzeichen; antippen öffnet „Nacht vervollständigen".
-      nightStatsEl.textContent = 'Nachts: seit ' + openNight.bedtime;
-      nightHintBtn.style.display = 'none';
-      const bedTs = schlafenBusinessTimestamp({ ...openNight, _type: 'night' });
-      if (bedTs) {
-        timelineEvents.push({
-          ts: bedTs,
-          color: 'var(--schlafen)',
-          label: 'Schlaf',
-          runningSince: bedTs,
-          entry: { ...openNight, _cat: 'schlafen', _type: 'night' }
-        });
-      }
-    } else if (wakeIsToday) {
-      const nightHours = Math.round(nightDurationMinutes(lastNight) / 60);
-      nightStatsEl.textContent =
-        'Nachts: ' + nightHours + ' Std. · ' + lastNight.wakeCount + '× aufgewacht';
-      nightHintBtn.style.display = 'none';
-    } else {
-      nightStatsEl.textContent = '';
-      // Erst ab Mittag erinnern: vormittags öffnet die Nachts-Karte ohnehin
-      // auf der letzten Nacht, und wer gerade erst aufgestanden ist, trägt sie
-      // meist noch ein. Danach würde die Lücke sonst unsichtbar bleiben.
-      // (Eine begonnene, offene Nacht steht oben schon als „Nachts: seit".)
-      const showHint = now.getHours() >= 12;
-      nightHintBtn.style.display = showHint ? 'inline-flex' : 'none';
-      // Die leere Statuszeile daneben würde die Erinnerung sonst per
-      // space-between aus dem linken Rand schieben — sie fluchtet mit der
-      // Zeile darüber nur, wenn sie das erste Element der Reihe ist.
-      nightStatsEl.style.display = showHint ? 'none' : '';
-      document.getElementById('schlafen-night-hint-text').textContent = 'Letzte Nacht fehlt';
-      nightHintBtn.dataset.force = '1';
-    }
-    // Das Aufwachen der letzten Nacht gehört in den Zeitverlauf — auch wenn
-    // abends schon die nächste Nacht begonnen hat.
-    if (wakeIsToday && lastNight.createdAt) {
-      timelineEvents.push({ ts: timeOnDate(now, lastNight.wakeTime), color: 'var(--schlafen)', label: 'Aufgewacht', entry: { ...lastNight, _cat: 'schlafen', _type: 'night' } });
-    }
+    const night = analyseNightWindow(now, sleeps, now);
+    const hrs = (min) => Math.round(min / 60) + ' Std';
+    nightStatsEl.style.color = night.missing ? 'var(--warn)' : '';
+    nightStatsEl.style.fontWeight = night.missing ? '600' : '';
+    nightStatsEl.textContent = night.pending ? ''
+      : night.missing ? 'Nachts: keine Einträge · ' + hrs(night.wakeMin) + ' wach'
+      : 'Nachts: ' + hrs(night.sleepMin) + ' Schlaf · ' + hrs(night.wakeMin) + ' wach';
 
     todayNaps.forEach((n) => {
       const ts = n.source === 'timer' ? new Date(n.startTime) : timeOnDate(now, n.startTime);
       timelineEvents.push({
         ts,
         color: 'var(--schlafen)',
-        label: 'Schläfchen',
+        label: 'Schlaf',
         detail: n.endTime ? ' · ' + formatDuration(n.durationMinutes) : '',
         runningSince: n.endTime ? null : ts,
         entry: { ...n, _cat: 'schlafen', _type: 'nap' }
@@ -6481,87 +5905,136 @@ function computeWindelnAnalysis(days, diaperMap) {
   };
 }
 
-function napStartHour(n) {
-  if (n.source === 'timer') {
-    const d = new Date(n.startTime);
-    return d.getHours() + d.getMinutes() / 60;
-  }
-  return parseMinutes(n.startTime) / 60;
-}
-
-const NAP_HIST_START = 6, NAP_HIST_END = 20, NAP_HIST_BINS = NAP_HIST_END - NAP_HIST_START;
+// Uhrzeit des Schlafs: wann ein Schlaf beginnt, über den ganzen Tag. Seit es
+// keine eigene Nacht-Eingabe mehr gibt, liegt Schlaf zu jeder Stunde an; das
+// Nachtfenster ist im Diagramm hinterlegt (nightHourBins).
+const NAP_HIST_START = 0, NAP_HIST_END = 24, NAP_HIST_BINS = NAP_HIST_END - NAP_HIST_START;
 // Side margin for the histogram's own SVG coordinate space — wide enough
 // that a text-anchor:middle two-digit hour label (e.g. "20") at the very
 // first/last tick doesn't overflow the viewBox and get clipped.
 const NAP_HIST_MARGIN_X = 12;
 
-// allNaps already only ever contains entries from the "Tagsüber" nap flow
-// (Manuell or Timer) — night sleep lives entirely in the separate
-// nightWakeups collection and never reaches this function, regardless of
-// what clock time a nap happened to start at. So a nap starting just before
-// 6 or after 20 is still a genuine daytime nap; it's clamped into the
-// nearest edge bin rather than dropped, so no data silently disappears.
-function computeNapHistogram(allNaps) {
-  const binWidth = (NAP_HIST_END - NAP_HIST_START) / NAP_HIST_BINS;
+function computeNapHistogram(sleeps) {
   const bins = new Array(NAP_HIST_BINS).fill(0);
-  allNaps.forEach((n) => {
-    const h = napStartHour(n);
-    const idx = Math.max(0, Math.min(NAP_HIST_BINS - 1, Math.floor((h - NAP_HIST_START) / binWidth)));
-    bins[idx]++;
-  });
+  sleeps.forEach((iv) => { bins[iv.start.getHours()]++; });
   return bins;
 }
 
-function computeSchlafenAnalysis(days, nightMap, napMap) {
-  const perDay = days.map((d, i) => {
-    const nights = nightMap[i].filter((n) => n.bedtime && n.wakeTime);
-    const napsToday = napMap[i].filter((n) => n.endTime);
-    const napMinutes = napsToday.reduce((s, n) => s + (n.durationMinutes || 0), 0);
-    const nightMinutes = nights.length ? analyseAvg(nights.map(nightDurationMinutes)) : 0;
-    const wakeCount = nights.length ? analyseAvg(nights.map((n) => n.wakeCount || 0)) : 0;
+// Welche Stunden-Säulen im Nachtfenster liegen (die Mitte der Stunde zählt).
+function nightHourBins() {
+  const p = readProfil();
+  const from = parseMinutes(p.nightFrom), to = parseMinutes(p.nightTo);
+  return Array.from({ length: NAP_HIST_BINS }, (_, h) => {
+    const m = h * 60 + 30;
+    return from > to ? (m >= from || m < to) : (m >= from && m < to);
+  });
+}
+
+// „Die Nacht auf Sonntag, 28. September" — die Nacht heißt nach ihrem Morgen.
+function nightOnLabel(key) {
+  const d = new Date(key + 'T00:00:00');
+  return 'Die Nacht auf ' + ANALYSE_WEEKDAY_FULL[d.getDay()] + ', ' + d.getDate() + '. ' + ANALYSE_MONTH_FULL[d.getMonth()];
+}
+
+// Schlaf je Ausschnitt (Tag, Woche, Monat) aus den Schlafspannen. Jede Nacht
+// gehört zum Morgen, an dem sie endet; der Tag reicht vom Ende dieser Nacht
+// bis zum Beginn der nächsten. Ein Schlaf über die Grenze wird minutengenau
+// geteilt. Nächte, die vor dem ersten erfassten Schlaf endeten, haben keine
+// Daten — sonst stünden die Wochen vor Beginn der Aufzeichnung als „fehlt" da.
+// Eine Nacht ohne einen einzigen Schlaf zählt im Balken mit der vollen
+// Fensterlänge als wach, in allen Mittelwerten aber nicht mit.
+function computeSchlafenAnalysis(days, sleepSpans) {
+  const now = new Date();
+  // Je Schlaf einmal vorab: Dauer, Nachtanteil und ob er als Schläfchen zählt.
+  const sleeps = sleepSpans.map((iv) => {
+    const total = (iv.end - iv.start) / 60000;
+    const nightMin = sleepNightMinutes(iv);
+    return { start: iv.start, end: iv.end, dayMin: total - nightMin, isNight: sleepIsNight(iv) };
+  });
+  const dataStart = sleeps.length ? Math.min(...sleeps.map((iv) => iv.start.getTime())) : null;
+  const p = readProfil();
+  const clock = (base, offsetMin) => minutesToHHMM(parseMinutes(base) + offsetMin);
+  const allNights = [];
+
+  const perDay = days.map((d) => {
+    const nights = [];
+    const startedHere = [];
+    let dayMin = 0, napCount = 0;
+    d.dayKeys.forEach((key) => {
+      const day = new Date(key + 'T00:00:00');
+      const n = analyseNightWindow(day, sleeps, now);
+      if (!n.pending && dataStart !== null && n.win.end.getTime() > dataStart) {
+        n.key = key;
+        nights.push(n);
+        allNights.push(n);
+      }
+      const dw = dayWindowOf(day);
+      sleeps.forEach((iv) => {
+        const ov = spanOverlapMinutes(iv, dw);
+        dayMin += ov;
+        // Ein Schläfchen zählt an dem Tag, auf den der größte Teil seines
+        // Tagesanteils fällt.
+        if (ov > 0 && !iv.isNight && ov * 2 >= iv.dayMin) napCount++;
+        if (isoDate(iv.start) === key) startedHere.push(iv);
+      });
+    });
+    const valid = nights.filter((n) => !n.missing);
     return {
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
       weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
-      nightMinutes, napMinutes, napCount: napsToday.length, hasNight: nights.length > 0, wakeCount,
+      // Nachtschlaf je Nacht (gemittelt), Tagschlaf als Summe — die Diagramme
+      // teilen ihn wie bisher durch daysElapsed.
+      nightMinutes: valid.length ? analyseAvg(valid.map((n) => n.sleepMin)) : 0,
+      napMinutes: dayMin,
+      napCount,
+      hasNight: valid.length > 0,
+      missingCount: nights.length - valid.length,
+      // Balken „Nachts wach": fehlende Nächte zählen mit der vollen Fensterlänge.
+      wakeBarMin: nights.length ? analyseAvg(nights.map((n) => n.wakeMin)) : 0,
+      // Für Kacheln und Ø nur die Nächte mit Einträgen. null = keine solche Nacht.
+      wakeMin: valid.length ? analyseAvg(valid.map((n) => n.wakeMin)) : null,
+      bedtime: valid.length ? clock(p.nightFrom, analyseAvg(valid.map((n) => (n.bed - n.win.start) / 60000))) : null,
+      waketime: valid.length ? clock(p.nightTo, analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000))) : null,
       // Eigenes Uhrzeit-Histogramm je Bucket, damit die unterste Karte dem
       // markierten Balken folgen kann, ohne neu zu laden.
-      napHistogram: computeNapHistogram(napsToday),
-      // Für die Kennzahl-Kacheln, die dem markierten Balken folgen. null statt 0,
-      // damit ein Bucket ohne Nachteintrag als "–" erkennbar bleibt.
-      bedMin: nights.length ? analyseAvg(nights.map((n) => parseMinutes(n.bedtime))) : null,
-      wakeMin: nights.length ? analyseAvg(nights.map((n) => parseMinutes(n.wakeTime))) : null
+      napHistogram: computeNapHistogram(startedHere)
     };
   });
 
   const totalDays = analyseTotalDays(days);
-  const daysWithNight = perDay.filter((d) => d.hasNight);
-  const avgNightH = analyseRound(daysWithNight.length ? analyseAvg(daysWithNight.map((d) => d.nightMinutes)) / 60 : 0);
-  const avgNapH = analyseRound(perDay.reduce((s, d) => s + d.napMinutes, 0) / totalDays / 60);
-  const avgTotalH = avgNightH + avgNapH;
-  const avgWake = daysWithNight.length ? analyseRound(analyseAvg(daysWithNight.map((d) => d.wakeCount))) : null;
-  const avgNapCount = analyseRound(perDay.reduce((s, d) => s + d.napCount, 0) / totalDays);
-
-  const allNights = nightMap.flat().filter((n) => n.bedtime && n.wakeTime);
-  const avgBedtime = allNights.length ? minutesToHHMM(analyseAvg(allNights.map((n) => parseMinutes(n.bedtime)))) : '–';
-  const avgWaketime = allNights.length ? minutesToHHMM(analyseAvg(allNights.map((n) => parseMinutes(n.wakeTime)))) : '–';
-
-  const allNaps = napMap.flat().filter((n) => n.endTime);
-  const napHistogram = computeNapHistogram(allNaps);
-
-  const outlier = findAnalyseOutlierDay(daysWithNight, (d) => d.wakeCount);
-
-  // Ungerundete Fassungen derselben Mittelwerte. Die gerundeten bleiben für
-  // die Übersichtskarte; die interaktiven Diagramme brauchen exakte Werte,
-  // damit Ø-Linie und Kartenwert sich beim Filtern sauber aufaddieren.
-  const avgNightHExact = daysWithNight.length ? analyseAvg(daysWithNight.map((d) => d.nightMinutes)) / 60 : 0;
+  const valid = allNights.filter((n) => !n.missing);
+  const missing = allNights.filter((n) => n.missing);
+  // Ungerundet: Ø-Linie, Kartenwert und Kacheln rechnen damit.
+  const avgNightHExact = valid.length ? analyseAvg(valid.map((n) => n.sleepMin)) / 60 : 0;
   const avgNapHExact = perDay.reduce((s, d) => s + d.napMinutes, 0) / totalDays / 60;
-  const avgWakeExact = daysWithNight.length ? analyseAvg(daysWithNight.map((d) => d.wakeCount)) : null;
+  const avgWakeExact = valid.length ? analyseAvg(valid.map((n) => n.wakeMin)) / 60 : null;
   const avgNapCountExact = perDay.reduce((s, d) => s + d.napCount, 0) / totalDays;
+  const avgBedtime = valid.length ? clock(p.nightFrom, analyseAvg(valid.map((n) => (n.bed - n.win.start) / 60000))) : '–';
+  const avgWaketime = valid.length ? clock(p.nightTo, analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000))) : '–';
+
+  const napHistogram = new Array(NAP_HIST_BINS).fill(0);
+  perDay.forEach((d) => d.napHistogram.forEach((c, h) => { napHistogram[h] += c; }));
+
+  // Hinweis: zuerst die Nächte ohne Einträge (antippen trägt die letzte nach),
+  // sonst die Nacht mit der längsten Wachzeit.
+  let insight = null, missingNightKey = null;
+  if (missing.length) {
+    const last = missing[missing.length - 1];
+    missingNightKey = last.key;
+    const hours = analyseRound(last.windowMin / 60) + ' Std';
+    insight = missing.length === 1
+      ? nightOnLabel(last.key) + ' hat keine Schlafeinträge zwischen ' + nightWindowText() + ' und zählt als ' + hours + ' wach. Tippen, um nachzutragen.'
+      : missing.length + ' Nächte ohne Schlafeinträge zwischen ' + nightWindowText() + ' zählen als je ' + hours + ' wach, zuletzt ' +
+        nightOnLabel(last.key).replace('Die Nacht', 'die Nacht') + '. Tippen, um sie nachzutragen.';
+  } else {
+    const outlier = findAnalyseOutlierDay(perDay.filter((d) => d.hasNight), (d) => d.wakeMin);
+    if (outlier) insight = outlierDayLabel(outlier.day) + ' mit ' + analyseHhmm(outlier.value / 60) + ' Std. wach — die längste Wachzeit ' + analyseRangePhrase + '.';
+  }
 
   return {
-    perDay, avgNightH, avgNapH, avgTotalH, avgWake, avgNapCount, avgBedtime, avgWaketime, napHistogram,
+    perDay, avgBedtime, avgWaketime, napHistogram,
     avgNightHExact, avgNapHExact, avgWakeExact, avgNapCountExact,
-    insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + analyseRound(outlier.value) + '× Aufwachen — die meisten Unterbrechungen ' + analyseRangePhrase + '.') : null
+    missingNightKey, insight
   };
 }
 
@@ -6600,7 +6073,9 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
 // showCounts: bei einem einzelnen markierten Tag steht über den Balken die
 // Anzahl statt eines Anteils — "33 %" dreimal nebeneinander sagt bei drei
 // Schläfchen nichts, "1" schon.
-function svgHistogram(bins, binStartHour, binEndHour, color, binPx, showCounts) {
+// shade: je Säule, ob sie im Nachtfenster liegt — dort liegt eine helle
+// Fläche hinter den Balken.
+function svgHistogram(bins, binStartHour, binEndHour, color, binPx, showCounts, shade) {
   const baseline = 95, maxPx = 78, m = NAP_HIST_MARGIN_X;
   const plotW = 2 * m + bins.length * binPx;
   const x = scaleLinear().domain([0, bins.length]).range([m, m + bins.length * binPx]);
@@ -6609,6 +6084,9 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx, showCounts) 
   const totalCount = Math.max(1, bins.reduce((s, c) => s + c, 0));
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx]);
   let bars = '';
+  (shade || []).forEach((on, i) => {
+    if (on) bars += '<rect x="' + x(i) + '" y="2" width="' + binPx + '" height="' + (baseline - 2) + '" fill="#E8E5F9"/>';
+  });
   bins.forEach((count, i) => {
     const bx = x(i) + 1;
     const w = binPx - 2;
@@ -6667,7 +6145,7 @@ function initNapHistogram(napHistogram, opts) {
   else lastNapBinPx = binPx;
   const n = napHistogram.length;
   const prevScroll = scroller.scrollLeft;
-  scroller.innerHTML = svgHistogram(napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E', binPx, o.showCounts);
+  scroller.innerHTML = svgHistogram(napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E', binPx, o.showCounts, nightHourBins());
 
   const plotW = 2 * NAP_HIST_MARGIN_X + n * binPx;
   const viewportW = scroller.clientWidth;
@@ -6803,7 +6281,7 @@ function renderAnalyseOverview() {
   const sb = i >= 0 ? schlafen.perDay[i] : null;
   const sNight = sb ? sb.nightMinutes / 60 : schlafen.avgNightHExact;
   const sNap = sb ? sb.napMinutes / sb.daysElapsed / 60 : schlafen.avgNapHExact;
-  const sWake = sb ? (sb.hasNight ? sb.wakeCount : null) : schlafen.avgWakeExact;
+  const sWake = sb ? (sb.wakeMin === null ? null : sb.wakeMin / 60) : schlafen.avgWakeExact;
 
   return analyseOvCard('fuettern', 'Füttern',
       '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
@@ -6826,8 +6304,8 @@ function renderAnalyseOverview() {
       { bar: 'var(--schlafen)', soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)' },
       svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + d.napMinutes / d.daysElapsed) / 60, '#B7ADEB', '#4B3F9E', i),
       pre + analyseHhmm(sNight + sNap), 'Std. Schlaf gesamt' + perDay,
-      analyseHhmm(sNight) + ' nachts · ' + (sWake === null ? '–' : analyseDe1(sWake) + '×') +
-        ' aufgewacht · ' + analyseHhmm(sNap) + ' tagsüber');
+      analyseHhmm(sNight) + ' nachts · ' + (sWake === null ? '–' : analyseHhmm(sWake)) +
+        ' wach · ' + analyseHhmm(sNap) + ' tagsüber');
 }
 
 // Neu gezeichnet wird nur, wenn die Übersicht auch zu sehen ist — beim Wischen
@@ -7012,13 +6490,23 @@ const SCHLAFEN_CHARTS = {
     tipValue: (v) => analyseHhmm(v) + ' Std.',
     detail: (v) => analyseHhmm(v)
   },
-  'schlaf-aufwachen': {
-    title: 'Aufwachen pro Nacht',
-    series: [{ key: 'wake', label: 'Aufwachen', color: '#4B3F9E', value: (d) => d.wakeCount, mean: (a) => a.avgWakeExact || 0 }],
-    barLabel: (v) => String(analyseRound(v)),
-    headline: (v) => 'Ø ' + analyseDe1(v) + '× / Nacht',
-    tipValue: (v) => analyseDe1(v) + '× aufgewacht',
-    detail: (v) => analyseDe1(v) + '×'
+  // Wach zwischen erstem und letztem Schlaf im Nachtfenster. Eine Nacht ohne
+  // Einträge steht mit der vollen Fensterlänge und in Warnfarbe da; die
+  // Ø-Linie rechnet sie nicht mit.
+  'schlaf-wach': {
+    title: 'Nachts wach',
+    series: [{
+      key: 'wake', label: 'Nachts wach', color: '#4B3F9E',
+      value: (d) => d.wakeBarMin / 60, mean: (a) => a.avgWakeExact || 0,
+      barColor: (d) => (d.missingCount ? 'var(--warn)' : null)
+    }],
+    legendNote: '<div class="a-legend"><span style="display:inline-flex; align-items:center;"><i style="background:var(--warn);"></i>ohne Einträge</span></div>',
+    barLabel: (v) => (v >= 9.95 ? String(analyseRound(v)) : analyseDe1(v)),
+    headline: (v) => 'Ø ' + analyseHhmm(v) + ' Std. / Nacht',
+    tipValue: (v) => analyseHhmm(v) + ' Std. wach',
+    tipSub: (b) => (!b.missingCount ? ''
+      : b.daysElapsed === 1 ? 'keine Schlafeinträge'
+      : b.missingCount + (b.missingCount === 1 ? ' Nacht' : ' Nächte') + ' ohne Einträge')
   },
   'schlaf-naps': {
     title: 'Schläfchen pro Tag',
@@ -7070,15 +6558,18 @@ function windelnStatValues(a, b) {
 function schlafenStatValues(a, b) {
   if (!b) return {
     total: analyseHhmm(a.avgNightHExact + a.avgNapHExact),
-    wake: a.avgWakeExact === null ? '–' : analyseDe1(a.avgWakeExact) + '×',
+    wake: a.avgWakeExact === null ? '–' : analyseHhmm(a.avgWakeExact),
     waketime: a.avgWaketime,
     bedtime: a.avgBedtime
   };
+  // Ein markierter Tag ohne Schlafeinträge zeigt die volle Fensterlänge in
+  // Warnfarbe, wie sein Balken.
   return {
     total: analyseHhmm(b.nightMinutes / 60 + b.napMinutes / b.daysElapsed / 60),
-    wake: b.hasNight ? analyseDe1(b.wakeCount) + '×' : '–',
-    waketime: b.wakeMin === null ? '–' : minutesToHHMM(b.wakeMin),
-    bedtime: b.bedMin === null ? '–' : minutesToHHMM(b.bedMin)
+    wake: b.wakeMin !== null ? analyseHhmm(b.wakeMin / 60)
+      : b.missingCount ? { v: analyseHhmm(b.wakeBarMin / 60), c: 'var(--warn)' } : '–',
+    waketime: b.waketime || '–',
+    bedtime: b.bedtime || '–'
   };
 }
 
@@ -7159,17 +6650,17 @@ const ANALYSE_SECTION_UI = {
   schlafen: {
     hostId: 'analyse-view-schlafen',
     charts: SCHLAFEN_CHARTS,
-    order: ['schlaf-gesamt', 'schlaf-aufwachen', 'schlaf-naps'],
+    order: ['schlaf-gesamt', 'schlaf-wach', 'schlaf-naps'],
     tileClass: 'a-stat-grid',
     tileColor: 'var(--schlafen-strong)',
     tiles: [
-      { key: 'total', cap: 'GESAMTSCHLAF', capAvg: 'Ø GESAMTSCHLAF' }, { key: 'wake', cap: 'AUFWACHEN', capAvg: 'Ø AUFWACHEN' },
+      { key: 'total', cap: 'GESAMTSCHLAF', capAvg: 'Ø GESAMTSCHLAF' }, { key: 'wake', cap: 'NACHTS WACH', capAvg: 'Ø NACHTS WACH' },
       { key: 'waketime', cap: 'AUFWACHZEIT', capAvg: 'Ø AUFWACHZEIT' }, { key: 'bedtime', cap: 'EINSCHLAFZEIT', capAvg: 'Ø EINSCHLAFZEIT' }
     ],
     stats: schlafenStatValues,
     extra: {
       shell: () => '<div class="a-card">' +
-        '<div class="a-card-label">Uhrzeit der Schläfchen</div>' +
+        '<div class="a-card-label">Uhrzeit des Schlafs</div>' +
         '<div class="a-hist-wrap">' +
           '<div class="a-hist-chev a-hist-chev-l">' + ANALYSE_ICON_CHEVRON + '</div>' +
           '<div class="a-hist-chev a-hist-chev-r">' + ANALYSE_ICON_CHEVRON + '</div>' +
@@ -7295,16 +6786,18 @@ function secBarInner(chartId, cfg, analysis) {
   bs.forEach((b, i) => {
     const x = startX + i * (barW + gap);
     let stack = 0, rects = '';
+    // barColor: eine Reihe kann einzelne Balken umfärben (Nacht ohne Einträge).
+    const colorOf = (se) => (se.barColor && se.barColor(b)) || se.color;
     series.forEach((se) => {
       const h = baseline - y(se.value(b));
       rects += '<rect x="' + x + '" y="' + (baseline - stack - h) + '" width="' + barW +
-        '" height="' + Math.max(0, h) + '" rx="4" fill="' + se.color + '"/>';
+        '" height="' + Math.max(0, h) + '" rx="4" fill="' + colorOf(se) + '"/>';
       stack += h;
     });
     // Beim markierten Balken ausgeblendet (per CSS): dort steht die
     // Markierungslinie, und die Zahl steht ohnehin groß im Label.
     rects += '<text class="val" x="' + cxOf(i) + '" y="' + Math.max(12, baseline - stack - 4) +
-      '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + series[0].color +
+      '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + colorOf(series[0]) +
       '" text-anchor="middle">' + cfg.barLabel(totals[i]) + '</text>';
     out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cxOf(i), series[0].color) + '</g>';
   });
@@ -7443,7 +6936,9 @@ function secChartInner(chartId, cfg, analysis) {
 // Neuaufbau würde wie ein Seitenaufbau wirken.
 function secCardShell(view, chartId) {
   const cfg = ANALYSE_SECTION_UI[view].charts[chartId];
-  const legend = cfg.series.length < 2 ? '' :
+  // Eine einzelne Reihe hat keine Filter-Legende, kann aber eine erklärende
+  // Notiz tragen (legendNote).
+  const legend = cfg.series.length < 2 ? (cfg.legendNote || '') :
     '<div class="a-legend">' + cfg.series.map((s) =>
       '<button type="button" class="lg" data-chart="' + chartId + '" data-series="' + s.key + '">' +
       '<i style="background:' + s.color + ';"></i>' + s.label + '</button>').join('') + '</div>';
@@ -7604,6 +7099,12 @@ function updateSecCard(view, chartId) {
     btn.classList.toggle('muted', !!cs || (!!iso && iso !== btn.dataset.series));
   });
   card.querySelector('.a-axis-unit').hidden = analyseScope.mode !== 'weeks';
+  // Die Notiz erklärt die Warnfarbe — nur zeigen, wenn ein Balken sie trägt.
+  if (cfg.legendNote) {
+    const note = card.querySelector('.a-legend');
+    const colored = cfg.series.some((se) => se.barColor && analyseData[view].perDay.some((b) => se.barColor(b)));
+    if (note) note.style.display = colored ? '' : 'none';
+  }
 }
 
 // Einstiegspunkt aus loadAnalyse(): Gerüst einmal bauen, danach nur Werte.
@@ -7630,9 +7131,25 @@ function renderAnalyseSection(view, analysis) {
   // konstant bleibt — dadurch greift .a-card:last-child nicht mehr und die
   // Karte darüber behielte ihren Abstand nach unten.
   insight.previousElementSibling.style.marginBottom = analysis.insight ? '' : '0';
+  insight.style.cursor = analysis.missingNightKey ? 'pointer' : '';
 
   applySecSelection(view, true);
 }
+
+// Der Hinweis auf eine Nacht ohne Einträge führt direkt zum Nachtragen: die
+// manuelle Maske, Datum und Start auf dem Beginn des Nachtfensters.
+document.getElementById('analyse-view-schlafen').addEventListener('click', (e) => {
+  const key = e.target.closest('[data-insight]') && analyseData.schlafen && analyseData.schlafen.missingNightKey;
+  if (!key) return;
+  const win = nightWindowEnding(new Date(key + 'T00:00:00'));
+  schlafenForceOpen = 'manual';
+  showScreen('schlafen');
+  napDateInput.value = isoDate(win.start);
+  napStartInput.value = formatTime(win.start);
+  napEndInput.value = formatTime(win.start);
+  napDateInput.dispatchEvent(new Event('change'));
+  renderNapDuration();
+});
 
 // --- Wischen statt nur Antippen -----------------------------------------
 // Der Balkenindex kommt aus der Zeigerposition, nicht aus einem getroffenen
@@ -7964,16 +7481,23 @@ async function loadAnalyse() {
       : analyseScope.mode === 'weeks' ? buildAnalyseWeekBuckets(analyseScope.parent)
       : buildAnalyseDayBuckets(analyseScope.parent ? analyseScope.parent.end : null);
     analyseBuckets = days;
+    // Schlaf einen Tag früher: die erste Nacht des Ausschnitts beginnt am
+    // Vorabend, und ihr Schlaf wurde oft schon dort angelegt.
+    const sleepSince = new Date(start);
+    sleepSince.setDate(sleepSince.getDate() - 1);
     const [feedings, diapers, nights, naps] = await Promise.all([
       getAnalyseRangeDocs('feedings', start),
       getAnalyseRangeDocs('diaperChanges', start),
-      getAnalyseRangeDocs('nightWakeups', start),
-      getAnalyseRangeDocs('naps', start)
+      getAnalyseRangeDocs('nightWakeups', sleepSince),
+      getAnalyseRangeDocs('naps', sleepSince)
     ]);
 
     const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(feedings, days));
     const windeln = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days));
-    const schlafen = computeSchlafenAnalysis(days, analyseBucketByDay(nights, days), analyseBucketByDay(naps, days));
+    const sleeps = naps.map(sleepInterval)
+      .concat(nights.map((n) => sleepInterval({ ...n, _type: 'night' })))
+      .filter(Boolean);
+    const schlafen = computeSchlafenAnalysis(days, sleeps);
 
     analyseOverview = { fuettern, windeln, schlafen };
     updateAnalyseOverview();
@@ -7998,6 +7522,8 @@ async function loadAnalyse() {
 // in Entwicklung.
 const PROFIL_STORAGE_KEY = 'babytracker.profil';
 
+const PROFIL_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 // Vor dem Umzug nach Firestore lagen Gewicht und Größe als Text unter bw/bl.
 function normalizeProfil(raw) {
   if (!raw || typeof raw !== 'object') raw = {};
@@ -8011,7 +7537,10 @@ function normalizeProfil(raw) {
     birth: typeof raw.birth === 'string' ? raw.birth : '',
     sex: raw.sex === 'f' || raw.sex === 'm' ? raw.sex : null,
     birthWeightKg: num(raw.birthWeightKg !== undefined ? raw.birthWeightKg : raw.bw),
-    birthLengthCm: num(raw.birthLengthCm !== undefined ? raw.birthLengthCm : raw.bl)
+    birthLengthCm: num(raw.birthLengthCm !== undefined ? raw.birthLengthCm : raw.bl),
+    // Nachtfenster für die Schlaf-Auswertung, Standard 20–8 Uhr.
+    nightFrom: PROFIL_TIME_RE.test(raw.nightFrom) ? raw.nightFrom : '20:00',
+    nightTo: PROFIL_TIME_RE.test(raw.nightTo) ? raw.nightTo : '08:00'
   };
 }
 
@@ -8090,6 +7619,9 @@ const profilBwInput = document.getElementById('profil-bw');
 const profilBlInput = document.getElementById('profil-bl');
 const profilSaveBtn = document.getElementById('profil-save');
 const profilSexKnob = document.getElementById('profil-sex-knob');
+const profilNightFromInput = document.getElementById('profil-night-from');
+const profilNightToInput = document.getElementById('profil-night-to');
+const profilNightSaveBtn = document.getElementById('profil-night-save');
 let profilSex = null;
 let profilFormDirty = false;
 
@@ -8117,6 +7649,8 @@ function loadProfilForm() {
   profilBwInput.value = formatProfilNumber(p.birthWeightKg);
   profilBlInput.value = formatProfilNumber(p.birthLengthCm);
   profilSex = p.sex || null;
+  profilNightFromInput.value = p.nightFrom;
+  profilNightToInput.value = p.nightTo;
   profilFormDirty = false;
   renderProfilSex();
   renderProfilAge();
@@ -8140,7 +7674,7 @@ document.querySelectorAll('.pf-sex-lbl').forEach((btn) => {
 });
 document.getElementById('profil-sex-track').addEventListener('click', () => setProfilSex(profilSex === 'f' ? 'm' : 'f'));
 
-[profilNameInput, profilBirthInput, profilBwInput, profilBlInput].forEach((el) => {
+[profilNameInput, profilBirthInput, profilBwInput, profilBlInput, profilNightFromInput, profilNightToInput].forEach((el) => {
   el.addEventListener('input', () => { profilFormDirty = true; });
 });
 profilBirthInput.addEventListener('change', renderProfilAge);
@@ -8165,7 +7699,12 @@ profilSaveBtn.addEventListener('click', async () => {
     return;
   }
   const birth = profilBirthInput.value && profilBirthInput.value <= isoDate(new Date()) ? profilBirthInput.value : '';
-  const profil = { name: profilNameInput.value.trim(), birth, sex: profilSex, birthWeightKg, birthLengthCm };
+  // setDoc ersetzt das ganze Dokument — das Nachtfenster (eigene Karte,
+  // eigener Knopf) muss deshalb unverändert mit.
+  const profil = {
+    name: profilNameInput.value.trim(), birth, sex: profilSex, birthWeightKg, birthLengthCm,
+    nightFrom: profilCache.nightFrom, nightTo: profilCache.nightTo
+  };
 
   profilSaveBtn.disabled = true;
   profilSaveBtn.textContent = 'Speichert…';
@@ -8179,6 +7718,34 @@ profilSaveBtn.addEventListener('click', async () => {
     flashProfilSaveBtn('Speichern nicht möglich');
   } finally {
     profilSaveBtn.disabled = false;
+  }
+});
+
+// Nachtfenster: eigener Knopf, schreibt nur die beiden Felder (merge). Gilt
+// sofort und rückwirkend für die ganze Auswertung — die Einträge bleiben.
+let profilNightMsgTimer = null;
+function flashProfilNightBtn(text) {
+  profilNightSaveBtn.textContent = text;
+  clearTimeout(profilNightMsgTimer);
+  profilNightMsgTimer = setTimeout(() => { profilNightSaveBtn.textContent = 'Änderungen speichern'; }, 1600);
+}
+profilNightSaveBtn.addEventListener('click', async () => {
+  const nightFrom = profilNightFromInput.value, nightTo = profilNightToInput.value;
+  if (!PROFIL_TIME_RE.test(nightFrom) || !PROFIL_TIME_RE.test(nightTo) || nightFrom === nightTo) {
+    flashProfilNightBtn('Uhrzeiten prüfen');
+    return;
+  }
+  profilNightSaveBtn.disabled = true;
+  profilNightSaveBtn.textContent = 'Speichert…';
+  try {
+    await setDoc(profilDocRef(), { nightFrom, nightTo, updatedAt: serverTimestamp(), updatedBy: currentUser.email }, { merge: true });
+    applyProfil({ ...profilCache, nightFrom, nightTo });
+    flashProfilNightBtn('Gespeichert ✓');
+  } catch (error) {
+    console.error('Nachtfenster speichern fehlgeschlagen:', error);
+    flashProfilNightBtn('Speichern nicht möglich');
+  } finally {
+    profilNightSaveBtn.disabled = false;
   }
 });
 

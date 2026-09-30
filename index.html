@@ -6086,8 +6086,10 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
 // eine monotone Kurve (Fritsch-Carlson), die nie über 100 % oder unter 0 %
 // schießt. Die Achse läuft 24 Stunden ab Beginn des Nachtfensters, das
 // Fenster ist hinterlegt. Gleiche Koordinaten und dieselbe Farbe (voll
-// deckend) wie die Balken darüber; passt ganz in die Karte.
-const SLEEP_CLOCK = { x0: 4, x1: 304, top: 12, base: 95 };
+// deckend) wie die Balken darüber; passt ganz in die Karte. Rechts neben der
+// Fläche (ab x1) stehen die Hilfslinien-Beschriftungen 50 % / 100 %, damit
+// sie nie über den Daten liegen — in beiden Ansichten gleich.
+const SLEEP_CLOCK = { x0: 4, x1: 278, top: 12, base: 95 };
 // Was gerade gezeichnet ist — braucht das Wischen, um den Wert unter dem
 // Finger nachzuschlagen.
 let sleepClockState = null;
@@ -6101,16 +6103,16 @@ function svgSleepClock(spans, shareArr) {
   const y = (v) => base - v * (base - top);
   let out = '<rect x="' + x0 + '" y="2" width="' + (x(winMin) - x0) + '" height="' + (base - 2) + '" fill="#E8E5F9"/>';
   sleepClockState = { fromMin, spans, share: shareArr, curveY: null };
+  [0.5, 1].forEach((v) => {
+    out += '<line x1="' + x0 + '" y1="' + y(v) + '" x2="' + x1 + '" y2="' + y(v) + '" stroke="oklch(87% 0.004 250)" stroke-dasharray="2,3"/>' +
+      '<text x="' + (x1 + 4) + '" y="' + (y(v) + 3.5) + '" font-family="Work Sans, sans-serif" font-size="10" fill="oklch(52% 0.006 250)">' + (v * 100) + ' %</text>';
+  });
 
   if (spans) {
     spans.forEach(([a, b]) => {
       out += '<rect x="' + x(a) + '" y="' + top + '" width="' + Math.max(1.5, x(b) - x(a)) + '" height="' + (base - top) + '" fill="#4B3F9E"/>';
     });
   } else {
-    [0.5, 1].forEach((v) => {
-      out += '<line x1="' + x0 + '" y1="' + y(v) + '" x2="' + x1 + '" y2="' + y(v) + '" stroke="oklch(87% 0.004 250)" stroke-dasharray="2,3"/>' +
-        '<text x="' + x1 + '" y="' + (y(v) - 3) + '" font-family="Work Sans, sans-serif" font-size="10" fill="oklch(52% 0.006 250)" text-anchor="end">' + (v * 100) + ' %</text>';
-    });
     const vals = shareArr.map((v) => (v === null ? 0 : v));
     const sm = vals.map((_, i) => {
       const w = vals.slice(Math.max(0, i - 1), i + 2);
@@ -6146,17 +6148,15 @@ function svgSleepClock(spans, shareArr) {
 }
 
 // Folgt der Markierung: ein Tag → Blöcke, eine Woche/ein Monat oder keine
-// Markierung → Fläche über den jeweiligen Ausschnitt. Ein offenes Label
-// verschwindet dabei — es gehörte zu den alten Werten.
+// Markierung → Fläche über den jeweiligen Ausschnitt. Untertitel und
+// Hilfslinien bleiben dabei gleich (ein einzelner Tag ist 0 % oder 100 %).
+// Ein offenes Label verschwindet — es gehörte zu den alten Werten.
 function renderSleepClock(a, b) {
   const svgEl = document.getElementById('sleep-clock');
-  const valueEl = document.querySelector('#analyse-view-schlafen [data-clock-value]');
   if (!svgEl || !a) return;
   const spans = b && b.daysElapsed === 1 ? b.sleepSpans : null;
   svgEl.innerHTML = svgSleepClock(spans, (b || a).sleepShare);
   svgEl.parentElement.querySelector('.a-tip').hidden = true;
-  const total = spans ? spans.reduce((s, [x, y]) => s + y - x, 0) : 0;
-  valueEl.textContent = spans ? analyseHhmm(total / 60) + ' Std. Schlaf' : 'Anteil der Tage mit Schlaf';
 }
 
 function sleepClockDuration(min) {
@@ -6173,7 +6173,8 @@ function showSleepClockAt(svgEl, clientX) {
   const { x0, x1, top, base } = SLEEP_CLOCK;
   const box = svgEl.getBoundingClientRect();
   if (!(box.width > 0)) return;
-  const vx = Math.max(x0, Math.min(x1, (clientX - box.left) / box.width * 308));
+  const fingerX = (clientX - box.left) / box.width * 308;
+  const vx = Math.max(x0, Math.min(x1, fingerX));
   const off = (vx - x0) / (x1 - x0) * 1440;
   const clock = (min) => minutesToHHMM(st.fromMin + min);
   let cx = vx, cy, value, sub;
@@ -6210,12 +6211,19 @@ function showSleepClockAt(svgEl, clientX) {
   const tip = wrap.querySelector('.a-tip');
   tip.hidden = false;
   tip.innerHTML = '<div class="a-tip-v">' + value + '</div><div class="a-tip-s">' + sub + '</div>';
-  // Wie bei den anderen Diagrammen: waagerecht auf die Stelle zentriert, aber
-  // in die Karte hineingeschoben.
-  const wrapW = wrap.getBoundingClientRect().width;
+  // Das Label folgt dem Finger selbst (nicht dem eingerasteten Punkt) und
+  // darf bis an den Rand des Analyse-Bereichs hinaus — erst dort, wo es
+  // abgeschnitten würde, bleibt es stehen.
+  const wrapBox = wrap.getBoundingClientRect();
   const tipW = tip.getBoundingClientRect().width;
-  tip.style.left = (wrapW > 0 && tipW > 0)
-    ? Math.round(Math.min(Math.max(cx / 308 * wrapW - tipW / 2, -14), wrapW - tipW + 14)) + 'px' : '';
+  const area = (document.getElementById('analyse-body') || wrap).getBoundingClientRect();
+  if (wrapBox.width > 0 && tipW > 0) {
+    const anchor = Math.max(0, Math.min(308, fingerX)) / 308 * box.width + (box.left - wrapBox.left);
+    const minLeft = area.left + 4 - wrapBox.left, maxLeft = area.right - 4 - tipW - wrapBox.left;
+    tip.style.left = Math.round(Math.min(Math.max(anchor - tipW / 2, minLeft), maxLeft)) + 'px';
+  } else {
+    tip.style.left = '';
+  }
 }
 
 function hideSleepClockTip(svgEl) {
@@ -6754,7 +6762,7 @@ const ANALYSE_SECTION_UI = {
       // Balkendiagramme soll diese Karte nicht erfassen.
       shell: () => '<div class="a-card">' +
         '<div class="a-card-label">Uhrzeit des Schlafs</div>' +
-        '<div class="a-card-value" data-clock-value style="margin-bottom:8px;"></div>' +
+        '<div class="a-card-value" style="margin-bottom:8px;">Anteil der Tage</div>' +
         '<div class="a-chart-wrap"><div class="a-tip" hidden></div>' +
           '<svg id="sleep-clock" viewBox="0 0 308 118" width="100%" height="105" style="display:block; touch-action:pan-y; cursor:pointer;"></svg>' +
         '</div>' +

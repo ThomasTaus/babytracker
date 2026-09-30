@@ -4537,7 +4537,9 @@ function nightWindowText() {
 // Eine Nacht (das Fenster, das an `day` endet) aus Sicht aller Schlafspannen.
 // pending: das Fenster ist noch nicht vorbei. missing: kein Schlaf im Fenster —
 // dann zählt die volle Fensterlänge als wach, damit die Lücke auffällt.
-// Wach sind nur die Lücken zwischen erstem und letztem Schlaf im Fenster.
+// Wach sind nur die Lücken zwischen erstem und letztem Schlaf im Fenster;
+// wakeCount zählt dieselben Lücken (die Aufwach-Zahl alter Nacht-Einträge
+// bleibt bewusst außen vor — sie sind ein durchgehender Schlaf).
 // bed/wake: Beginn des ersten und Ende des letzten Schlafs, der ins Fenster
 // reicht — echte Uhrzeiten, auch außerhalb des Fensters.
 function analyseNightWindow(day, sleeps, now) {
@@ -4545,14 +4547,15 @@ function analyseNightWindow(day, sleeps, now) {
   const windowMin = (win.end - win.start) / 60000;
   if (win.end > now) return { pending: true, win, windowMin };
   const hits = sleeps.filter((iv) => spanOverlapMinutes(iv, win) > 0).sort((a, b) => a.start - b.start);
-  if (!hits.length) return { missing: true, win, windowMin, sleepMin: 0, wakeMin: windowMin };
-  let sleepMin = 0, wakeMin = 0, curStart = null, curEnd = null;
+  if (!hits.length) return { missing: true, win, windowMin, sleepMin: 0, wakeMin: windowMin, wakeCount: null };
+  let sleepMin = 0, wakeMin = 0, wakeCount = 0, curStart = null, curEnd = null;
   hits.forEach((iv) => {
     const s = Math.max(iv.start, win.start), e = Math.min(iv.end, win.end);
     if (curEnd === null) { curStart = s; curEnd = e; return; }
     if (s > curEnd) {
       sleepMin += (curEnd - curStart) / 60000;
       wakeMin += (s - curEnd) / 60000;
+      wakeCount++;
       curStart = s;
       curEnd = e;
     } else {
@@ -4561,7 +4564,22 @@ function analyseNightWindow(day, sleeps, now) {
   });
   sleepMin += (curEnd - curStart) / 60000;
   const wake = new Date(Math.max(...hits.map((iv) => iv.end.getTime())));
-  return { win, windowMin, sleepMin, wakeMin, bed: hits[0].start, wake };
+  return { win, windowMin, sleepMin, wakeMin, wakeCount, bed: hits[0].start, wake };
+}
+
+// Der Tag, zu dem ein Schlaf in der Analyse gehört: Schlaf ab Beginn des
+// Nachtfensters zählt schon zum nächsten Morgen (wie die Nacht selbst).
+function sleepDayKey(iv) {
+  const d = new Date(iv.start);
+  d.setHours(0, 0, 0, 0);
+  const next = new Date(d);
+  next.setDate(next.getDate() + 1);
+  if (iv.start >= nightWindowEnding(next).start) return isoDate(next);
+  if (iv.start < nightWindowEnding(d).start) {
+    d.setDate(d.getDate() - 1);
+    return isoDate(d);
+  }
+  return isoDate(d);
 }
 
 napUpdateBtn.addEventListener('click', async () => {
@@ -5949,7 +5967,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
   const sleeps = sleepSpans.map((iv) => {
     const total = (iv.end - iv.start) / 60000;
     const nightMin = sleepNightMinutes(iv);
-    return { start: iv.start, end: iv.end, dayMin: total - nightMin, isNight: sleepIsNight(iv) };
+    return { start: iv.start, end: iv.end, dayMin: total - nightMin, isNight: sleepIsNight(iv), dayKey: sleepDayKey(iv) };
   });
   const dataStart = sleeps.length ? Math.min(...sleeps.map((iv) => iv.start.getTime())) : null;
   const p = readProfil();
@@ -5975,7 +5993,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
         // Ein Schläfchen zählt an dem Tag, auf den der größte Teil seines
         // Tagesanteils fällt.
         if (ov > 0 && !iv.isNight && ov * 2 >= iv.dayMin) napCount++;
-        if (isoDate(iv.start) === key) startedHere.push(iv);
+        if (iv.dayKey === key) startedHere.push(iv);
       });
     });
     const valid = nights.filter((n) => !n.missing);
@@ -5993,6 +6011,8 @@ function computeSchlafenAnalysis(days, sleepSpans) {
       wakeBarMin: nights.length ? analyseAvg(nights.map((n) => n.wakeMin)) : 0,
       // Für Kacheln und Ø nur die Nächte mit Einträgen. null = keine solche Nacht.
       wakeMin: valid.length ? analyseAvg(valid.map((n) => n.wakeMin)) : null,
+      // Aufwachen pro Nacht: ebenso nur Nächte mit Einträgen.
+      wakeCount: valid.length ? analyseAvg(valid.map((n) => n.wakeCount)) : null,
       bedtime: valid.length ? clock(p.nightFrom, analyseAvg(valid.map((n) => (n.bed - n.win.start) / 60000))) : null,
       waketime: valid.length ? clock(p.nightTo, analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000))) : null,
       // Eigenes Uhrzeit-Histogramm je Bucket, damit die unterste Karte dem
@@ -6008,6 +6028,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
   const avgNightHExact = valid.length ? analyseAvg(valid.map((n) => n.sleepMin)) / 60 : 0;
   const avgNapHExact = perDay.reduce((s, d) => s + d.napMinutes, 0) / totalDays / 60;
   const avgWakeExact = valid.length ? analyseAvg(valid.map((n) => n.wakeMin)) / 60 : null;
+  const avgWakeCountExact = valid.length ? analyseAvg(valid.map((n) => n.wakeCount)) : null;
   const avgNapCountExact = perDay.reduce((s, d) => s + d.napCount, 0) / totalDays;
   const avgBedtime = valid.length ? clock(p.nightFrom, analyseAvg(valid.map((n) => (n.bed - n.win.start) / 60000))) : '–';
   const avgWaketime = valid.length ? clock(p.nightTo, analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000))) : '–';
@@ -6033,7 +6054,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
 
   return {
     perDay, avgBedtime, avgWaketime, napHistogram,
-    avgNightHExact, avgNapHExact, avgWakeExact, avgNapCountExact,
+    avgNightHExact, avgNapHExact, avgWakeExact, avgWakeCountExact, avgNapCountExact,
     missingNightKey, insight
   };
 }
@@ -6099,7 +6120,7 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx, showCounts, 
   });
   let labels = '';
   for (let i = 0; i <= bins.length; i++) {
-    const hour = binStartHour + i * binWidthHours;
+    const hour = (binStartHour + i * binWidthHours) % 24;
     labels += '<text x="' + x(i) + '" y="111">' + hour + '</text>';
   }
   return '<svg viewBox="0 0 ' + plotW + ' 118" width="' + plotW + '" height="118">' +
@@ -6108,9 +6129,9 @@ function svgHistogram(bins, binStartHour, binEndHour, color, binPx, showCounts, 
     '</svg>';
 }
 
-// Measures the actual rendered bar width of the "Schläfchen pro Tag" chart
+// Measures the actual rendered bar width of the "Schläfchen tagsüber" chart
 // (so the two charts read as one visual rhythm) and initially scrolls to
-// center the busiest hour rather than always starting at 6 Uhr.
+// the start, where the night window begins.
 //
 // Both that measurement and scroller.clientWidth below return 0 if this
 // runs while the Schlafen view is display:none (e.g. loadAnalyse() firing
@@ -6143,9 +6164,15 @@ function initNapHistogram(napHistogram, opts) {
   }
   if (!(binPx > 0)) binPx = 30;
   else lastNapBinPx = binPx;
-  const n = napHistogram.length;
+  // Die Achse beginnt mit der Stunde, in der das Nachtfenster beginnt (bei
+  // 20–8 Uhr: 20, 21 … 0 … 19) — so steht die Nacht, die zum Morgen gehört,
+  // als ein Block vorne. napHistogram bleibt nach Uhrzeit (0–23) indiziert.
+  const off = Math.floor(parseMinutes(readProfil().nightFrom) / 60);
+  const rotate = (arr) => arr.map((_, i) => arr[(off + i) % NAP_HIST_BINS]);
+  const bins = rotate(napHistogram);
+  const n = bins.length;
   const prevScroll = scroller.scrollLeft;
-  scroller.innerHTML = svgHistogram(napHistogram, NAP_HIST_START, NAP_HIST_END, '#4B3F9E', binPx, o.showCounts, nightHourBins());
+  scroller.innerHTML = svgHistogram(bins, off, off + NAP_HIST_BINS, '#4B3F9E', binPx, o.showCounts, rotate(nightHourBins()));
 
   const plotW = 2 * NAP_HIST_MARGIN_X + n * binPx;
   const viewportW = scroller.clientWidth;
@@ -6153,14 +6180,8 @@ function initNapHistogram(napHistogram, opts) {
   if (o.keepScroll) {
     scroller.scrollLeft = Math.min(maxScroll, Math.max(0, prevScroll));
   } else {
-    const maxCount = Math.max(...napHistogram);
-    let peakIdx = Math.floor((n - 1) / 2);
-    if (maxCount > 0) {
-      peakIdx = 0;
-      for (let i = 1; i < n; i++) if (napHistogram[i] > napHistogram[peakIdx]) peakIdx = i;
-    }
-    const peakCenterX = NAP_HIST_MARGIN_X + peakIdx * binPx + binPx / 2;
-    scroller.scrollLeft = Math.min(maxScroll, Math.max(0, peakCenterX - viewportW / 2));
+    // Beim Neuaufbau am Anfang stehen: dort beginnt das Nachtfenster.
+    scroller.scrollLeft = 0;
   }
 
   const wrap = scroller.parentElement;
@@ -6508,8 +6529,25 @@ const SCHLAFEN_CHARTS = {
       : b.daysElapsed === 1 ? 'keine Schlafeinträge'
       : b.missingCount + (b.missingCount === 1 ? ' Nacht' : ' Nächte') + ' ohne Einträge')
   },
+  // Wie oft das Baby nachts aufwacht: dieselben Lücken wie bei „Nachts wach",
+  // gezählt statt gemessen. Nächte ohne Einträge zählen nicht mit; steht ein
+  // Balken nur aus solchen Nächten, zeigt er ein rotes „–" statt einer Zahl.
+  'schlaf-auf': {
+    title: 'Aufwachen pro Nacht',
+    series: [{
+      key: 'wakes', label: 'Aufwachen', color: '#4B3F9E',
+      value: (d) => d.wakeCount || 0, mean: (a) => a.avgWakeCountExact || 0,
+      barColor: (d) => (d.wakeCount === null && d.missingCount ? 'var(--warn)' : null)
+    }],
+    barLabel: (v) => analyseDe1(v),
+    barText: (b) => (b.wakeCount === null ? (b.missingCount ? '–' : '')
+      : analyseCount(b.wakeCount, b.daysElapsed === 1)),
+    headline: (v) => 'Ø ' + analyseDe1(v) + '× / Nacht',
+    tipValue: (v, b) => (b.wakeCount === null ? (b.missingCount ? 'keine Schlafeinträge' : 'keine Daten')
+      : analyseCount(v, b.daysElapsed === 1) + '× aufgewacht')
+  },
   'schlaf-naps': {
-    title: 'Schläfchen pro Tag',
+    title: 'Schläfchen tagsüber',
     series: [{ key: 'napc', label: 'Schläfchen', color: '#4B3F9E', value: (d) => d.napCount / d.daysElapsed, mean: (a) => a.avgNapCountExact }],
     barLabel: (v) => String(analyseRound(v)),
     headline: (v) => 'Ø ' + analyseDe1(v) + ' / Tag',
@@ -6650,12 +6688,13 @@ const ANALYSE_SECTION_UI = {
   schlafen: {
     hostId: 'analyse-view-schlafen',
     charts: SCHLAFEN_CHARTS,
-    order: ['schlaf-gesamt', 'schlaf-wach', 'schlaf-naps'],
+    order: ['schlaf-gesamt', 'schlaf-wach', 'schlaf-auf', 'schlaf-naps'],
     tileClass: 'a-stat-grid',
     tileColor: 'var(--schlafen-strong)',
     tiles: [
       { key: 'total', cap: 'GESAMTSCHLAF', capAvg: 'Ø GESAMTSCHLAF' }, { key: 'wake', cap: 'NACHTS WACH', capAvg: 'Ø NACHTS WACH' },
-      { key: 'waketime', cap: 'AUFWACHZEIT', capAvg: 'Ø AUFWACHZEIT' }, { key: 'bedtime', cap: 'EINSCHLAFZEIT', capAvg: 'Ø EINSCHLAFZEIT' }
+      // Einschlafen links, Aufwachen rechts: Leserichtung = zeitliche Abfolge.
+      { key: 'bedtime', cap: 'EINSCHLAFZEIT', capAvg: 'Ø EINSCHLAFZEIT' }, { key: 'waketime', cap: 'AUFWACHZEIT', capAvg: 'Ø AUFWACHZEIT' }
     ],
     stats: schlafenStatValues,
     extra: {
@@ -6667,8 +6706,8 @@ const ANALYSE_SECTION_UI = {
           '<div class="a-hist-fade a-hist-fade-l"></div><div class="a-hist-fade a-hist-fade-r"></div>' +
           '<div id="nap-hist-scroller" class="a-hist-scroller"></div>' +
         '</div></div>',
-      // center = Neuaufbau: neu vermessen und auf die belebteste Stunde
-      // zentrieren. Sonst bleibt die Scrollposition unter dem Finger stehen.
+      // center = Neuaufbau: neu vermessen und an den Anfang (Beginn des
+      // Nachtfensters). Sonst bleibt die Scrollposition unter dem Finger stehen.
       update: (a, b, center) => initNapHistogram(b ? b.napHistogram : a.napHistogram, {
         keepScroll: !center, showCounts: !!b && b.daysElapsed === 1
       }),
@@ -6798,7 +6837,7 @@ function secBarInner(chartId, cfg, analysis) {
     // Markierungslinie, und die Zahl steht ohnehin groß im Label.
     rects += '<text class="val" x="' + cxOf(i) + '" y="' + Math.max(12, baseline - stack - 4) +
       '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + colorOf(series[0]) +
-      '" text-anchor="middle">' + cfg.barLabel(totals[i]) + '</text>';
+      '" text-anchor="middle">' + (cfg.barText ? cfg.barText(b) : cfg.barLabel(totals[i])) + '</text>';
     out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cxOf(i), series[0].color) + '</g>';
   });
 

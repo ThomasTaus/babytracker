@@ -6173,8 +6173,7 @@ function showSleepClockAt(svgEl, clientX) {
   const { x0, x1, top, base } = SLEEP_CLOCK;
   const box = svgEl.getBoundingClientRect();
   if (!(box.width > 0)) return;
-  const fingerX = (clientX - box.left) / box.width * 308;
-  const vx = Math.max(x0, Math.min(x1, fingerX));
+  const vx = Math.max(x0, Math.min(x1, (clientX - box.left) / box.width * 308));
   const off = (vx - x0) / (x1 - x0) * 1440;
   const clock = (min) => minutesToHHMM(st.fromMin + min);
   let cx = vx, cy, value, sub;
@@ -6211,19 +6210,12 @@ function showSleepClockAt(svgEl, clientX) {
   const tip = wrap.querySelector('.a-tip');
   tip.hidden = false;
   tip.innerHTML = '<div class="a-tip-v">' + value + '</div><div class="a-tip-s">' + sub + '</div>';
-  // Das Label folgt dem Finger selbst (nicht dem eingerasteten Punkt) und
-  // darf bis an den Rand des Analyse-Bereichs hinaus — erst dort, wo es
-  // abgeschnitten würde, bleibt es stehen.
-  const wrapBox = wrap.getBoundingClientRect();
+  // Genau wie bei den anderen Diagrammen (applySecSelection): waagerecht auf
+  // die Markierung zentriert, aber in die Karte hineingeschoben.
+  const wrapW = wrap.getBoundingClientRect().width;
   const tipW = tip.getBoundingClientRect().width;
-  const area = (document.getElementById('analyse-body') || wrap).getBoundingClientRect();
-  if (wrapBox.width > 0 && tipW > 0) {
-    const anchor = Math.max(0, Math.min(308, fingerX)) / 308 * box.width + (box.left - wrapBox.left);
-    const minLeft = area.left + 4 - wrapBox.left, maxLeft = area.right - 4 - tipW - wrapBox.left;
-    tip.style.left = Math.round(Math.min(Math.max(anchor - tipW / 2, minLeft), maxLeft)) + 'px';
-  } else {
-    tip.style.left = '';
-  }
+  tip.style.left = (wrapW > 0 && tipW > 0)
+    ? Math.round(Math.min(Math.max(cx / 308 * wrapW - tipW / 2, -14), wrapW - tipW + 14)) + 'px' : '';
 }
 
 function hideSleepClockTip(svgEl) {

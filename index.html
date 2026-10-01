@@ -6576,7 +6576,7 @@ const SCHLAFEN_CHARTS = {
   'schlaf-zeiten': {
     title: 'Einschlafen & Aufwachen',
     type: 'clock',
-    viewH: 214,
+    viewH: 238,
     series: [{ key: 'clock', label: 'Einschlafen & Aufwachen', color: '#4B3F9E', value: (d) => d.bedMin, mean: () => null }],
     headline: (a) => (a.avgBedMin === null ? '–' : 'Ø ' + a.avgBedtime + ' – ' + a.avgWaketime + ' Uhr'),
     tipValue: (v, b) => (b.bedMin === null ? (b.missingCount ? 'keine Schlafeinträge' : 'keine Daten')
@@ -7031,22 +7031,23 @@ function secShareInner(chartId, cfg, analysis) {
 }
 
 // Einschlafen & Aufwachen: zwei Bänder mit demselben Maßstab (oben der Abend,
-// unten der Morgen). Innerhalb eines Bandes ist der helle Balken
-// maßstabsgetreu; das kurze gestrichelte Stück dazwischen steht für die
-// ausgesparten Nachtstunden. Werte sind Minuten ab 0 Uhr (bedMin/wakeMin),
-// über Mitternacht hinaus fortgezählt.
+// unten der Morgen), beschriftet mit „Einschlafen“ über und „Aufwachen“ unter
+// den Zahlen. Der helle Balken läuft durch; ein grauer Zickzack-Streifen
+// deckt ihn in der Lücke ab und markiert den Achsenbruch — dort fehlen die
+// Nachtstunden. Grau statt Lila, damit er nicht als Wert gelesen wird.
+// Werte sind Minuten ab 0 Uhr (bedMin/wakeMin), über Mitternacht fortgezählt.
 function secClockInner(chartId, cfg, analysis) {
   const bs = analysis.perDay;
   const color = cfg.series[0].color, light = '#B7ADEB';
-  const bandH = 62, bedTop = 22, bedBot = bedTop + bandH, wakeTop = bedBot + 22;
-  const baseline = 192;
+  const bandH = 62, bedTop = 32, bedBot = bedTop + bandH, wakeTop = bedBot + 22, wakeBot = wakeTop + bandH;
+  const bedLabelY = 13, wakeLabelY = wakeBot + 29, baseline = wakeLabelY + 9;
   const beds = bs.map((b) => b.bedMin).filter((v) => v !== null);
   const wakes = bs.map((b) => b.wakeMin).filter((v) => v !== null);
   const spread = (vs) => (vs.length ? Math.max(...vs) - Math.min(...vs) : 0);
   const mid = (vs) => (vs.length ? (Math.max(...vs) + Math.min(...vs)) / 2 : 0);
   const span = Math.max(60, spread(beds), spread(wakes)) + 20;
   const yBed = scaleLinear().domain([mid(beds) - span / 2, mid(beds) + span / 2]).range([bedTop, bedBot]);
-  const yWake = scaleLinear().domain([mid(wakes) - span / 2, mid(wakes) + span / 2]).range([wakeTop, wakeTop + bandH]);
+  const yWake = scaleLinear().domain([mid(wakes) - span / 2, mid(wakes) + span / 2]).range([wakeTop, wakeBot]);
   const x = scalePoint().domain(bs.map((_, i) => i)).range([19, 289]);
   const cxOf = (i) => x(i);
   const step = bs.length > 1 ? x(1) - x(0) : 270;
@@ -7067,8 +7068,35 @@ function secClockInner(chartId, cfg, analysis) {
     });
   }
 
-  const bar = (cx, y1, y2, dash) => '<line x1="' + cx + '" y1="' + y1 + '" x2="' + cx + '" y2="' + y2 + '" stroke="' + light +
-    '" stroke-opacity="0.65" stroke-width="6"' + (dash ? ' stroke-dasharray="2.5,2.5"' : ' stroke-linecap="round"') + '/>';
+  // Beschriftung der Bänder mit Mond bzw. Sonne davor.
+  const label = (y, text, icon) => icon +
+    '<text x="25" y="' + y + '" font-family="Work Sans, sans-serif" font-size="11" font-weight="700" fill="' + color +
+      '" letter-spacing="0.02em">' + text + '</text>';
+  const moon = '<path transform="translate(9,' + (bedLabelY - 10) + ') scale(0.5)" d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" fill="none" stroke="' +
+    color + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+  const sunY = wakeLabelY - 4;
+  let sun = '<circle cx="15" cy="' + sunY + '" r="2.6" fill="none" stroke="' + color + '" stroke-width="1.3"/>';
+  for (let a = 0; a < 8; a++) {
+    const c = Math.cos(a * Math.PI / 4), s = Math.sin(a * Math.PI / 4);
+    sun += '<line x1="' + (15 + c * 4.4) + '" y1="' + (sunY + s * 4.4) + '" x2="' + (15 + c * 6) + '" y2="' + (sunY + s * 6) +
+      '" stroke="' + color + '" stroke-width="1.3" stroke-linecap="round"/>';
+  }
+  out += label(bedLabelY, 'Einschlafen', moon) + label(wakeLabelY, 'Aufwachen', sun);
+
+  // Achsenbruch: Streifen mit Zickzack-Kanten, deckend über den Balken (wird
+  // deshalb nach ihnen angehängt). Farben wie Fläche/Grundlinie, nicht Lila.
+  const zig = (y, dir) => {
+    const p = [];
+    for (let zx = 4, k = 0; zx <= 304; zx += 6, k++) p.push(zx + ',' + (y + (k % 2 ? dir * 2.2 : 0)));
+    return p;
+  };
+  const zTop = zig(bedBot + 6, -1), zBot = zig(wakeTop - 6, 1);
+  const axisBreak = '<polygon points="' + zTop.join(' ') + ' ' + zBot.slice().reverse().join(' ') + '" fill="oklch(93% 0.004 250)"/>' +
+    [zTop, zBot].map((p) => '<polyline points="' + p.join(' ') +
+      '" fill="none" stroke="oklch(87% 0.004 250)" stroke-width="1.2" stroke-linejoin="round"/>').join('');
+
+  const bar = (cx, y1, y2) => '<line x1="' + cx + '" y1="' + y1 + '" x2="' + cx + '" y2="' + y2 + '" stroke="' + light +
+    '" stroke-opacity="0.65" stroke-width="6" stroke-linecap="round"/>';
   bs.forEach((b, i) => {
     const cx = x(i);
     let g = '';
@@ -7077,19 +7105,19 @@ function secClockInner(chartId, cfg, analysis) {
       const dot = (cy) => (b.isToday
         ? '<circle cx="' + cx + '" cy="' + cy + '" r="4.4" fill="' + color + '" stroke="white" stroke-width="1.5"/>'
         : '<circle cx="' + cx + '" cy="' + cy + '" r="4" fill="' + color + '"/>');
-      g += bar(cx, yb, bedBot, false) + bar(cx, bedBot + 4, wakeTop - 4, true) + bar(cx, wakeTop, yw, false) +
-        dot(yb) + dot(yw) +
+      g += bar(cx, yb, yw) + dot(yb) + dot(yw) +
         '<text class="val" x="' + cx + '" y="' + (yb - 9) + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' +
           color + '" text-anchor="middle">' + hour(b.bedMin) + '</text>' +
         '<text class="val" x="' + cx + '" y="' + (yw + 19) + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' +
           color + '" text-anchor="middle">' + hour(b.wakeMin) + '</text>';
     }
-    out += '<g class="bk" data-i="' + i + '">' + g + secAxisLabel(b, cx, color, 209) + '</g>';
+    out += '<g class="bk" data-i="' + i + '">' + g + secAxisLabel(b, cx, color, baseline + 17) + '</g>';
   });
 
-  // Wie SEC_MARKER, dazu ein zweiter Punkt auf der Aufwachzeit.
-  return out + '<g class="sc" style="display:none">' +
-    '<line class="sc-line" x1="0" y1="2" x2="0" y2="0" stroke="oklch(27% 0.006 250)" stroke-width="1.4"/>' +
+  // Wie SEC_MARKER, dazu ein zweiter Punkt auf der Aufwachzeit. Die Linie
+  // beginnt unter der Beschriftung „Einschlafen“, damit sie sie nicht kreuzt.
+  return out + axisBreak + '<g class="sc" style="display:none">' +
+    '<line class="sc-line" x1="0" y1="' + (bedLabelY + 6) + '" x2="0" y2="0" stroke="oklch(27% 0.006 250)" stroke-width="1.4"/>' +
     '<circle class="sc-dot" cx="0" cy="0" r="4" fill="oklch(27% 0.006 250)" stroke="white" stroke-width="2"/>' +
     '<circle class="sc-dot2" cx="0" cy="0" r="4" fill="oklch(27% 0.006 250)" stroke="white" stroke-width="2"/></g>' +
     secHitRects(bs, cxOf, step, cfg.viewH);

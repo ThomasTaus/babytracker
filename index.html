@@ -1531,6 +1531,72 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// --- Schreiben auf die Eintrags-Collections ---
+// feedings, diaperChanges, naps und nightWakeups werden nur über addEntry,
+// patchEntry und deleteEntry geschrieben (feedings auch direkt über
+// addFeeding/updateFeeding/deleteFeeding). Jeder Schreibvorgang trägt
+// updatedAt (Serverzeit) und appVersion; Löschen hinterlässt im selben Batch
+// einen Grabstein in `deletions`. Daran erkennt ein späterer Abgleich jede
+// Änderung, ohne alles neu zu lesen. Die Firestore-Regeln lassen auf diesen
+// Collections nur noch solche Schreibvorgänge zu — eine ältere App-Version
+// kann dann nichts mehr ändern, was der Abgleich nicht sähe.
+const APP_VERSION = 2;
+
+function stamped(data) {
+  return { ...data, updatedAt: serverTimestamp(), appVersion: APP_VERSION };
+}
+
+function addTombstone(batch, coll, id) {
+  batch.set(doc(db, 'deletions', coll + '_' + id), {
+    coll, id, updatedAt: serverTimestamp(), appVersion: APP_VERSION, deletedBy: currentUser ? currentUser.email : null
+  });
+}
+
+// Lehnen die Regeln einen Schreibvorgang ab, läuft hier eine veraltete
+// Version: einmal neu laden holt die aktuelle. Höchstens einmal in
+// RULES_RELOAD_PAUSE_MS — liegt es doch an etwas anderem, entsteht so keine
+// Schleife, und es bleibt bei der normalen Fehleranzeige. Der Fehler geht in
+// jedem Fall weiter, damit die bestehende Fehleranzeige greift.
+const RULES_RELOAD_KEY = 'bt-rules-reload-at';
+const RULES_RELOAD_PAUSE_MS = 10 * 60 * 1000;
+async function guardWrite(promise) {
+  try {
+    return await promise;
+  } catch (error) {
+    if (error && error.code === 'permission-denied') {
+      let last = Date.now();
+      try { last = Number(localStorage.getItem(RULES_RELOAD_KEY)) || 0; } catch (e) {}
+      if (Date.now() - last > RULES_RELOAD_PAUSE_MS) {
+        try { localStorage.setItem(RULES_RELOAD_KEY, String(Date.now())); } catch (e) {}
+        alert('Es gibt eine neue Version der App. Der Eintrag wurde nicht gespeichert — die App lädt jetzt neu, bitte danach noch einmal eintragen.');
+        location.reload();
+      }
+    }
+    throw error;
+  }
+}
+
+async function addEntry(coll, data) {
+  if (coll === 'feedings') return addFeeding(data);
+  const ref = doc(collection(db, coll));
+  await guardWrite(setDoc(ref, stamped(data)));
+  return ref;
+}
+
+// `full` nur bei feedings: der Eintrag nach der Änderung, für die Kurzfassung.
+async function patchEntry(coll, id, patch, full) {
+  if (coll === 'feedings') return updateFeeding(id, patch, full);
+  await guardWrite(updateDoc(doc(db, coll, id), stamped(patch)));
+}
+
+async function deleteEntry(coll, id) {
+  if (coll === 'feedings') return deleteFeeding(id);
+  const batch = writeBatch(db);
+  batch.delete(doc(db, coll, id));
+  addTombstone(batch, coll, id);
+  await guardWrite(batch.commit());
+}
+
 // --- Live-Abfragen für die Heute-Seite ---
 // Heute stellte bei jedem Besuch dieselben Abfragen neu (letzte 12 Einträge,
 // Einträge von heute, offene Timer/Nächte) — laut Audit-Log ein gutes Fünftel
@@ -2253,15 +2319,15 @@ function feedStatsApplyLocal(changes) {
 }
 
 async function commitFeedingBatch(batch, changes) {
-  batch.set(FEED_STATS_REF, feedStatsPatch(changes), { merge: true });
-  await batch.commit();
+  batch.set(FEED_STATS_REF, stamped(feedStatsPatch(changes)), { merge: true });
+  await guardWrite(batch.commit());
   feedStatsApplyLocal(changes);
 }
 
 async function addFeeding(data) {
   const ref = doc(collection(db, 'feedings'));
   const batch = writeBatch(db);
-  batch.set(ref, data);
+  batch.set(ref, stamped(data));
   await commitFeedingBatch(batch, { [ref.id]: feedingSummary(data) });
   return ref;
 }
@@ -2270,14 +2336,15 @@ async function addFeeding(data) {
 // Kurzfassung braucht); ohne ihn bleibt die Zusammenfassung unberührt.
 async function updateFeeding(id, patch, full) {
   const batch = writeBatch(db);
-  batch.update(doc(db, 'feedings', id), patch);
+  batch.update(doc(db, 'feedings', id), stamped(patch));
   if (full) await commitFeedingBatch(batch, { [id]: feedingSummary(full) });
-  else await batch.commit();
+  else await guardWrite(batch.commit());
 }
 
 async function deleteFeeding(id) {
   const batch = writeBatch(db);
   batch.delete(doc(db, 'feedings', id));
+  addTombstone(batch, 'feedings', id);
   await commitFeedingBatch(batch, { [id]: null });
 }
 
@@ -2302,7 +2369,9 @@ async function rebuildFeedStats() {
     const entries = {};
     Object.keys(all).forEach((id) => { if (keep.has(id)) entries[id] = all[id]; });
     Object.keys(before).forEach((id) => { if (!(id in entries)) entries[id] = deleteField(); });
-    await setDoc(FEED_STATS_REF, { v: FEED_STATS_VERSION, builtAt: Date.now(), entries }, { merge: true });
+    // Ohne guardWrite: ein Neuaufbau im Hintergrund soll nie den Hinweis
+    // „Eintrag nicht gespeichert" samt Neuladen auslösen.
+    await setDoc(FEED_STATS_REF, stamped({ v: FEED_STATS_VERSION, builtAt: Date.now(), entries }), { merge: true });
   } catch (error) {
     console.error('Füttern-Zusammenfassung neu aufbauen fehlgeschlagen:', error);
     feedStatsReadyResolve();
@@ -2858,7 +2927,7 @@ async function setBreastTimerSide(side) {
   breastTimerSideSince = Date.now();
   renderBreastTimerDisplay();
   try {
-    await updateDoc(doc(db, 'feedings', openFeedingDocId), {
+    await patchEntry('feedings', openFeedingDocId, {
       side: breastTimerSide,
       leftSeconds: breastTimerLeftSec,
       rightSeconds: breastTimerRightSec,
@@ -3127,7 +3196,7 @@ async function togglePumpSide(which) {
   const liveId = openPumpDocId || pendingPumpDocId;
   if (!liveId || !pumpSideValue()) return;
   try {
-    await updateDoc(doc(db, 'feedings', liveId), { side: pumpSideValue() });
+    await patchEntry('feedings', liveId, { side: pumpSideValue() });
   } catch (error) {
     pumpTimerSublabel.textContent = 'Seite nicht gespeichert';
   }
@@ -3934,7 +4003,7 @@ windelnSaveBtn.addEventListener('click', async () => {
   };
   windelnSaveBtn.disabled = true;
   try {
-    await addDoc(collection(db, 'diaperChanges'), entry);
+    await addEntry('diaperChanges', entry);
     windelnSaveBtn.disabled = false;
     afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--windeln)');
   } catch (error) {
@@ -3955,7 +4024,7 @@ windelnUpdateBtn.addEventListener('click', async () => {
   };
   windelnUpdateBtn.disabled = true;
   try {
-    await updateDoc(doc(db, 'diaperChanges', updatedId), entry);
+    await patchEntry('diaperChanges', updatedId, entry);
     exitWindelnEdit();
     returnToEintragAfterUpdate({ id: updatedId, ...entry });
   } catch (error) {
@@ -4349,7 +4418,7 @@ napSaveBtn.addEventListener('click', async () => {
       createdBy: currentUser.email,
       createdAt: serverTimestamp()
     };
-    await addDoc(collection(db, 'naps'), entry);
+    await addEntry('naps', entry);
     napSaveBtn.disabled = false;
     afterNewEntrySaved(timeOnDate(new Date(entry.date + 'T00:00:00'), entry.startTime), 'var(--schlafen)');
   } catch (error) {
@@ -4433,7 +4502,7 @@ timerToggleBtn.addEventListener('click', async () => {
         createdBy: currentUser.email,
         createdAt: serverTimestamp()
       };
-      const ref = await addDoc(collection(db, 'naps'), entry);
+      const ref = await addEntry('naps', entry);
       openNapDocId = ref.id;
       openNapStartedAt = startedAt.getTime();
       timerInterval = setInterval(renderTimerDisplay, 1000);
@@ -4446,7 +4515,7 @@ timerToggleBtn.addEventListener('click', async () => {
       const startedAt = open ? new Date(open.startTime) : new Date(openNapStartedAt);
       const endedAt = new Date();
       const durationMinutes = Math.max(0, Math.round((endedAt - startedAt) / 60000));
-      await updateDoc(doc(db, 'naps', targetId), {
+      await patchEntry('naps', targetId, {
         endTime: endedAt.toISOString(),
         durationMinutes
       });
@@ -4653,7 +4722,7 @@ napUpdateBtn.addEventListener('click', async () => {
   };
   napUpdateBtn.disabled = true;
   try {
-    await updateDoc(doc(db, 'naps', updatedId), entry);
+    await patchEntry('naps', updatedId, entry);
     exitSchlafenEdit();
     returnToEintragAfterUpdate({ id: updatedId, _type: 'nap', ...entry });
   } catch (error) {
@@ -5193,8 +5262,7 @@ async function deleteEintrag(delBtn, entry, running) {
   const name = entryCollectionName(entry);
   delBtn.disabled = true;
   try {
-    if (name === 'feedings') await deleteFeeding(entry.id);
-    else await deleteDoc(doc(db, name, entry.id));
+    await deleteEntry(name, entry.id);
   } catch (error) {
     delBtn.disabled = false;
     return;

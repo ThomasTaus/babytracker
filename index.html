@@ -1624,8 +1624,11 @@ const entryStore = {
   lastSync: 0,       // höchstes gesehenes updatedAt (Serverzeit, ms)
   email: null,
   unsubs: [],
+  loaded: null,      // Promise: Bestand liegt im Speicher (aus IndexedDB oder Vollladen)
   ready: null,       // Promise: erste Server-Antwort aller Live-Abfragen (oder Zeitüberlauf)
-  synced: false,     // Bestand steht und ist aktuell
+  synced: false,     // erster Abgleich mit dem Server ist durch
+  failed: false,     // eine Live-Abfrage ist abgebrochen — Bestand nicht mehr verlässlich
+  version: 0,        // zählt bei jeder inhaltlichen Änderung des Bestands hoch
   gen: 0             // jede (Neu-)Initialisierung zählt hoch; ältere Rückrufe verfallen
 };
 
@@ -1759,16 +1762,23 @@ function entryApplySnapshot(coll, snap) {
       const m = entryStore.docs[data.coll];
       if (!m) return;
       const cur = m.get(data.id);
+      if (!cur) return;
       // Mit derselben ID nach dem Löschen neu angelegt (Restore): der neuere Stand gilt.
-      if (cur && tsMillis(cur.updatedAt) > at) return;
+      if (tsMillis(cur.updatedAt) > at) return;
       m.delete(data.id);
       dels.push([data.coll, data.id]);
     } else {
+      // Die Überlappung beim Start liefert Bekanntes erneut — das ist keine Änderung.
+      const cur = entryStore.docs[coll].get(d.id);
+      if (cur && tsMillis(cur.updatedAt) === at) return;
       entryStore.docs[coll].set(d.id, data);
       puts.push([coll, d.id, data]);
     }
   });
-  if (puts.length || dels.length) queueEntryIdbWrite({ puts, dels });
+  if (puts.length || dels.length) {
+    entryStore.version++;
+    queueEntryIdbWrite({ puts, dels });
+  }
 }
 
 function entryListen(gen) {
@@ -1786,6 +1796,7 @@ function entryListen(gen) {
           if (--waiting === 0) {
             entryStore.synced = true;
             resolve(true);
+            analyseRefreshAfterSync();
           }
         }
       }, (error) => {
@@ -1794,6 +1805,7 @@ function entryListen(gen) {
         // Ohne vollständigen Abgleich nicht mehr aus dem Bestand lesen; der
         // nächste App-Start setzt neu auf.
         entryStore.synced = false;
+        entryStore.failed = true;
         resolve(false);
       });
       entryStore.unsubs.push(unsub);
@@ -1828,6 +1840,8 @@ function stopEntrySync() {
   entryStore.unsubs.forEach((u) => u());
   entryStore.unsubs = [];
   entryStore.synced = false;
+  entryStore.failed = false;
+  entryStore.loaded = null;
   entryStore.ready = null;
   entryStore.docs = {};
   SYNCED_COLLECTIONS.forEach((c) => { entryStore.docs[c] = new Map(); });
@@ -1838,6 +1852,8 @@ function startEntrySync(user) {
   stopEntrySync();
   const gen = entryStore.gen;
   entryStore.email = user.email;
+  let resolveLoaded;
+  entryStore.loaded = new Promise((resolve) => { resolveLoaded = resolve; });
   entryStore.ready = (async () => {
     try {
       const saved = await entryIdbLoad();
@@ -1850,6 +1866,8 @@ function startEntrySync(user) {
       } else if (!(await entryFullLoad(gen))) {
         return false;
       }
+      entryStore.version++;
+      resolveLoaded(true);
       const ok = await Promise.race([
         entryListen(gen),
         new Promise((resolve) => setTimeout(() => resolve(false), ENTRY_SYNC_TIMEOUT_MS))
@@ -1860,17 +1878,24 @@ function startEntrySync(user) {
     } catch (error) {
       console.error('Lokaler Bestand nicht verfügbar:', error);
       return false;
+    } finally {
+      resolveLoaded(false);  // nur wirksam, wenn der Bestand nicht geladen wurde
     }
   })();
 }
 
-// true, wenn aus dem Bestand gelesen werden kann. Wartet höchstens auf die
-// erste Server-Antwort; danach zählt der aktuelle Stand (eine Live-Abfrage,
-// die erst nach dem Zeitüberlauf antwortet, schaltet den Bestand später frei).
-async function entryStoreReady() {
-  if (!entryStore.ready) return false;
-  await entryStore.ready;
-  return entryStore.synced;
+// true, wenn aus dem Bestand gelesen werden kann. Gewartet wird nur, bis er
+// im Speicher liegt (aus IndexedDB: Sekundenbruchteile; nur beim allerersten
+// Start auf das Vollladen) — nicht auf die erste Server-Antwort. Was der
+// Abgleich danach noch bringt, zeichnet analyseRefreshAfterSync nach.
+// Startet der Bestand zwischendurch neu (Zählprüfung), wird auf den neuen gewartet.
+async function entryStoreLoaded() {
+  for (;;) {
+    if (!entryStore.loaded) return false;
+    const gen = entryStore.gen;
+    const ok = await entryStore.loaded;
+    if (gen === entryStore.gen) return ok && !entryStore.failed;
+  }
 }
 
 // Wie `where(field, '>=', since)` in Firestore: ohne das Feld fällt ein
@@ -6125,8 +6150,28 @@ function buildAnalyseMonthBuckets() {
   return { days, start };
 }
 
+// Stand des lokalen Bestands, aus dem die angezeigte Analyse gerechnet ist
+// (null: direkt aus Firestore gelesen).
+let analyseStoreVersion = null;
+
 async function getAnalyseRangeDocs(name, start) {
-  if (await entryStoreReady()) return entryStoreSince(name, 'createdAt', start);
+  if (await entryStoreLoaded()) {
+    analyseStoreVersion = entryStore.version;
+    return entryStoreSince(name, 'createdAt', start);
+  }
+  analyseStoreVersion = null;
+  return getAnalyseRangeDocsDirect(name, start);
+}
+
+// Hat der erste Abgleich nach dem App-Start Neues gebracht, während die
+// Analyse schon aus dem Bestand gerechnet war: einmal still nachrechnen. Das
+// Gerüst bleibt stehen, nur die Werte ändern sich — wie beim Zoomwechsel.
+function analyseRefreshAfterSync() {
+  if (currentScreen !== 'analyse' || analyseStoreVersion === null) return;
+  if (analyseStoreVersion !== entryStore.version) loadAnalyse();
+}
+
+async function getAnalyseRangeDocsDirect(name, start) {
   const snap = await getDocs(query(collection(db, name), where('createdAt', '>=', start)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

@@ -1534,14 +1534,14 @@ const db = getFirestore(app);
 
 // --- Schreiben auf die Eintrags-Collections ---
 // feedings, diaperChanges, naps und nightWakeups werden nur über addEntry,
-// patchEntry und deleteEntry geschrieben (feedings auch direkt über
-// addFeeding/updateFeeding/deleteFeeding). Jeder Schreibvorgang trägt
+// patchEntry und deleteEntry geschrieben. Jeder Schreibvorgang trägt
 // updatedAt (Serverzeit) und appVersion; Löschen hinterlässt im selben Batch
-// einen Grabstein in `deletions`. Daran erkennt ein späterer Abgleich jede
-// Änderung, ohne alles neu zu lesen. Die Firestore-Regeln lassen auf diesen
+// einen Grabstein in `deletions`. Daran erkennt der Abgleich jede Änderung,
+// ohne alles neu zu lesen. Die Firestore-Regeln lassen auf diesen
 // Collections nur noch solche Schreibvorgänge zu — eine ältere App-Version
 // kann dann nichts mehr ändern, was der Abgleich nicht sähe.
-const APP_VERSION = 2;
+// 3: seit dem Heute/Füttern-Umbau auf den lokalen Bestand (ohne stats/fuettern).
+const APP_VERSION = 3;
 
 function stamped(data) {
   return { ...data, updatedAt: serverTimestamp(), appVersion: APP_VERSION };
@@ -1577,25 +1577,33 @@ async function guardWrite(promise) {
   }
 }
 
+// Der eigene Schreibvorgang steht sofort im lokalen Bestand (siehe
+// entryApplyLocal); scheitert er, wird das zurückgenommen.
+async function commitEntryWrite(local, write) {
+  const undo = entryApplyLocal(local);
+  try {
+    return await guardWrite(write());
+  } catch (error) {
+    undo();
+    throw error;
+  }
+}
+
 async function addEntry(coll, data) {
-  if (coll === 'feedings') return addFeeding(data);
   const ref = doc(collection(db, coll));
-  await guardWrite(setDoc(ref, stamped(data)));
+  await commitEntryWrite([[coll, ref.id, 'set', data]], () => setDoc(ref, stamped(data)));
   return ref;
 }
 
-// `full` nur bei feedings: der Eintrag nach der Änderung, für die Kurzfassung.
-async function patchEntry(coll, id, patch, full) {
-  if (coll === 'feedings') return updateFeeding(id, patch, full);
-  await guardWrite(updateDoc(doc(db, coll, id), stamped(patch)));
+async function patchEntry(coll, id, patch) {
+  await commitEntryWrite([[coll, id, 'patch', patch]], () => updateDoc(doc(db, coll, id), stamped(patch)));
 }
 
 async function deleteEntry(coll, id) {
-  if (coll === 'feedings') return deleteFeeding(id);
   const batch = writeBatch(db);
   batch.delete(doc(db, coll, id));
   addTombstone(batch, coll, id);
-  await guardWrite(batch.commit());
+  await commitEntryWrite([[coll, id, 'delete']], () => batch.commit());
 }
 
 // --- Lokaler Datenbestand der Eintrags-Collections ---
@@ -1625,6 +1633,8 @@ const entryStore = {
   email: null,
   unsubs: [],
   loaded: null,      // Promise: Bestand liegt im Speicher (aus IndexedDB oder Vollladen)
+  isLoaded: false,
+  localPending: new Set(), // 'coll/id' eigener Schreibvorgänge, die der Server noch nicht zurückgemeldet hat
   ready: null,       // Promise: erste Server-Antwort aller Live-Abfragen (oder Zeitüberlauf)
   synced: false,     // erster Abgleich mit dem Server ist durch
   failed: false,     // eine Live-Abfrage ist abgebrochen — Bestand nicht mehr verlässlich
@@ -1750,6 +1760,7 @@ async function entryFullLoad(gen) {
 function entryApplySnapshot(coll, snap) {
   const puts = [];
   const dels = [];
+  let changed = false;
   snap.docChanges().forEach((change) => {
     if (change.type === 'removed') return;
     const d = change.doc;
@@ -1761,24 +1772,82 @@ function entryApplySnapshot(coll, snap) {
     if (coll === 'deletions') {
       const m = entryStore.docs[data.coll];
       if (!m) return;
+      const key = data.coll + '/' + data.id;
       const cur = m.get(data.id);
-      if (!cur) return;
       // Mit derselben ID nach dem Löschen neu angelegt (Restore): der neuere Stand gilt.
-      if (tsMillis(cur.updatedAt) > at) return;
-      m.delete(data.id);
+      if (cur && !entryStore.localPending.has(key) && tsMillis(cur.updatedAt) > at) return;
+      entryStore.localPending.delete(key);
+      if (cur) {
+        m.delete(data.id);
+        changed = true;
+      }
+      // Auch ohne Eintrag im Speicher (eigene Löschung, lokal schon entfernt):
+      // in IndexedDB steht er noch.
       dels.push([data.coll, data.id]);
     } else {
-      // Die Überlappung beim Start liefert Bekanntes erneut — das ist keine Änderung.
+      const key = coll + '/' + d.id;
       const cur = entryStore.docs[coll].get(d.id);
-      if (cur && tsMillis(cur.updatedAt) === at) return;
+      // Die Überlappung beim Start liefert Bekanntes erneut — das ist keine Änderung.
+      if (cur && !entryStore.localPending.has(key) && tsMillis(cur.updatedAt) === at) return;
+      entryStore.localPending.delete(key);
       entryStore.docs[coll].set(d.id, data);
       puts.push([coll, d.id, data]);
+      changed = true;
     }
   });
-  if (puts.length || dels.length) {
+  if (puts.length || dels.length) queueEntryIdbWrite({ puts, dels });
+  if (changed) {
     entryStore.version++;
-    queueEntryIdbWrite({ puts, dels });
+    entryStoreChanged();
   }
+}
+
+// Eigene Schreibvorgänge stehen sofort im Bestand, nicht erst nach der
+// Server-Bestätigung: Heute zeigt einen neuen Eintrag so ohne Verzögerung.
+// Nur im Speicher — in IndexedDB landet erst der bestätigte Stand, den die
+// Live-Abfrage liefert (samt echtem Zeitstempel). Zeitstempel, die erst der
+// Server setzt, stehen bis dahin mit der Gerätezeit drin.
+// changes: [[coll, id, 'set' | 'patch' | 'delete', data]]. Gibt eine
+// Rücknahme zurück, falls der Schreibvorgang scheitert.
+function entryApplyLocal(changes) {
+  if (!entryStore.isLoaded || entryStore.failed) return () => {};
+  const now = Timestamp.now();
+  const isTs = (v) => v && typeof v.toMillis === 'function';
+  const before = [];
+  changes.forEach(([coll, id, kind, data]) => {
+    const m = entryStore.docs[coll];
+    if (!m) return;
+    const key = coll + '/' + id;
+    const cur = m.get(id);
+    if (kind === 'patch' && !cur) return;
+    before.push({ m, id, key, cur, pending: entryStore.localPending.has(key) });
+    if (kind === 'delete') {
+      m.delete(id);
+    } else {
+      const next = { ...(kind === 'patch' ? cur : {}), ...data, updatedAt: now, appVersion: APP_VERSION };
+      if (!isTs(next.createdAt)) next.createdAt = (cur && isTs(cur.createdAt)) ? cur.createdAt : now;
+      m.set(id, next);
+    }
+    entryStore.localPending.add(key);
+  });
+  if (!before.length) return () => {};
+  const gen = entryStore.gen;
+  entryStore.version++;
+  entryStoreChanged();
+  return () => {
+    if (gen !== entryStore.gen) return;
+    before.forEach(({ m, id, key, cur, pending }) => {
+      if (cur) m.set(id, cur); else m.delete(id);
+      if (!pending) entryStore.localPending.delete(key);
+    });
+    entryStore.version++;
+    entryStoreChanged();
+  };
+}
+
+// Der Bestand hat sich inhaltlich geändert: offene Ansichten nachziehen.
+function entryStoreChanged() {
+  if (currentScreen === 'heute' && currentUser) scheduleHeuteRefresh();
 }
 
 function entryListen(gen) {
@@ -1822,13 +1891,15 @@ async function entryDailyCountCheck(gen) {
   try { if (localStorage.getItem(ENTRY_COUNT_CHECK_KEY) === today) return; } catch (e) { return; }
   try {
     const counts = await Promise.all(SYNCED_COLLECTIONS.map((c) => getCountFromServer(collection(db, c))));
-    if (gen !== entryStore.gen || !entryStore.synced) return;
+    // Ein eigener, noch unbestätigter Schreibvorgang verfälscht den Vergleich — dann ein andermal.
+    if (gen !== entryStore.gen || !entryStore.synced || entryStore.localPending.size) return;
     try { localStorage.setItem(ENTRY_COUNT_CHECK_KEY, today); } catch (e) {}
     const off = SYNCED_COLLECTIONS.filter((c, i) => counts[i].data().count !== entryStore.docs[c].size);
     if (off.length && currentUser) {
       console.warn('Lokaler Bestand weicht ab (' + off.join(', ') + '), wird neu geladen');
       await clearEntryIdb();
       startEntrySync(currentUser);
+      entryStore.loaded.then((ok) => { if (ok) entryStoreChanged(); });
     }
   } catch (error) {
     console.error('Lokaler Bestand: Zählprüfung fehlgeschlagen', error);
@@ -1842,6 +1913,8 @@ function stopEntrySync() {
   entryStore.synced = false;
   entryStore.failed = false;
   entryStore.loaded = null;
+  entryStore.isLoaded = false;
+  entryStore.localPending.clear();
   entryStore.ready = null;
   entryStore.docs = {};
   SYNCED_COLLECTIONS.forEach((c) => { entryStore.docs[c] = new Map(); });
@@ -1867,6 +1940,7 @@ function startEntrySync(user) {
         return false;
       }
       entryStore.version++;
+      entryStore.isLoaded = true;
       resolveLoaded(true);
       const ok = await Promise.race([
         entryListen(gen),
@@ -1898,83 +1972,60 @@ async function entryStoreLoaded() {
   }
 }
 
-// Wie `where(field, '>=', since)` in Firestore: ohne das Feld fällt ein
-// Dokument heraus; Reihenfolge nach dem Feld, dann nach der ID.
+// Wie `where(field, '>=', since)` in Firestore, für einen Zeitpunkt (Date
+// gegen Timestamp-Felder) oder eine Zeichenkette (z. B. nightEnd): ein
+// Dokument ohne passendes Feld fällt heraus; Reihenfolge nach dem Feld, dann
+// nach der ID.
 function entryStoreSince(coll, field, since) {
-  const min = since.getTime();
+  const byString = typeof since === 'string';
+  const min = byString ? since : since.getTime();
+  const keyOf = (v) => (byString
+    ? (typeof v === 'string' ? v : null)
+    : (v && typeof v.toMillis === 'function' ? v.toMillis() : null));
   const out = [];
   entryStore.docs[coll].forEach((data, id) => {
-    const v = data[field];
-    if (v && typeof v.toMillis === 'function' && v.toMillis() >= min) out.push({ id, ...data });
+    const k = keyOf(data[field]);
+    if (k !== null && k >= min) out.push({ k, doc: { id, ...data } });
   });
-  out.sort((a, b) => (a[field].toMillis() - b[field].toMillis()) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  return out;
+  out.sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0) || (a.doc.id < b.doc.id ? -1 : a.doc.id > b.doc.id ? 1 : 0));
+  return out.map((x) => x.doc);
 }
 
-// --- Live-Abfragen für die Heute-Seite ---
-// Heute stellte bei jedem Besuch dieselben Abfragen neu (letzte 12 Einträge,
-// Einträge von heute, offene Timer/Nächte) — laut Audit-Log ein gutes Fünftel
-// aller Lesevorgänge. Jetzt bleibt je Abfrage eine Live-Abfrage offen: der
-// erste Aufruf kostet wie bisher, danach nur noch geänderte Dokumente. Die
-// Abfragen selbst sind unverändert, die Ergebnisse also dieselben.
-// `group` hält je Zweck höchstens eine Abfrage offen: fängt ein neuer Tag an,
-// ersetzt die Abfrage für heute die von gestern.
-// Kommt keine Server-Antwort (offline, Fehler), fällt der Aufruf auf eine
-// einmalige Abfrage zurück — mit genau dem Verhalten wie vorher. Nach einem
-// Zeitüberlauf bleibt die Live-Abfrage bestehen; bis sie doch antwortet,
-// wird ohne weiteres Warten direkt abgefragt.
-const LIVE_QUERY_TIMEOUT_MS = 10000;
-const liveQueries = new Map();
-
-function liveQueryDocs(group, key, makeQuery) {
-  let h = liveQueries.get(group);
-  if (h && h.key !== key) { h.unsub(); h = null; }
-  if (!h) {
-    h = { key, docs: [], ok: false, unsub: () => {} };
-    let resolveReady;
-    h.ready = new Promise((resolve) => { resolveReady = resolve; });
-    const timer = setTimeout(resolveReady, LIVE_QUERY_TIMEOUT_MS);
-    h.unsub = onSnapshot(makeQuery(), (snap) => {
-      // Eigene, noch nicht bestätigte Schreibvorgänge haben createdAt erst
-      // als Schätzung — ohne sie stünde dort null.
-      h.docs = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
-      if (!h.ok && !snap.metadata.fromCache) {
-        h.ok = true;
-        clearTimeout(timer);
-        resolveReady();
-      } else if (h.ok && currentScreen === 'heute') {
-        // Spätere Änderungen neu zeichnen, solange Heute offen ist. Ein eben
-        // gespeicherter Eintrag kommt hier oft erst nach dem Rücksprung an:
-        // mit ausstehendem serverTimestamp passt er lokal nicht auf
-        // `createdAt >= heute`, und die Bestätigung trifft nach dem ersten
-        // Zeichnen ein. Ohne Neuzeichnen stünde er erst beim nächsten Besuch da.
-        scheduleHeuteRefresh();
-      }
-    }, (error) => {
-      console.error('Live-Abfrage ' + group + ' beendet:', error);
-      clearTimeout(timer);
-      h.ok = false;
-      if (liveQueries.get(group) === h) liveQueries.delete(group);
-      resolveReady();
-    });
-    liveQueries.set(group, h);
-  }
-  return h;
-}
-
-// Wie getDocs(...).docs, aber aus der Live-Abfrage, sobald sie steht.
-async function cachedQueryDocs(group, key, makeQuery) {
-  if (currentUser) {
-    const h = liveQueryDocs(group, key, makeQuery);
-    await h.ready;
-    if (h.ok) return h.docs.map((d) => ({ ...d }));
-  }
+// --- Lesen aus dem Bestand ---
+// Heute, Füttern und Analyse lesen aus dem lokalen Bestand. Steht er nicht
+// zur Verfügung (IndexedDB blockiert, Live-Abfrage abgebrochen), wird wie
+// früher direkt abgefragt — mit genau denselben Abfragen.
+async function entryQueryDocs(fromStore, makeQuery) {
+  if (await entryStoreLoaded()) return fromStore();
   const snap = await getDocs(makeQuery());
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-// Mehrere Live-Abfragen melden sich oft kurz nacheinander (Kachel und
-// Zeitverlauf hängen an verschiedenen), daher nur einmal neu zeichnen.
+// Wie Firestore ohne orderBy: Reihenfolge nach Dokument-ID.
+function entryStoreWhere(coll, pred) {
+  const out = [];
+  entryStore.docs[coll].forEach((data, id) => { if (pred(data)) out.push({ id, ...data }); });
+  out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return out;
+}
+
+// Wie Firestore `where(field, '==', null)`: das Feld muss vorhanden und null sein.
+function fieldIsNull(data, field) {
+  return field in data && data[field] === null;
+}
+
+// Wie `orderBy('createdAt', 'desc'), limit(n)`: ohne createdAt fällt ein
+// Dokument heraus; bei Gleichstand absteigend nach ID.
+function entryStoreNewest(coll, n) {
+  const out = [];
+  entryStore.docs[coll].forEach((data, id) => {
+    if (data.createdAt && typeof data.createdAt.toMillis === 'function') out.push({ id, ...data });
+  });
+  out.sort((a, b) => (b.createdAt.toMillis() - a.createdAt.toMillis()) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+  return out.slice(0, n);
+}
+
+// Mehrere Änderungen kommen oft kurz nacheinander, daher nur einmal neu zeichnen.
 let heuteRefreshTimer = null;
 function scheduleHeuteRefresh() {
   if (heuteRefreshTimer) return;
@@ -1983,12 +2034,6 @@ function scheduleHeuteRefresh() {
     if (currentScreen === 'heute' && currentUser) loadOverview();
   }, 50);
 }
-
-function stopLiveQueries() {
-  liveQueries.forEach((h) => h.unsub());
-  liveQueries.clear();
-}
-
 const ALLOWED_EMAIL_HASHES = [
   'be75ec1ed07f97bf7d38e52e3c9799f0325003ec3f23fdd67103642c56594e73',
   '2c4c6c9b65ac160548f63faf4e9faa59b5ac1659620585ab704cf4d0585edebf',
@@ -2049,8 +2094,6 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = null;
     stopProfilSync();
     stopMedSync();
-    stopFeedStatsSync();
-    stopLiveQueries();
     stopEntrySync();
     loginScreen.style.display = 'flex';
     appEl.style.display = 'none';
@@ -2070,7 +2113,6 @@ onAuthStateChanged(auth, async (user) => {
   appEl.style.display = 'block';
   startProfilSync();
   startMedSync();
-  startFeedStatsSync();
   startEntrySync(user);
   loadOverview();
   // Laufende Timer nur abgleichen, nicht aufschlagen: Heute zeigt sie mit
@@ -2549,32 +2591,13 @@ function buildChips(container, values, unit, input) {
   });
 }
 
-// --- Füttern-Zusammenfassung (stats/fuettern) ---
-// Mengen-Cards und vorgewählte Brust-Seite brauchen nur wenige Felder der
-// letzten Fütterungen. Statt dafür bei jedem Öffnen von Füttern Dutzende bis
-// Hunderte Dokumente zu lesen, steht je Fütterung eine Kurzfassung
-// {type, amount, ts, side, done} in einem einzigen Dokument, auf das die App
-// live hört. Jeder Schreibvorgang auf feedings (addFeeding/updateFeeding/
-// deleteFeeding) ändert es im selben Batch mit. Fehlt es oder ist es älter
-// als einen Tag, baut das erste Gerät es aus feedings neu auf — das heilt
-// auch Abweichungen, etwa durch eine noch offene alte App-Version.
-const FEED_STATS_REF = doc(db, 'stats', 'fuettern');
-const FEED_STATS_VERSION = 1;
-// Aufbewahrt wird etwas mehr als die 10 Tage der Mengen-Cards, dazu immer die
-// letzten abgeschlossenen Brust-Fütterungen, egal wie alt.
-const FEED_STATS_KEEP_DAYS = 14;
-const FEED_STATS_REBUILD_MS = 24 * 60 * 60 * 1000;
+// --- Füttern-Kurzfassung für Mengen-Cards und vorgewählte Brust-Seite ---
+// Beide brauchen nur wenige Felder je Fütterung {type, amount, ts, side, done}.
+// Sie kommen aus dem lokalen Bestand (früher aus dem Dokument stats/fuettern,
+// das jeder Schreibvorgang mitpflegen musste).
+const FEED_SUMMARY_FALLBACK_DAYS = 14;
 const AMOUNT_CHIP_DAYS = 10;
 const BREAST_START_COUNT = 10;
-let feedStats = null;
-let feedStatsUnsubscribe = null;
-let feedStatsRebuilding = false;
-let feedStatsReadyResolve = null;
-let feedStatsReady = null;
-function resetFeedStatsReady() {
-  feedStatsReady = new Promise((resolve) => { feedStatsReadyResolve = resolve; });
-}
-resetFeedStatsReady();
 
 // Die Startseite einer Brust-Fütterung: das erste Segment, bei Einträgen ohne
 // Segmente die Seite mit mehr Minuten, bei Gleichstand keine.
@@ -2607,125 +2630,23 @@ function recentBreastStartIds(entries) {
     .slice(0, BREAST_START_COUNT);
 }
 
-function feedStatsKeepIds(entries) {
-  const cutoff = Date.now() - FEED_STATS_KEEP_DAYS * 24 * 60 * 60 * 1000;
-  const keep = new Set(Object.keys(entries).filter((id) => entries[id].ts >= cutoff));
-  recentBreastStartIds(entries).forEach((id) => keep.add(id));
-  return keep;
-}
-
-// changes: { id: Kurzfassung } oder { id: null } fürs Löschen. Räumt dabei
-// gleich auf, was aus dem Aufbewahrungsfenster gefallen ist.
-function feedStatsPatch(changes) {
-  const merged = Object.assign({}, feedStats || {});
-  Object.keys(changes).forEach((id) => {
-    if (changes[id]) merged[id] = changes[id];
-    else delete merged[id];
-  });
-  const keep = feedStatsKeepIds(merged);
-  const entries = {};
-  Object.keys(changes).forEach((id) => { entries[id] = changes[id] && keep.has(id) ? changes[id] : deleteField(); });
-  Object.keys(feedStats || {}).forEach((id) => { if (!keep.has(id) && !(id in entries)) entries[id] = deleteField(); });
-  return { entries };
-}
-
-// Nach erfolgreichem Speichern sofort auch lokal nachziehen: die Mengen-Cards
-// werden direkt danach neu berechnet und sollen nicht davon abhängen, ob die
-// Live-Aktualisierung schon da ist. Die nächste kommt ohnehin gleich.
-function feedStatsApplyLocal(changes) {
-  if (!feedStats) return;
-  Object.keys(changes).forEach((id) => {
-    if (changes[id]) feedStats[id] = changes[id];
-    else delete feedStats[id];
-  });
-}
-
-async function commitFeedingBatch(batch, changes) {
-  batch.set(FEED_STATS_REF, stamped(feedStatsPatch(changes)), { merge: true });
-  await guardWrite(batch.commit());
-  feedStatsApplyLocal(changes);
-}
-
-async function addFeeding(data) {
-  const ref = doc(collection(db, 'feedings'));
-  const batch = writeBatch(db);
-  batch.set(ref, stamped(data));
-  await commitFeedingBatch(batch, { [ref.id]: feedingSummary(data) });
-  return ref;
-}
-
-// `full` = der Eintrag nach der Änderung (nur die Felder, die die
-// Kurzfassung braucht); ohne ihn bleibt die Zusammenfassung unberührt.
-async function updateFeeding(id, patch, full) {
-  const batch = writeBatch(db);
-  batch.update(doc(db, 'feedings', id), stamped(patch));
-  if (full) await commitFeedingBatch(batch, { [id]: feedingSummary(full) });
-  else await guardWrite(batch.commit());
-}
-
-async function deleteFeeding(id) {
-  const batch = writeBatch(db);
-  batch.delete(doc(db, 'feedings', id));
-  addTombstone(batch, 'feedings', id);
-  await commitFeedingBatch(batch, { [id]: null });
-}
-
-// Neuaufbau aus feedings: alles, was in den letzten 14 Tagen gespeichert
-// wurde (nachgetragene Einträge haben ein späteres createdAt als ihr
-// fachliches Datum, fallen also nicht heraus), dazu die letzten 40 für die
-// Brust-Seite. Gelöscht wird nur, was schon vor der Abfrage im Dokument stand
-// — ein Eintrag, den ein anderes Gerät gerade eben gespeichert hat, bleibt.
-async function rebuildFeedStats() {
-  if (feedStatsRebuilding) return;
-  feedStatsRebuilding = true;
-  try {
-    const before = feedStats || {};
-    const since = new Date(Date.now() - FEED_STATS_KEEP_DAYS * 24 * 60 * 60 * 1000);
-    const [recent, last] = await Promise.all([
-      getDocs(query(collection(db, 'feedings'), where('createdAt', '>=', since))),
-      getDocs(query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(40)))
-    ]);
-    const all = {};
-    [...recent.docs, ...last.docs].forEach((d) => { all[d.id] = feedingSummary(d.data()); });
-    const keep = feedStatsKeepIds(all);
-    const entries = {};
-    Object.keys(all).forEach((id) => { if (keep.has(id)) entries[id] = all[id]; });
-    Object.keys(before).forEach((id) => { if (!(id in entries)) entries[id] = deleteField(); });
-    // Ohne guardWrite: ein Neuaufbau im Hintergrund soll nie den Hinweis
-    // „Eintrag nicht gespeichert" samt Neuladen auslösen.
-    await setDoc(FEED_STATS_REF, stamped({ v: FEED_STATS_VERSION, builtAt: Date.now(), entries }), { merge: true });
-  } catch (error) {
-    console.error('Füttern-Zusammenfassung neu aufbauen fehlgeschlagen:', error);
-    feedStatsReadyResolve();
-  } finally {
-    feedStatsRebuilding = false;
+// { id: Kurzfassung } aller Fütterungen. Ohne Bestand direkt gelesen, wie
+// früher beim Neuaufbau der Zusammenfassung: die letzten 14 Tage (nach
+// Speicherzeit, Nachgetragenes ist damit dabei) plus die letzten 40.
+async function feedingSummaries() {
+  const out = {};
+  if (await entryStoreLoaded()) {
+    entryStore.docs.feedings.forEach((d, id) => { out[id] = feedingSummary(d); });
+    return out;
   }
+  const since = new Date(Date.now() - FEED_SUMMARY_FALLBACK_DAYS * 24 * 60 * 60 * 1000);
+  const [recent, last] = await Promise.all([
+    getDocs(query(collection(db, 'feedings'), where('createdAt', '>=', since))),
+    getDocs(query(collection(db, 'feedings'), orderBy('createdAt', 'desc'), limit(40)))
+  ]);
+  [...recent.docs, ...last.docs].forEach((d) => { out[d.id] = feedingSummary(d.data()); });
+  return out;
 }
-
-function startFeedStatsSync() {
-  stopFeedStatsSync();
-  feedStatsUnsubscribe = onSnapshot(FEED_STATS_REF, (snap) => {
-    const data = snap.exists() ? snap.data() : null;
-    const valid = !!(data && data.v === FEED_STATS_VERSION && data.builtAt);
-    if (data && data.entries) feedStats = data.entries;
-    // Ohne gültiges Dokument erst nach dem Neuaufbau freigeben — sonst stünden
-    // beim allerersten Start kurz die Standard-Cards und links vorgewählt da.
-    if (valid) feedStatsReadyResolve();
-    if (snap.metadata.fromCache) return;
-    if (!valid || Date.now() - data.builtAt > FEED_STATS_REBUILD_MS) rebuildFeedStats();
-  }, (error) => {
-    console.error('Füttern-Zusammenfassung laden fehlgeschlagen:', error);
-    feedStatsReadyResolve();
-  });
-}
-
-function stopFeedStatsSync() {
-  if (feedStatsUnsubscribe) feedStatsUnsubscribe();
-  feedStatsUnsubscribe = null;
-  feedStats = null;
-  resetFeedStatsReady();
-}
-
 // Die vier Mengen-Cards passen sich mit der Zeit an: Ausgangspunkt sind
 // 20/40/80/100 ml, aber sobald in den letzten 10 Tagen genug Fläschchen
 // erfasst wurden (min. 3), ersetzt die jeweils häufigste abweichende Menge
@@ -2740,11 +2661,11 @@ let fuetternAmountChips = DEFAULT_BOTTLE_AMOUNTS.slice();
 
 async function computeAmountChips(feedingType, defaults) {
   try {
-    await feedStatsReady;
+    const summaries = await feedingSummaries();
     const cutoff = Date.now() - AMOUNT_CHIP_DAYS * 24 * 60 * 60 * 1000;
     const freq = new Map();
     let n = 0;
-    Object.values(feedStats || {}).forEach((doc) => {
+    Object.values(summaries).forEach((doc) => {
       if (doc.type !== feedingType || !doc.amount) return;
       if (doc.ts < cutoff) return;
       n++;
@@ -2819,7 +2740,7 @@ fuetternSaveBtn.addEventListener('click', async () => {
   };
   fuetternSaveBtn.disabled = true;
   try {
-    await addFeeding(entry);
+    await addEntry('feedings', entry);
     try { localStorage.setItem(BOTTLE_MILK_KEY, entry.milk); } catch (e) {}
     fuetternSaveBtn.disabled = false;
     refreshFuetternAmountChips();
@@ -3040,7 +2961,7 @@ breastSaveBtn.addEventListener('click', async () => {
   breastSaveBtn.disabled = true;
   try {
     const entry = { ...breastEntryFromForm(), createdBy: currentUser.email, createdAt: serverTimestamp() };
-    await addFeeding(entry);
+    await addEntry('feedings', entry);
     breastSaveBtn.disabled = false;
     resetBreastSegments();
     afterNewEntrySaved(entryBusinessTimestamp(entry), 'var(--fuettern)');
@@ -3167,7 +3088,9 @@ let breastTimerRightSec = 0;
 let breastTimerSideSince = null;
 
 async function findOpenFeeding() {
-  const docs = await cachedQueryDocs('feeding-open', '', () => query(collection(db, 'feedings'), where('type', '==', 'breast'), where('endTime', '==', null)));
+  const docs = await entryQueryDocs(
+    () => entryStoreWhere('feedings', (d) => d.type === 'breast' && fieldIsNull(d, 'endTime')),
+    () => query(collection(db, 'feedings'), where('type', '==', 'breast'), where('endTime', '==', null)));
   return docs[0] || null;
 }
 
@@ -3269,8 +3192,7 @@ renderBreastTimerDisplay();
 // Gleichstand bleibt es links.
 async function computeBreastStartSide() {
   try {
-    await feedStatsReady;
-    const entries = feedStats || {};
+    const entries = await feedingSummaries();
     let left = 0;
     let right = 0;
     recentBreastStartIds(entries).forEach((id) => {
@@ -3362,7 +3284,7 @@ breastTimerToggleBtn.addEventListener('click', async () => {
         createdBy: currentUser.email,
         createdAt: serverTimestamp()
       };
-      const ref = await addFeeding(entry);
+      const ref = await addEntry('feedings', entry);
       openFeedingDocId = ref.id;
       openFeedingStartedAt = startedAt.getTime();
       breastTimerLeftSec = 0;
@@ -3396,8 +3318,7 @@ breastTimerToggleBtn.addEventListener('click', async () => {
         rightSeconds: sec.right,
         sideSince: null
       };
-      const stopBase = open || { type: 'breast', date: isoDate(startedAt), time: formatTime(startedAt) };
-      await updateFeeding(targetId, stopPatch, { ...stopBase, ...stopPatch });
+      await patchEntry('feedings', targetId, stopPatch);
       clearInterval(feedingTimerInterval);
       feedingTimerInterval = null;
       openFeedingDocId = null;
@@ -3633,7 +3554,7 @@ pumpSaveBtn.addEventListener('click', async () => {
   pumpSaveBtn.disabled = true;
   try {
     const entry = { ...pumpEntryFromForm(), createdBy: currentUser.email, createdAt: serverTimestamp() };
-    await addFeeding(entry);
+    await addEntry('feedings', entry);
     pumpSaveBtn.disabled = false;
     resetPumpManualForm();
     refreshPumpAmountChips();
@@ -3652,22 +3573,20 @@ let openPumpStartedAt = null;
 let pumpTimerInterval = null;
 
 async function findOpenPumping() {
-  const q = query(collection(db, 'feedings'), where('type', '==', 'pump'), where('endTime', '==', null));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+  const docs = await entryQueryDocs(
+    () => entryStoreWhere('feedings', (d) => d.type === 'pump' && fieldIsNull(d, 'endTime')),
+    () => query(collection(db, 'feedings'), where('type', '==', 'pump'), where('endTime', '==', null)));
+  return docs[0] || null;
 }
 
 // Eigenes Merkmal statt `amount == null`: Abpump-Einträge aus der Zeit vor der
 // Mengenpflicht tragen ebenfalls kein amount und dürfen nicht plötzlich als
 // unvollständig gelten.
 async function findPendingPumping() {
-  const q = query(collection(db, 'feedings'), where('type', '==', 'pump'), where('pendingAmount', '==', true));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+  const docs = await entryQueryDocs(
+    () => entryStoreWhere('feedings', (d) => d.type === 'pump' && d.pendingAmount === true),
+    () => query(collection(db, 'feedings'), where('type', '==', 'pump'), where('pendingAmount', '==', true)));
+  return docs[0] || null;
 }
 
 // Solange ein Eintrag ohne Menge offen ist, gibt es keinen neuen: weder über
@@ -3819,7 +3738,7 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
         createdBy: currentUser.email,
         createdAt: serverTimestamp()
       };
-      const ref = await addFeeding(entry);
+      const ref = await addEntry('feedings', entry);
       openPumpDocId = ref.id;
       openPumpStartedAt = startedAt.getTime();
       pumpTimerInterval = setInterval(renderPumpTimerDisplay, 1000);
@@ -3842,8 +3761,7 @@ pumpTimerToggleBtn.addEventListener('click', async () => {
         side: pumpSideValue(),
         pendingAmount: true
       };
-      const stopBase = open || { type: 'pump', date: isoDate(startedAt), time: formatTime(startedAt) };
-      await updateFeeding(targetId, stopPatch, { ...stopBase, ...stopPatch });
+      await patchEntry('feedings', targetId, stopPatch);
       clearInterval(pumpTimerInterval);
       pumpTimerInterval = null;
       openPumpDocId = null;
@@ -3883,7 +3801,7 @@ pumpFinishSaveBtn.addEventListener('click', async () => {
       side: pumpSideValue(),
       pendingAmount: false
     };
-    await updateFeeding(finishedId, finishPatch, { ...stillPending, ...finishPatch });
+    await patchEntry('feedings', finishedId, finishPatch);
     setPendingPump(null);
     pumpLeft = true;
     pumpRight = true;
@@ -4110,7 +4028,7 @@ async function handleFuetternUpdate(triggerBtn) {
   }
   triggerBtn.disabled = true;
   try {
-    await updateFeeding(updatedId, entry, entry);
+    await patchEntry('feedings', updatedId, entry);
     exitFuetternEdit();
     if (entry.type === 'bottle') refreshFuetternAmountChips();
     returnToEintragAfterUpdate({ id: updatedId, ...entry });
@@ -4755,7 +4673,9 @@ let openNapStartedAt = null;
 let timerInterval = null;
 
 async function findOpenNap() {
-  const docs = await cachedQueryDocs('nap-open', '', () => query(collection(db, 'naps'), where('endTime', '==', null)));
+  const docs = await entryQueryDocs(
+    () => entryStoreWhere('naps', (d) => fieldIsNull(d, 'endTime')),
+    () => query(collection(db, 'naps'), where('endTime', '==', null)));
   return docs[0] || null;
 }
 
@@ -5636,7 +5556,7 @@ function formatDuration(mins) {
 
 async function getTodayDocs(name) {
   const start = todayStartDate();
-  return cachedQueryDocs('today-' + name, isoDate(start), () => query(collection(db, name), where('createdAt', '>=', start)));
+  return entryQueryDocs(() => entryStoreSince(name, 'createdAt', start), () => query(collection(db, name), where('createdAt', '>=', start)));
 }
 
 // Schlaf seit gestern 0 Uhr — genug für die Nacht, die heute endet, auch wenn
@@ -5648,9 +5568,9 @@ async function getRecentSleepDocs(name) {
   since.setDate(since.getDate() - 1);
   const key = isoDate(since);
   if (name === 'nightWakeups') {
-    return cachedQueryDocs('recent-nights', key, () => query(collection(db, name), where('nightEnd', '>=', key)));
+    return entryQueryDocs(() => entryStoreSince(name, 'nightEnd', key), () => query(collection(db, name), where('nightEnd', '>=', key)));
   }
-  return cachedQueryDocs('recent-' + name + '-since', key, () => query(collection(db, name), where('createdAt', '>=', since)));
+  return entryQueryDocs(() => entryStoreSince(name, 'createdAt', since), () => query(collection(db, name), where('createdAt', '>=', since)));
 }
 
 function timeOnDate(baseDate, hhmm) {
@@ -5688,7 +5608,7 @@ function entryIsToday(doc, now) {
 // deshalb größer als die eine gesuchte Zeile: sonst bliebe nach dem Filtern
 // unter Umständen nichts übrig.
 async function getMostRecentByBusinessTime(name, predicate) {
-  let docs = await cachedQueryDocs('recent-' + name, '', () => query(collection(db, name), orderBy('createdAt', 'desc'), limit(12)));
+  let docs = await entryQueryDocs(() => entryStoreNewest(name, 12), () => query(collection(db, name), orderBy('createdAt', 'desc'), limit(12)));
   if (predicate) docs = docs.filter(predicate);
   if (docs.length === 0) return null;
   docs.sort((a, b) => (entryBusinessTimestamp(b)?.getTime() || 0) - (entryBusinessTimestamp(a)?.getTime() || 0));

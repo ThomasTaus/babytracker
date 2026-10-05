@@ -1513,7 +1513,8 @@ import {
   getAuth, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp, writeBatch, deleteField
+  getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp, writeBatch, deleteField,
+  getCountFromServer, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { scaleBand, scaleLinear, scalePoint } from "./vendor/d3/d3-scale.js";
 import { line as d3Line, area as d3Area, curveLinear } from "./vendor/d3/d3-shape.js";
@@ -1595,6 +1596,294 @@ async function deleteEntry(coll, id) {
   batch.delete(doc(db, coll, id));
   addTombstone(batch, coll, id);
   await guardWrite(batch.commit());
+}
+
+// --- Lokaler Datenbestand der Eintrags-Collections ---
+// Alle Dokumente der vier Collections liegen in IndexedDB. Fehlt der Bestand
+// (erster Start, Speicher geleert, anderes Konto), wird einmal alles gelesen;
+// danach hält je Collection eine Live-Abfrage `updatedAt > letzterAbgleich`
+// ihn aktuell, dazu eine auf `deletions`. Gelesen werden so nur noch
+// Änderungen — die Analyse rechnet bei jedem Öffnen und Zoomwechsel aus dem
+// Bestand statt alles neu abzufragen.
+// Lokal gelöscht wird ausschließlich über Grabsteine: Eine Live-Abfrage
+// meldet ein Dokument auch dann als „removed", wenn es nur gerade ein
+// ausstehendes serverTimestamp trägt und deshalb vorübergehend nicht passt.
+// Solange der Bestand nicht steht (offline, Fehler), lesen die Nutzer wie
+// bisher direkt aus Firestore.
+const SYNCED_COLLECTIONS = ['feedings', 'diaperChanges', 'naps', 'nightWakeups'];
+const ENTRY_STORE_VERSION = 1;
+const ENTRY_STORE_DB = 'babytracker-entries';
+// Die Abfrage beginnt etwas vor dem letzten gesehenen updatedAt: kostet ein
+// paar doppelte Dokumente, schützt aber vor Grenzfällen beim Zeitstempel.
+const ENTRY_SYNC_OVERLAP_MS = 2 * 60 * 1000;
+const ENTRY_SYNC_TIMEOUT_MS = 10000;
+const ENTRY_COUNT_CHECK_KEY = 'bt-entry-count-check';
+
+const entryStore = {
+  docs: {},          // coll → Map(id → data)
+  lastSync: 0,       // höchstes gesehenes updatedAt (Serverzeit, ms)
+  email: null,
+  unsubs: [],
+  ready: null,       // Promise: erste Server-Antwort aller Live-Abfragen (oder Zeitüberlauf)
+  synced: false,     // Bestand steht und ist aktuell
+  gen: 0             // jede (Neu-)Initialisierung zählt hoch; ältere Rückrufe verfallen
+};
+
+function tsMillis(v) {
+  return v && typeof v.toMillis === 'function' ? v.toMillis() : 0;
+}
+
+// IndexedDB kann keine Firestore-Timestamps speichern: als [Sekunden,
+// Nanosekunden] ablegen und beim Laden wieder zu Timestamps machen, damit
+// `.toDate()` an allen bestehenden Stellen weiter funktioniert.
+function storeEncode(v) {
+  if (Array.isArray(v)) return v.map(storeEncode);
+  if (v && typeof v === 'object') {
+    if (typeof v.toMillis === 'function' && 'seconds' in v && 'nanoseconds' in v) return { __ts: [v.seconds, v.nanoseconds] };
+    const o = {};
+    Object.keys(v).forEach((k) => { o[k] = storeEncode(v[k]); });
+    return o;
+  }
+  return v;
+}
+function storeDecode(v) {
+  if (Array.isArray(v)) return v.map(storeDecode);
+  if (v && typeof v === 'object') {
+    if (Array.isArray(v.__ts)) return new Timestamp(v.__ts[0], v.__ts[1]);
+    const o = {};
+    Object.keys(v).forEach((k) => { o[k] = storeDecode(v[k]); });
+    return o;
+  }
+  return v;
+}
+
+let entryIdbPromise = null;
+function entryIdb() {
+  if (!entryIdbPromise) {
+    entryIdbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(ENTRY_STORE_DB, 1);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore('docs');
+        req.result.createObjectStore('meta');
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    }).catch((error) => { entryIdbPromise = null; throw error; });
+  }
+  return entryIdbPromise;
+}
+
+function idbDone(tx) {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
+async function entryIdbLoad() {
+  const idb = await entryIdb();
+  const tx = idb.transaction(['docs', 'meta'], 'readonly');
+  const metaReq = tx.objectStore('meta').get('state');
+  const docsReq = tx.objectStore('docs').getAll();
+  await idbDone(tx);
+  return { meta: metaReq.result || null, docs: docsReq.result || [] };
+}
+
+// Dokumente und Abgleichsstand immer in einer Transaktion: entweder beides
+// oder nichts, damit lastSync nie weiter ist als die gespeicherten Dokumente.
+async function entryIdbWrite({ clear = false, puts = [], dels = [] }) {
+  const idb = await entryIdb();
+  const tx = idb.transaction(['docs', 'meta'], 'readwrite');
+  const docsOs = tx.objectStore('docs');
+  if (clear) docsOs.clear();
+  puts.forEach(([coll, id, data]) => docsOs.put({ coll, id, data: storeEncode(data) }, coll + '/' + id));
+  dels.forEach(([coll, id]) => docsOs.delete(coll + '/' + id));
+  tx.objectStore('meta').put({ v: ENTRY_STORE_VERSION, email: entryStore.email, lastSync: entryStore.lastSync }, 'state');
+  await idbDone(tx);
+}
+
+async function clearEntryIdb() {
+  try {
+    const idb = await entryIdb();
+    const tx = idb.transaction(['docs', 'meta'], 'readwrite');
+    tx.objectStore('docs').clear();
+    tx.objectStore('meta').clear();
+    await idbDone(tx);
+  } catch (error) { /* nichts zu löschen */ }
+}
+
+// Schreiben in IndexedDB nacheinander, damit ältere Stände nie neuere überholen.
+let entryIdbQueue = Promise.resolve();
+function queueEntryIdbWrite(change) {
+  entryIdbQueue = entryIdbQueue.then(() => entryIdbWrite(change)).catch((error) => {
+    console.error('Lokaler Bestand: Speichern fehlgeschlagen', error);
+  });
+  return entryIdbQueue;
+}
+
+async function entryFullLoad(gen) {
+  const snaps = await Promise.all(SYNCED_COLLECTIONS.map((c) => getDocs(collection(db, c))));
+  if (gen !== entryStore.gen) return false;
+  let max = 0;
+  const puts = [];
+  SYNCED_COLLECTIONS.forEach((c, i) => {
+    const m = new Map();
+    snaps[i].docs.forEach((d) => {
+      const data = d.data();
+      m.set(d.id, data);
+      puts.push([c, d.id, data]);
+      max = Math.max(max, tsMillis(data.updatedAt));
+    });
+    entryStore.docs[c] = m;
+  });
+  // Alles, was nach diesen Lesevorgängen geschrieben wird, trägt ein späteres
+  // updatedAt als jedes hier gesehene — die Live-Abfragen ab `max` fangen es.
+  entryStore.lastSync = max;
+  await queueEntryIdbWrite({ clear: true, puts });
+  return true;
+}
+
+function entryApplySnapshot(coll, snap) {
+  const puts = [];
+  const dels = [];
+  snap.docChanges().forEach((change) => {
+    if (change.type === 'removed') return;
+    const d = change.doc;
+    // Eigene, noch unbestätigte Schreibvorgänge kommen nach der Bestätigung erneut.
+    if (d.metadata && d.metadata.hasPendingWrites) return;
+    const data = d.data();
+    const at = tsMillis(data.updatedAt);
+    entryStore.lastSync = Math.max(entryStore.lastSync, at);
+    if (coll === 'deletions') {
+      const m = entryStore.docs[data.coll];
+      if (!m) return;
+      const cur = m.get(data.id);
+      // Mit derselben ID nach dem Löschen neu angelegt (Restore): der neuere Stand gilt.
+      if (cur && tsMillis(cur.updatedAt) > at) return;
+      m.delete(data.id);
+      dels.push([data.coll, data.id]);
+    } else {
+      entryStore.docs[coll].set(d.id, data);
+      puts.push([coll, d.id, data]);
+    }
+  });
+  if (puts.length || dels.length) queueEntryIdbWrite({ puts, dels });
+}
+
+function entryListen(gen) {
+  const since = Timestamp.fromMillis(Math.max(0, entryStore.lastSync - ENTRY_SYNC_OVERLAP_MS));
+  const names = [...SYNCED_COLLECTIONS, 'deletions'];
+  let waiting = names.length;
+  return new Promise((resolve) => {
+    names.forEach((c) => {
+      let first = true;
+      const unsub = onSnapshot(query(collection(db, c), where('updatedAt', '>', since)), (snap) => {
+        if (gen !== entryStore.gen) return;
+        entryApplySnapshot(c, snap);
+        if (first && !snap.metadata.fromCache) {
+          first = false;
+          if (--waiting === 0) {
+            entryStore.synced = true;
+            resolve(true);
+          }
+        }
+      }, (error) => {
+        console.error('Lokaler Bestand: Live-Abfrage ' + c + ' beendet', error);
+        if (gen !== entryStore.gen) return;
+        // Ohne vollständigen Abgleich nicht mehr aus dem Bestand lesen; der
+        // nächste App-Start setzt neu auf.
+        entryStore.synced = false;
+        resolve(false);
+      });
+      entryStore.unsubs.push(unsub);
+    });
+  });
+}
+
+// Einmal am Tag: Stimmt die Anzahl je Collection mit dem Server überein?
+// Kostet 1 Lesevorgang je Collection und fängt stille Abweichungen ab
+// (z. B. eine Löschung ohne Grabstein über die Konsole). Weicht sie ab, wird
+// der Bestand verworfen und neu geladen.
+async function entryDailyCountCheck(gen) {
+  const today = isoDate(new Date());
+  try { if (localStorage.getItem(ENTRY_COUNT_CHECK_KEY) === today) return; } catch (e) { return; }
+  try {
+    const counts = await Promise.all(SYNCED_COLLECTIONS.map((c) => getCountFromServer(collection(db, c))));
+    if (gen !== entryStore.gen || !entryStore.synced) return;
+    try { localStorage.setItem(ENTRY_COUNT_CHECK_KEY, today); } catch (e) {}
+    const off = SYNCED_COLLECTIONS.filter((c, i) => counts[i].data().count !== entryStore.docs[c].size);
+    if (off.length && currentUser) {
+      console.warn('Lokaler Bestand weicht ab (' + off.join(', ') + '), wird neu geladen');
+      await clearEntryIdb();
+      startEntrySync(currentUser);
+    }
+  } catch (error) {
+    console.error('Lokaler Bestand: Zählprüfung fehlgeschlagen', error);
+  }
+}
+
+function stopEntrySync() {
+  entryStore.gen++;
+  entryStore.unsubs.forEach((u) => u());
+  entryStore.unsubs = [];
+  entryStore.synced = false;
+  entryStore.ready = null;
+  entryStore.docs = {};
+  SYNCED_COLLECTIONS.forEach((c) => { entryStore.docs[c] = new Map(); });
+  entryStore.lastSync = 0;
+}
+
+function startEntrySync(user) {
+  stopEntrySync();
+  const gen = entryStore.gen;
+  entryStore.email = user.email;
+  entryStore.ready = (async () => {
+    try {
+      const saved = await entryIdbLoad();
+      if (gen !== entryStore.gen) return false;
+      if (saved.meta && saved.meta.v === ENTRY_STORE_VERSION && saved.meta.email === user.email) {
+        saved.docs.forEach((row) => {
+          if (entryStore.docs[row.coll]) entryStore.docs[row.coll].set(row.id, storeDecode(row.data));
+        });
+        entryStore.lastSync = saved.meta.lastSync || 0;
+      } else if (!(await entryFullLoad(gen))) {
+        return false;
+      }
+      const ok = await Promise.race([
+        entryListen(gen),
+        new Promise((resolve) => setTimeout(() => resolve(false), ENTRY_SYNC_TIMEOUT_MS))
+      ]);
+      if (gen !== entryStore.gen) return false;
+      if (ok) entryDailyCountCheck(gen);
+      return ok;
+    } catch (error) {
+      console.error('Lokaler Bestand nicht verfügbar:', error);
+      return false;
+    }
+  })();
+}
+
+// true, wenn aus dem Bestand gelesen werden kann. Wartet höchstens auf die
+// erste Server-Antwort; danach zählt der aktuelle Stand (eine Live-Abfrage,
+// die erst nach dem Zeitüberlauf antwortet, schaltet den Bestand später frei).
+async function entryStoreReady() {
+  if (!entryStore.ready) return false;
+  await entryStore.ready;
+  return entryStore.synced;
+}
+
+// Wie `where(field, '>=', since)` in Firestore: ohne das Feld fällt ein
+// Dokument heraus; Reihenfolge nach dem Feld, dann nach der ID.
+function entryStoreSince(coll, field, since) {
+  const min = since.getTime();
+  const out = [];
+  entryStore.docs[coll].forEach((data, id) => {
+    const v = data[field];
+    if (v && typeof v.toMillis === 'function' && v.toMillis() >= min) out.push({ id, ...data });
+  });
+  out.sort((a, b) => (a[field].toMillis() - b[field].toMillis()) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return out;
 }
 
 // --- Live-Abfragen für die Heute-Seite ---
@@ -1716,7 +2005,13 @@ function initGoogleSignIn() {
 }
 initGoogleSignIn();
 
-document.querySelectorAll('.logout-btn').forEach((btn) => btn.addEventListener('click', () => signOut(auth)));
+// Beim Abmelden auch den lokalen Bestand löschen — das Gerät soll danach
+// keine Familiendaten mehr vorhalten.
+document.querySelectorAll('.logout-btn').forEach((btn) => btn.addEventListener('click', async () => {
+  stopEntrySync();
+  await clearEntryIdb();
+  signOut(auth);
+}));
 
 let currentUser = null;
 
@@ -1731,6 +2026,7 @@ onAuthStateChanged(auth, async (user) => {
     stopMedSync();
     stopFeedStatsSync();
     stopLiveQueries();
+    stopEntrySync();
     loginScreen.style.display = 'flex';
     appEl.style.display = 'none';
     return;
@@ -1750,6 +2046,7 @@ onAuthStateChanged(auth, async (user) => {
   startProfilSync();
   startMedSync();
   startFeedStatsSync();
+  startEntrySync(user);
   loadOverview();
   // Laufende Timer nur abgleichen, nicht aufschlagen: Heute zeigt sie mit
   // „läuft"-Abzeichen, antippen führt hin.
@@ -5829,6 +6126,7 @@ function buildAnalyseMonthBuckets() {
 }
 
 async function getAnalyseRangeDocs(name, start) {
+  if (await entryStoreReady()) return entryStoreSince(name, 'createdAt', start);
   const snap = await getDocs(query(collection(db, name), where('createdAt', '>=', start)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

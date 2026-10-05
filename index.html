@@ -1857,7 +1857,12 @@ function entryListen(gen) {
   return new Promise((resolve) => {
     names.forEach((c) => {
       let first = true;
-      const unsub = onSnapshot(query(collection(db, c), where('updatedAt', '>', since)), (snap) => {
+      // includeMetadataChanges: Liegen passende Dokumente schon im Speicher,
+      // meldet Firestore sich zuerst „aus dem Zwischenspeicher". Die
+      // Server-Bestätigung ohne inhaltliche Änderung käme ohne diese Option
+      // nie als eigene Meldung — der Abgleich gälte dann nie als fertig.
+      // docChanges() enthält solche reinen Statusmeldungen nicht.
+      const unsub = onSnapshot(query(collection(db, c), where('updatedAt', '>', since)), { includeMetadataChanges: true }, (snap) => {
         if (gen !== entryStore.gen) return;
         entryApplySnapshot(c, snap);
         if (first && !snap.metadata.fromCache) {

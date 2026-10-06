@@ -5035,18 +5035,36 @@ function historieCompareDesc(a, b) {
   return kb.sort - ka.sort;
 }
 
-async function fetchHistorieChunk(src, token) {
-  const st = historieState[src.name];
+// Eine Seite einer Quelle: aus dem lokalen Bestand (dieselbe Reihenfolge wie
+// die Firestore-Abfrage, createdAt absteigend), sonst wie bisher per Cursor
+// direkt aus Firestore. Welcher Weg, wird beim ersten Abruf je Laden
+// festgelegt; der Bestand wird dabei einmal als Liste festgehalten, damit
+// die Seiten zueinander passen. Was danach gespeichert oder gelöscht wird,
+// ordnen reinsertHistorieRow und deleteEintrag ein wie bisher.
+async function fetchHistorieDocs(src, st) {
+  if (!st.mode) st.mode = (await entryStoreLoaded()) ? 'store' : 'direct';
+  if (st.mode === 'store') {
+    if (!st.list) st.list = entryStoreNewest(src.name, Infinity);
+    const docs = st.list.slice(st.pos, st.pos + HISTORIE_PAGE_SIZE);
+    st.pos += docs.length;
+    return docs;
+  }
   const q = st.lastSnap
     ? query(collection(db, src.name), orderBy('createdAt', 'desc'), startAfter(st.lastSnap), limit(HISTORIE_PAGE_SIZE))
     : query(collection(db, src.name), orderBy('createdAt', 'desc'), limit(HISTORIE_PAGE_SIZE));
   const snap = await getDocs(q);
+  if (!snap.empty) st.lastSnap = snap.docs[snap.docs.length - 1];
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function fetchHistorieChunk(src, token) {
+  const st = historieState[src.name];
+  const docs = await fetchHistorieDocs(src, st);
   if (token !== historieLoadToken) return;
   st.fetched = true;
-  if (snap.docs.length < HISTORIE_PAGE_SIZE) st.allLoaded = true;
-  if (!snap.empty) st.lastSnap = snap.docs[snap.docs.length - 1];
-  snap.docs.forEach((d) => {
-    const entry = { id: d.id, _cat: src.cat, ...d.data() };
+  if (docs.length < HISTORIE_PAGE_SIZE) st.allLoaded = true;
+  docs.forEach((d) => {
+    const entry = { ...d, _cat: src.cat };
     if (src.type) entry._type = src.type;
     historieBuffer.push(entry);
     if (!st.oldest || historieCompareDesc(entry, st.oldest) > 0) st.oldest = entry;
@@ -5198,7 +5216,7 @@ async function loadHistorie(reset) {
     historieLoadToken += 1;
     historieBuffer = [];
     historieState = {};
-    HISTORIE_SOURCES.forEach((s) => { historieState[s.name] = { lastSnap: null, allLoaded: false, fetched: false, oldest: null }; });
+    HISTORIE_SOURCES.forEach((s) => { historieState[s.name] = { mode: null, list: null, pos: 0, lastSnap: null, allLoaded: false, fetched: false, oldest: null }; });
     historieLastDayKey = null;
     historieListEl.innerHTML = '';
     historieScrollEl.scrollTop = 0;
@@ -5438,17 +5456,24 @@ function entryCollectionName(entry) {
 }
 
 // Ein laufender Eintrag aus der Historie wurde abgeschlossen: seinen fertigen
-// Stand einmal nachlesen und die Zeile damit ersetzen.
+// Stand einmal nachlesen (aus dem Bestand, sonst direkt) und die Zeile damit
+// ersetzen.
+async function readEntryDoc(coll, id) {
+  if (await entryStoreLoaded()) return entryStore.docs[coll].get(id) || null;
+  const snap = await getDoc(doc(db, coll, id));
+  return snap.exists() ? snap.data() : null;
+}
+
 async function refreshHistorieEntryRow(entry) {
   if (!entry) return;
   try {
-    const snap = await getDoc(doc(db, entryCollectionName(entry), entry.id));
-    if (!snap.exists()) {
+    const data = await readEntryDoc(entryCollectionName(entry), entry.id);
+    if (!data) {
       removeHistoryRow(historieListEl, entry.id);
       historieLastDayKey = historyLastDayKey(historieListEl);
       return;
     }
-    const fresh = { id: entry.id, _cat: entry._cat, ...snap.data() };
+    const fresh = { id: entry.id, _cat: entry._cat, ...data };
     if (entry._type) fresh._type = entry._type;
     reinsertHistorieRow(fresh);
   } catch (error) {

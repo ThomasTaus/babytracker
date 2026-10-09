@@ -285,6 +285,9 @@
   /* Bewusst nicht in der Bereichsfarbe: der Kopfbereich bleibt in jeder
      Ansicht gleich, damit der Bereichswechsel ruhig wirkt. */
   #screen-analyse .a-range-chip.active { background: var(--neutral-soft); color: var(--neutral-strong); border-color: var(--neutral-strong); font-weight: 700; cursor: pointer; }
+  /* „Stunden" gibt es vorerst nur in Füttern — in den übrigen Bereichen steht
+     der Chip da, ist aber nicht wählbar. */
+  #screen-analyse .a-range-chip.off { opacity: 0.4; cursor: default; }
   #screen-analyse .a-axis-unit { text-align: right; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-top: 2px; }
   #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
   #screen-analyse .a-card:last-child { margin-bottom: 0; }
@@ -337,6 +340,9 @@
   #screen-analyse .a-chart.has-sel .bk:not(.on) { opacity: 0.28; }
   /* Nur dort, wo die Markierungslinie steht — sonst liefe sie durch die Zahl */
   #screen-analyse .a-chart.is-active .bk.on .val { opacity: 0; }
+  /* Stunden: der Endwert neben dem letzten Punkt weicht der Markierung */
+  #screen-analyse .a-chart .endval { transition: opacity .16s ease; }
+  #screen-analyse .a-chart.is-active.has-sel .endval { opacity: 0; }
   /* Dasselbe Verblassen auf einer durchgehenden Kurve: sie tritt zurück, und
      eine zweite, auf den markierten Tag beschnittene Kopie liegt voll deckend
      darüber. */
@@ -1205,6 +1211,7 @@
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <div class="a-range-chip off" data-scope="hours" aria-disabled="true">Stunden</div>
         <div class="a-range-chip active" data-scope="days">Tage</div>
         <div class="a-range-chip" data-scope="weeks">Wochen</div>
         <div class="a-range-chip" data-scope="months">Monate</div>
@@ -5918,9 +5925,12 @@ const ANALYSE_WEEKDAY_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donn
 const ANALYSE_MONTH_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 const ANALYSE_MONTH_FULL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
-// Die drei Chips von fein nach grob. Ein Schritt nach links zoomt in den
-// markierten Balken hinein, einer nach rechts wieder heraus.
-const ANALYSE_ZOOM_ORDER = ['days', 'weeks', 'months'];
+// Die Chips von fein nach grob. Ein Schritt nach links zoomt in den
+// markierten Balken hinein, einer nach rechts wieder heraus. „Stunden" zeigt
+// einen einzelnen Tag im Verlauf, aufsummiert über die Uhrzeit — vorerst nur
+// im Bereich Füttern; anderswo ist der Chip deaktiviert.
+const ANALYSE_ZOOM_ORDER = ['hours', 'days', 'weeks', 'months'];
+const ANALYSE_HOURS_VIEWS = ['fuettern'];
 
 // Zeitausschnitt der Analyse. Die Chips oben sind ein Zoomstufen-Regler, kein
 // reiner Zeitraum-Umschalter: sie sagen "wie fein", ein markierter Balken sagt
@@ -5947,6 +5957,10 @@ let analyseBuckets = [];
 // Wortwahl je Zoomstufe: wie der laufende Balken an der Achse und im Fließtext
 // heißt, und was unter den Chips als Zeitraum steht.
 const ANALYSE_ZOOM_UI = {
+  hours: {
+    axisToday: 'Heute', proseToday: 'Heute', bucketPhrase: 'an einem Tag',
+    rangePhrase: 'der letzten Woche', rangeText: 'Heute'
+  },
   days: {
     axisToday: 'Heute', proseToday: 'Heute', bucketPhrase: 'an einem Tag',
     rangePhrase: 'der letzten Woche', rangeText: 'Letzte ' + ANALYSE_RANGE_DAYS + ' Tage'
@@ -6004,6 +6018,8 @@ function buildAnalyseDayBuckets(endDate) {
       label: ANALYSE_WEEKDAY_SHORT[d.getDay()],
       fullLabel: ANALYSE_WEEKDAY_FULL[d.getDay()],
       contextLabel: ANALYSE_WEEKDAY_FULL[d.getDay()] + ', ' + d.getDate() + '. ' + ANALYSE_MONTH_FULL[d.getMonth()],
+      // Zum Hineinzoomen in „Stunden" — wie weekStart/monthStart eine Stufe höher.
+      dayStart: d,
       isToday: isoDate(d) === todayKey,
       daysElapsed: 1,
       daysCounted: analyseCountedDays([isoDate(d)])
@@ -6198,6 +6214,23 @@ function analyseIntervalH(docs) {
   return sum / (ts.length - 1);
 }
 
+// Einträge eines Tages auf der Uhrzeit-Achse. `meal`/`pump` übernehmen genau
+// die Regeln der Tageswerte oben: laufende Timer und Abpumpen ohne Menge
+// zählen nicht, Abpumpen ist keine Mahlzeit.
+function fuetternDayEvents(dayKey, docs) {
+  const dayStart = new Date(dayKey + 'T00:00:00');
+  return docs.map((f) => {
+    const ts = entryBusinessTimestamp(f);
+    if (!ts) return null;
+    const t = Math.max(0, Math.min(1440, (ts - dayStart) / 60000));
+    return {
+      t, f,
+      meal: fuetternIsMeal(f) && fuetternIsFinished(f),
+      pump: f.type === 'pump' && !f.pendingAmount && Number(f.amount) > 0
+    };
+  }).filter(Boolean).sort((a, b) => a.t - b.t);
+}
+
 function computeFuetternAnalysis(days, feedMap) {
   const perDay = days.map((d, i) => {
     const docs = feedMap[i].filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f));
@@ -6226,7 +6259,11 @@ function computeFuetternAnalysis(days, feedMap) {
       intervalH: analyseIntervalH(docs),
       // Für die Kacheln, wenn die Legende von „Fütterungen pro Tag“ eine Art isoliert
       intervalBottleH: analyseIntervalH(bottle),
-      intervalBreastH: analyseIntervalH(breast)
+      intervalBreastH: analyseIntervalH(breast),
+      // Für „Stunden": jeder Eintrag mit seiner Uhrzeit (Minuten seit
+      // Mitternacht), sortiert. Nur bei Tages-Buckets — Wochen und Monate
+      // brauchen das nicht.
+      events: d.dayKeys.length === 1 ? fuetternDayEvents(d.dayKeys[0], feedMap[i]) : []
     };
   });
   const totalDays = analyseTotalDays(days);
@@ -6877,10 +6914,12 @@ function analyseCount(value, single) {
 // Der Ausschnitt, in den hineingezoomt wurde: einmal als Überschrift für die
 // Zeitraum-Zeile, einmal als Einschub für die Insight-Sätze.
 function analyseParentTitle(p) {
+  if (p.unit === 'day') return ANALYSE_WEEKDAY_FULL[p.start.getDay()] + ', ' + p.start.getDate() + '. ' + ANALYSE_MONTH_FULL[p.start.getMonth()];
   return p.unit === 'week' ? analyseWeekRangeText(p.start)
     : ANALYSE_MONTH_FULL[p.start.getMonth()] + ' ' + p.start.getFullYear();
 }
 function analyseParentPhrase(p) {
+  if (p.unit === 'day') return 'am ' + p.start.getDate() + '. ' + ANALYSE_MONTH_FULL[p.start.getMonth()];
   return p.unit === 'week' ? 'in KW ' + isoWeekNumber(p.start)
     : 'im ' + ANALYSE_MONTH_FULL[p.start.getMonth()];
 }
@@ -6934,9 +6973,13 @@ const FUETTERN_CHARTS = {
   'fu-anzahl': {
     title: 'Fütterungen pro Tag',
     series: [
-      { key: 'bottle', label: 'Fläschchen', color: FUETTERN_COLOR, value: (d) => d.bottleCount / analyseDayDivisor(d), mean: (a) => a.avgBottleCountExact },
-      { key: 'breast', label: 'Brust', color: FUETTERN_BREAST_COLOR, value: (d) => d.breastCount / analyseDayDivisor(d), mean: (a) => a.avgBreastCountExact }
+      { key: 'bottle', label: 'Fläschchen', color: FUETTERN_COLOR, value: (d) => d.bottleCount / analyseDayDivisor(d), mean: (a) => a.avgBottleCountExact,
+        inc: (e) => (e.meal && e.f.type === 'bottle' ? 1 : 0) },
+      { key: 'breast', label: 'Brust', color: FUETTERN_BREAST_COLOR, value: (d) => d.breastCount / analyseDayDivisor(d), mean: (a) => a.avgBreastCountExact,
+        inc: (e) => (e.meal && e.f.type === 'breast' ? 1 : 0) }
     ],
+    // Zoomstufe „Stunden": Titel, Kopfzahl und Ø-Wert der aufsummierten Kurve.
+    hours: { title: 'Fütterungen', head: (v) => String(analyseRound(v)), ref: (v) => analyseDe1(v) },
     barLabel: (v) => String(analyseRound(v)),
     headline: (v) => 'Ø ' + analyseDe1(v) + ' / Tag',
     tipValue: (v, b) => { const n = analyseCount(v, b.daysElapsed === 1); return n + (n === '1' ? ' Fütterung' : ' Fütterungen'); },
@@ -6948,9 +6991,12 @@ const FUETTERN_CHARTS = {
     // entfällt, sonst bricht der Titel neben der Legende um — ml gibt es nur dort.
     title: 'Trinkmenge',
     series: [
-      { key: 'mm', label: 'Muttermilch', color: FUETTERN_COLOR, value: (d) => d.bottleMmMl / analyseDayDivisor(d), mean: (a) => a.avgBottleMmMlExact },
-      { key: 'pre', label: 'Pre', color: FUETTERN_BREAST_COLOR, value: (d) => d.bottlePreMl / analyseDayDivisor(d), mean: (a) => a.avgBottlePreMlExact }
+      { key: 'mm', label: 'Muttermilch', color: FUETTERN_COLOR, value: (d) => d.bottleMmMl / analyseDayDivisor(d), mean: (a) => a.avgBottleMmMlExact,
+        inc: (e) => (e.meal && e.f.type === 'bottle' && entryMilk(e.f) === 'breastmilk' ? (e.f.amount || 0) : 0) },
+      { key: 'pre', label: 'Pre', color: FUETTERN_BREAST_COLOR, value: (d) => d.bottlePreMl / analyseDayDivisor(d), mean: (a) => a.avgBottlePreMlExact,
+        inc: (e) => (e.meal && e.f.type === 'bottle' && entryMilk(e.f) === 'formula' ? (e.f.amount || 0) : 0) }
     ],
+    hours: { title: 'Trinkmenge', head: (v) => analyseRound(v) + ' ml', ref: (v) => analyseRound(v) + ' ml' },
     headline: (v) => 'Ø ' + analyseRound(v) + ' ml / Tag',
     tipValue: (v) => analyseRound(v) + ' ml',
     detail: (v) => analyseRound(v) + ' ml'
@@ -6960,7 +7006,9 @@ const FUETTERN_CHARTS = {
   'fu-pump': {
     type: 'area',
     title: 'Abgepumpte Menge',
-    series: [{ key: 'ml', label: 'Abgepumpt', color: FUETTERN_COLOR, value: (d) => d.pumpMl / analyseDayDivisor(d), mean: (a) => a.avgPumpMlExact }],
+    series: [{ key: 'ml', label: 'Abgepumpt', color: FUETTERN_COLOR, value: (d) => d.pumpMl / analyseDayDivisor(d), mean: (a) => a.avgPumpMlExact,
+      inc: (e) => (e.pump ? Number(e.f.amount) : 0) }],
+    hours: { title: 'Abgepumpte Menge', head: (v) => analyseRound(v) + ' ml', ref: (v) => analyseRound(v) + ' ml' },
     headline: (v) => 'Ø ' + analyseRound(v) + ' ml / Tag',
     tipValue: (v) => analyseRound(v) + ' ml',
     detail: (v) => analyseRound(v) + ' ml'
@@ -6968,11 +7016,15 @@ const FUETTERN_CHARTS = {
   'fu-still': {
     type: 'area',
     title: 'Stilldauer (Brust)',
-    series: [{ key: 'min', label: 'Stilldauer', color: FUETTERN_COLOR, value: (d) => d.breastMin / analyseDayDivisor(d), mean: (a) => a.avgBreastMinExact }],
+    series: [{ key: 'min', label: 'Stilldauer', color: FUETTERN_COLOR, value: (d) => d.breastMin / analyseDayDivisor(d), mean: (a) => a.avgBreastMinExact,
+      inc: (e) => (e.meal && e.f.type === 'breast' ? (e.f.minutes || 0) : 0) }],
+    hours: { title: 'Stilldauer (Brust)', head: (v) => analyseRound(v) + ' Min.', ref: (v) => analyseRound(v) + ' Min.' },
     headline: (v) => 'Ø ' + analyseRound(v) + ' Min. / Tag',
     tipValue: (v) => analyseRound(v) + ' Min.',
     detail: (v) => analyseRound(v) + ' Min.'
   },
+  // Ohne `hours`: ein Anteil lässt sich nicht über den Tag aufsummieren, die
+  // Karte fehlt in „Stunden".
   'fu-seite': {
     type: 'share',
     title: 'Seitenbalance in Prozent',
@@ -7248,6 +7300,9 @@ const ANALYSE_SECTION_UI = {
 // Mittwoch antippt und dann auf Windeln wechselt, sieht dort denselben
 // Mittwoch. Alle Bereiche zählen dieselben Buckets, der Index passt also.
 let analyseSel = null;
+// { t } — in „Stunden" die markierte Uhrzeit (Minuten seit Mitternacht) statt
+// eines Balkens.
+let analyseHourSel = null;
 // view -> chartId: welches Diagramm des Bereichs das schwebende Label trägt.
 // Das bleibt Sache des Bereichs — der Finger lag ja nur auf einem davon.
 const analyseActiveChart = { fuettern: null, windeln: null, schlafen: null };
@@ -7264,6 +7319,7 @@ const analyseBuilt = { fuettern: false, windeln: false, schlafen: false };
 
 function analyseClearSelections() {
   analyseSel = null;
+  analyseHourSel = null;
 }
 
 // Ohne eigene Wahl trägt das erste Diagramm des Bereichs das Label — sonst
@@ -7299,7 +7355,9 @@ function secVisibleSeries(chartId, cfg) {
   // Eine von außen gesetzte Reihe schlägt die eigene Legende: die Farbe der
   // Windeln-Verteilung den Klein/Groß-Filter, weil Farbe nur an großen
   // Wechseln hängt, und die Seitenwahl der Balance-Karte die Stilldauer.
-  const forced = secForcedSeries(chartId);
+  // In „Stunden" fehlt die Seitenbalance — ihre Wahl darf die Stilldauer dort
+  // nicht still weiter einschränken, ohne dass man sie lösen könnte.
+  const forced = analyseScope.mode === 'hours' ? null : secForcedSeries(chartId);
   if (forced) return [forced];
   const iso = analyseFilter[chartId];
   return iso ? cfg.series.filter((s) => s.key === iso) : cfg.series;
@@ -7432,6 +7490,184 @@ function secAreaInner(chartId, cfg, analysis) {
   });
 
   return out + SEC_MARKER + secHitRects(bs, cxOf, step);
+}
+
+// --- Zoomstufe „Stunden" ------------------------------------------------
+// Ein einzelner Tag, aufsummiert über die Uhrzeit (0–24 Uhr): jeder Eintrag
+// ist eine Stufe. Ein Tagesbalken wäre hier nur ein einziger großer Balken.
+// Statt der flachen Ø-Linie läuft gestrichelt der mittlere Verlauf der
+// übrigen Tage des 7-Tage-Fensters mit — so sieht man, ob man um diese
+// Uhrzeit vor oder hinter dem üblichen Stand liegt. Der gezeigte Tag ist
+// immer der letzte Bucket; loadAnalyse baut das Fenster bis zu ihm.
+const HOURS_X = (t) => 4 + t / 1440 * 300;
+
+function analyseNowMinutes() {
+  return (Date.now() - todayStartDate().getTime()) / 60000;
+}
+function analyseClockText(t) {
+  t = Math.round(t);
+  if (t >= 1440) return '24:00';
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+}
+function analyseHoursDay(a) { return a.perDay[a.perDay.length - 1]; }
+function analyseHoursEnd(day) {
+  return day.isToday ? Math.max(0, Math.min(1440, analyseNowMinutes())) : 1440;
+}
+
+function secHoursInner(chartId, cfg, analysis) {
+  const baseline = 95;
+  const day = analyseHoursDay(analysis);
+  const series = secVisibleSeries(chartId, cfg);
+  const ink = cfg.series[0].color;
+  const end = analyseHoursEnd(day);
+  const incOf = (e) => series.reduce((s, se) => s + se.inc(e), 0);
+  const cum = (d, t) => d.events.reduce((s, e) => (e.t <= t ? s + incOf(e) : s), 0);
+
+  // Ø-Verlauf: die übrigen Tage des Fensters, ohne Tage vor der Geburt. Im
+  // 5-Minuten-Raster vorberechnet und über ±45 Min. geglättet — der Mittelwert
+  // weniger Treppen sähe sonst selbst wie eine Treppe aus.
+  const refDays = analysis.perDay.slice(0, -1).filter((d) => d.daysCounted > 0);
+  const refAt = refDays.length ? (t) => refDays.reduce((s, d) => s + cum(d, t), 0) / refDays.length : null;
+  const refArr = refAt ? Array.from({ length: 289 }, (_, k) => refAt(k * 5)) : null;
+  const refSmooth = (k) => {
+    let s = 0, n = 0;
+    for (let j = k - 9; j <= k + 9; j++) { s += refArr[Math.max(0, Math.min(288, j))]; n++; }
+    return k === 0 ? 0 : s / n;
+  };
+
+  const total = cum(day, end);
+  const refEnd = refArr ? refArr[288] : 0;
+  const maxVal = Math.max(1, total, refEnd) * 1.1;
+  const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - 82]);
+  const X = HOURS_X;
+
+  // Stufen: die untere Reihe und die Summe, jeweils mit senkrechtem Sprung
+  // an der Uhrzeit des Eintrags.
+  const evs = day.events.filter((e) => e.t <= end && incOf(e) > 0);
+  let low = 0, tot = 0;
+  const lowPts = [[X(0), y(0)]], totPts = [[X(0), y(0)]], dots = [];
+  evs.forEach((e) => {
+    lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
+    low += series[0].inc(e); tot += incOf(e);
+    lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
+    dots.push([X(e.t), y(tot), series[0].inc(e) > 0 ? series[0].color : series[series.length - 1].color]);
+  });
+  lowPts.push([X(end), y(low)]); totPts.push([X(end), y(tot)]);
+  const pl = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(2) + ',' + p[1].toFixed(2)).join('');
+  const floor = 'L' + X(end).toFixed(2) + ',' + baseline + 'L' + X(0) + ',' + baseline + 'Z';
+  let curve = series.length > 1
+    ? '<path d="' + pl(totPts) + pl(lowPts.slice().reverse()).replace('M', 'L') + 'Z" fill="' + series[1].color + '" fill-opacity="0.75"/>' +
+      '<path d="' + pl(lowPts) + floor + '" fill="' + series[0].color + '" fill-opacity="0.85"/>'
+    : '<path d="' + pl(totPts) + floor + '" fill="' + series[0].color + '" fill-opacity="0.8"/>';
+  curve += '<path d="' + pl(totPts) + '" fill="none" stroke="' + ink + '" stroke-width="2.2" stroke-linejoin="round"/>';
+  dots.forEach((p) => {
+    curve += '<circle cx="' + p[0].toFixed(2) + '" cy="' + p[1].toFixed(2) + '" r="3.2" fill="' + p[2] + '" stroke="' + ink + '" stroke-width="1.3"/>';
+  });
+
+  const txt = (x, yy, s, o) => '<text' + (o && o.cls ? ' class="' + o.cls + '"' : '') + ' x="' + x + '" y="' + yy +
+    '" font-family="Work Sans, sans-serif" font-size="13" font-weight="' + ((o && o.w) || 400) + '" fill="' +
+    ((o && o.fill) || 'oklch(52% 0.006 250)') + '" text-anchor="' + ((o && o.anchor) || 'middle') + '">' + s + '</text>';
+
+  let out = '<defs><clipPath id="clip-h-' + chartId + '"><rect class="ar-clip-h" x="0" y="0" width="0" height="' + baseline + '"/></clipPath></defs>';
+  // Was vom heutigen Tag noch kommt, liegt leicht hinterlegt.
+  if (day.isToday) out += '<rect x="' + X(end).toFixed(2) + '" y="6" width="' + (304 - X(end)).toFixed(2) + '" height="' + (baseline - 6) + '" fill="oklch(96% 0.003 250)"/>';
+  out += '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
+  [360, 720, 1080].forEach((t) => { out += '<line x1="' + X(t) + '" y1="95" x2="' + X(t) + '" y2="98" stroke="oklch(87% 0.004 250)" stroke-width="1"/>'; });
+  out += '<g class="ar-dim">' + curve + '</g><g class="ar-hi" clip-path="url(#clip-h-' + chartId + ')">' + curve + '</g>';
+  if (refArr) {
+    let ref = '';
+    for (let k = 0; k <= 288; k += 2) ref += (k ? 'L' : 'M') + X(k * 5).toFixed(1) + ',' + y(refSmooth(k)).toFixed(1);
+    out += '<path d="' + ref + '" fill="none" stroke="' + ink + '" stroke-width="1.4" stroke-dasharray="3,3" stroke-opacity="0.55"/>';
+  }
+  out += '<circle cx="' + X(end).toFixed(2) + '" cy="' + y(tot).toFixed(2) + '" r="3.4" fill="' + ink + '" stroke="white" stroke-width="1.5"/>';
+  const endText = analyseRound(total) + '';
+  if (day.isToday) {
+    // Heute: Wert rechts neben dem Jetzt-Punkt, Ø-Tagesende ganz rechts.
+    const right = X(end) > 260;
+    out += txt((X(end) + (right ? -6 : 7)).toFixed(2), (y(tot) + (right ? -7 : 4.5)).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: right ? 'end' : 'start' });
+    if (refArr && !right) out += txt(302, (y(refEnd) - 5).toFixed(2), 'Ø ' + cfg.hours.ref(refEnd).replace(/ (ml|Min\.)$/, ''), { w: 600, anchor: 'end' });
+  } else {
+    out += txt((X(end) - 6).toFixed(2), (y(tot) - 7).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: 'end' });
+  }
+  // Achse: volle Stunden; „Jetzt" heute an der aktuellen Uhrzeit. Liegt es zu
+  // nah an einer Marke, weicht die Marke.
+  const nowX = day.isToday ? X(end) : null;
+  [[0, '0', 'start', 6], [360, '6'], [720, '12'], [1080, '18'], [1440, '24', 'end', 304]].forEach(([t, s, anchor, x]) => {
+    if (nowX !== null && Math.abs(X(t) - nowX) < 22) return;
+    out += txt(x || X(t), 111, s, { anchor });
+  });
+  if (nowX !== null) out += txt(Math.max(18, Math.min(288, nowX)).toFixed(2), 111, 'Jetzt', { w: 700, fill: ink });
+
+  analyseRender[chartId] = {
+    cfg, series, hours: true, end, total,
+    refAt: refAt || null, refEnd: refArr ? refEnd : null,
+    cxOf: X, yOf: (v) => y(v), cumAt: (t) => cum(day, t),
+    tAt: (vx) => Math.max(0, Math.min(end, Math.round((vx - 4) / 300 * 1440 / 5) * 5))
+  };
+  return out + SEC_MARKER;
+}
+
+// Kacheln in „Stunden": der gezeigte Tag, bis zur markierten Uhrzeit.
+function fuetternHoursBucket(a) {
+  const b = analyseHoursDay(a);
+  const t = analyseHourSel ? analyseHourSel.t : 1440;
+  const evs = b.events.filter((e) => e.t <= t);
+  const meals = evs.filter((e) => e.meal).map((e) => e.f);
+  const bottle = meals.filter((f) => f.type === 'bottle');
+  const breast = meals.filter((f) => f.type === 'breast');
+  return Object.assign({}, b, {
+    bottleCount: bottle.length, breastCount: breast.length,
+    bottleMl: bottle.reduce((s, f) => s + (f.amount || 0), 0),
+    bottleMmMl: bottle.filter((f) => entryMilk(f) === 'breastmilk').reduce((s, f) => s + (f.amount || 0), 0),
+    intervalH: analyseIntervalH(meals),
+    intervalBottleH: analyseIntervalH(bottle),
+    intervalBreastH: analyseIntervalH(breast)
+  });
+}
+
+// Markierung in „Stunden": Kurve nach der Uhrzeit verblasst in allen Karten,
+// Linie, Punkt und Label nur in der berührten.
+function applyHoursSelection(view) {
+  const sec = ANALYSE_SECTION_UI[view];
+  updateSecStats(view);
+  const activeChart = secActiveChart(view);
+  sec.order.forEach((chartId) => {
+    const r = analyseRender[chartId];
+    const svgEl = document.querySelector('#' + sec.hostId + ' svg[data-chart="' + chartId + '"]');
+    if (!r || !r.hours || !svgEl) return;
+    const wrap = svgEl.parentElement;
+    const tip = wrap.querySelector('.a-tip');
+    const sc = svgEl.querySelector('.sc');
+    const t = analyseHourSel ? Math.min(analyseHourSel.t, r.end) : null;
+    const active = t !== null && chartId === activeChart;
+    svgEl.classList.toggle('has-sel', t !== null);
+    svgEl.classList.toggle('is-active', active);
+    const clip = svgEl.querySelector('.ar-clip-h');
+    if (clip) clip.setAttribute('width', t === null ? 0 : r.cxOf(t));
+    if (!active) { sc.style.display = 'none'; tip.hidden = true; return; }
+    const cx = r.cxOf(t), v = r.cumAt(t), cy = r.yOf(v);
+    sc.style.display = '';
+    sc.querySelector('.sc-line').setAttribute('x1', cx);
+    sc.querySelector('.sc-line').setAttribute('x2', cx);
+    sc.querySelector('.sc-line').setAttribute('y2', cy);
+    sc.querySelector('.sc-dot').setAttribute('cx', cx);
+    sc.querySelector('.sc-dot').setAttribute('cy', cy);
+    const sub = 'bis ' + analyseClockText(t) + (r.refAt ? ' · Ø ' + r.cfg.hours.ref(r.refAt(t)) : '');
+    tip.hidden = false;
+    tip.innerHTML = '<div class="a-tip-v">' + r.cfg.tipValue(v, { daysElapsed: 1 }) + '</div><div class="a-tip-s">' + sub + '</div>';
+    positionAnalyseTip(tip, wrap, svgEl, cx);
+  });
+}
+
+function hoursPick(view, chartId, clientX) {
+  const svgEl = document.querySelector('#' + ANALYSE_SECTION_UI[view].hostId + ' svg[data-chart="' + chartId + '"]');
+  const r = analyseRender[chartId];
+  if (!svgEl || !r || !(svgEl.getBoundingClientRect().width > 0)) return;
+  const t = r.tAt(svgViewX(svgEl, clientX));
+  if (analyseHourSel && analyseHourSel.t === t && analyseActiveChart[view] === chartId) return;
+  analyseHourSel = { t };
+  analyseActiveChart[view] = chartId;
+  applyHoursSelection(view);
 }
 
 // Anteilsdiagramm. Anders als bei den anderen Balken ist jede Säule gleich
@@ -7583,6 +7819,7 @@ function secClockInner(chartId, cfg, analysis) {
 }
 
 function secChartInner(chartId, cfg, analysis) {
+  if (analyseScope.mode === 'hours' && cfg.hours) return secHoursInner(chartId, cfg, analysis);
   if (cfg.type === 'clock') return secClockInner(chartId, cfg, analysis);
   if (cfg.type === 'area') return secAreaInner(chartId, cfg, analysis);
   if (cfg.type === 'share') return secShareInner(chartId, cfg, analysis);
@@ -7639,6 +7876,15 @@ function analyseSelectedBucket(view) {
 function updateAnalyseContext() {
   const ctx = document.getElementById('analyse-context');
   if (!ctx) return;
+  // „Stunden": ein Tag — „Heute", solange nichts weiter gewählt ist, sonst
+  // sein Name. Dunkel, sobald ein bestimmter Ausschnitt gezeigt wird.
+  if (analyseScope.mode === 'hours') {
+    const plain = !analyseHourSel && !analyseScope.parent;
+    const day = analyseBuckets[analyseBuckets.length - 1];
+    ctx.querySelector('[data-ctx-text]').textContent = plain || !day ? 'Heute' : day.contextLabel;
+    ctx.classList.toggle('sel', !plain);
+    return;
+  }
   const b = analyseSelectedBucket(analyseView);
 
   ctx.querySelector('[data-ctx-text]').textContent = b ? b.contextLabel
@@ -7655,7 +7901,8 @@ function updateSecStats(view) {
   const sec = ANALYSE_SECTION_UI[view];
   const a = analyseData[view];
   if (!a) return;
-  const b = analyseSelectedBucket(view);
+  const hours = analyseScope.mode === 'hours' && view === 'fuettern';
+  const b = hours ? fuetternHoursBucket(a) : analyseSelectedBucket(view);
   const vals = sec.stats(a, b);
   // „Ø" nur, wo wirklich gemittelt wird — bei einem einzelnen Tag nicht.
   const isAvg = !b || b.daysElapsed > 1;
@@ -7680,6 +7927,7 @@ function applySecSelection(view, center) {
   const sec = ANALYSE_SECTION_UI[view];
   const a = analyseData[view];
   if (!a) return;
+  if (analyseScope.mode === 'hours' && ANALYSE_HOURS_VIEWS.includes(view)) { applyHoursSelection(view); return; }
   updateSecStats(view);
   const b = analyseSelectedBucket(view);
   if (sec.extra) sec.extra.update(a, b, center);
@@ -7746,6 +7994,11 @@ function updateSecCard(view, chartId) {
   const cfg = sec.charts[chartId];
   const card = document.querySelector('#' + sec.hostId + ' [data-card="' + chartId + '"]');
   if (!card) return;
+  // In „Stunden" fehlen Karten ohne Tagesverlauf (Seitenbalance).
+  const hours = analyseScope.mode === 'hours';
+  card.hidden = hours && !cfg.hours;
+  if (card.hidden) return;
+  card.querySelector('.a-card-label').textContent = hours ? cfg.hours.title : cfg.title;
   card.querySelector('svg.a-chart').innerHTML = secChartInner(chartId, cfg, analyseData[view]);
 
   const iso = analyseFilter[chartId];
@@ -7756,13 +8009,19 @@ function updateSecCard(view, chartId) {
     : cs ? cs.label : (iso ? cfg.series.find((s) => s.key === iso).label : null);
   const qual = qualLabel ? ' <span class="qual" style="font-family:\'Work Sans\',sans-serif; font-size:12px; font-weight:600; color:var(--text-muted);">nur ' +
     qualLabel.toLowerCase() + '</span>' : '';
-  card.querySelector('.a-card-value').innerHTML = cfg.headline(analyseRender[chartId].mean) + qual;
+  const r = analyseRender[chartId];
+  // „Stunden": Stand des Tages neben dem Ø der übrigen Tage zur selben Uhrzeit.
+  card.querySelector('.a-card-value').innerHTML = (hours
+    ? cfg.hours.head(r.total) + (r.refAt ? ' <span style="color:var(--text-muted); font-weight:500;">· Ø ' + cfg.hours.ref(r.refAt(r.end)) + '</span>' : '')
+    : cfg.headline(r.mean)) + qual;
   // Klein/Groß tritt zurück, solange eine Farbe gewählt ist.
   card.querySelectorAll('.lg').forEach((btn) => {
     btn.classList.toggle('solo', !cs && iso === btn.dataset.series);
     btn.classList.toggle('muted', !!cs || (!!iso && iso !== btn.dataset.series));
   });
-  card.querySelector('.a-axis-unit').hidden = analyseScope.mode !== 'weeks';
+  const unit = card.querySelector('.a-axis-unit');
+  unit.textContent = hours ? 'Uhrzeit' : 'Kalenderwoche';
+  unit.hidden = analyseScope.mode !== 'weeks' && !hours;
   // Die Notiz erklärt die Warnfarbe — nur zeigen, wenn ein Balken sie trägt.
   if (cfg.legendNote) {
     const note = card.querySelector('.a-legend');
@@ -7781,6 +8040,8 @@ function renderAnalyseSection(view, analysis) {
     analyseBuilt[view] = true;
   }
   if (analyseSel && analyseSel.index >= analysis.perDay.length) analyseSel = null;
+  // „Stunden" braucht keine Tagesmarkierung — der Tag steckt im Ausschnitt.
+  if (analyseScope.mode === 'hours') analyseSel = null;
   // Eine Farbe, die es im neuen Ausschnitt nicht gibt, verschwindet aus der
   // Legende — der Filter bliebe ohne Weg zurück stehen.
   if (view === 'windeln' && analyseColorFilter && !colorBucketCount(analysis.colorStats, analyseColorFilter)) {
@@ -7789,12 +8050,18 @@ function renderAnalyseSection(view, analysis) {
   sec.order.forEach((id) => updateSecCard(view, id));
 
   const insight = host.querySelector('[data-insight]');
-  insight.hidden = !analysis.insight;
-  if (analysis.insight) insight.querySelector('span').textContent = analysis.insight;
+  // Die Hinweise vergleichen Tage miteinander — in „Stunden" passen sie nicht.
+  const showInsight = !!analysis.insight && analyseScope.mode !== 'hours';
+  insight.hidden = !showInsight;
+  if (showInsight) insight.querySelector('span').textContent = analysis.insight;
   // Der Insight-Kasten bleibt als verstecktes Element stehen, damit das Gerüst
   // konstant bleibt — dadurch greift .a-card:last-child nicht mehr und die
-  // Karte darüber behielte ihren Abstand nach unten.
-  insight.previousElementSibling.style.marginBottom = analysis.insight ? '' : '0';
+  // letzte sichtbare Karte behielte ihren Abstand nach unten.
+  let lastVisible = insight.previousElementSibling;
+  while (lastVisible && lastVisible.hidden) lastVisible = lastVisible.previousElementSibling;
+  Array.from(host.children).forEach((c) => {
+    if (c !== insight) c.style.marginBottom = !showInsight && c === lastVisible ? '0' : '';
+  });
   insight.style.cursor = analysis.missingNightKey ? 'pointer' : '';
 
   applySecSelection(view, true);
@@ -7879,11 +8146,18 @@ function secPick(view, chartId, i, toggle) {
     const svgEl = chartAt(e.target);
     if (!svgEl) return;
     const view = analyseView, id = svgEl.dataset.chart;
-    const i0 = secIndexAt(svgEl, e.clientX);
     // Mit der Maus gibt es keine Scroll-Mehrdeutigkeit: sofort auswählen.
     // Mit dem Finger erst, wenn die Richtung feststeht — sonst reicht ein
     // Scrollen über das Diagramm hinweg, um versehentlich etwas zu markieren.
     const mouse = e.pointerType === 'mouse';
+    // „Stunden": dieselbe Gestenerkennung, aber eine Uhrzeit statt eines
+    // Balkens. Ein Tipp setzt sie, er hebt sie nicht auf (dafür das ✕).
+    if (analyseRender[id].hours) {
+      scrub = { view, id, startX: e.clientX, startY: e.clientY, locked: mouse, hours: true };
+      if (mouse) hoursPick(view, id, e.clientX);
+      return;
+    }
+    const i0 = secIndexAt(svgEl, e.clientX);
     scrub = {
       view, id, startX: e.clientX, startY: e.clientY, startIndex: i0,
       locked: mouse, moved: false,
@@ -7906,6 +8180,7 @@ function secPick(view, chartId, i, toggle) {
     const svgEl = document.querySelector('#' + ANALYSE_SECTION_UI[scrub.view].hostId +
       ' svg[data-chart="' + scrub.id + '"]');
     if (!svgEl) return;
+    if (scrub.hours) { hoursPick(scrub.view, scrub.id, e.clientX); return; }
     if (Math.abs(e.clientX - scrub.startX) > 4) scrub.moved = true;
     secPick(scrub.view, scrub.id, secIndexAt(svgEl, e.clientX), false);
   });
@@ -7922,6 +8197,7 @@ function secPick(view, chartId, i, toggle) {
     // sonst bleibt der Fokusrahmen des Systems stehen (auf Android orange).
     const ae = document.activeElement;
     if (ae && ae.classList && ae.classList.contains('hit') && ae.blur) ae.blur();
+    if (s.hours) { if (!s.locked) hoursPick(s.view, s.id, s.startX); return; }
 
     // Nie festgelegt = kurzer Tipp ohne nennenswerte Bewegung: jetzt erst
     // auswählen, bzw. eine bestehende Markierung wieder aufheben.
@@ -7997,6 +8273,10 @@ let analyseView = 'overview';
 
 function showAnalyseView(view) {
   analyseView = view;
+  // „Stunden" gibt es nur in einzelnen Bereichen. Anderswo zurück auf „Tage",
+  // der gezeigte Tag bleibt dort markiert — wie ein Tipp auf den Chip.
+  if (analyseScope.mode === 'hours' && !ANALYSE_HOURS_VIEWS.includes(view)) analyseZoomTo('days');
+  updateAnalyseScopeChips();
   ANALYSE_VIEWS.forEach((v) => {
     document.getElementById('analyse-view-' + v).style.display = v === view ? 'flex' : 'none';
   });
@@ -8036,6 +8316,11 @@ document.querySelectorAll('.a-seg-btn').forEach((btn) => {
 function updateAnalyseScopeChips() {
   document.querySelectorAll('.a-range-chip[data-scope]').forEach((c) => {
     c.classList.toggle('active', c.dataset.scope === analyseScope.mode);
+    if (c.dataset.scope === 'hours') {
+      const off = !ANALYSE_HOURS_VIEWS.includes(analyseView);
+      c.classList.toggle('off', off);
+      c.setAttribute('aria-disabled', off ? 'true' : 'false');
+    }
   });
   // Die Zeile darunter benennt denselben Zeitraum — sie darf nicht bis zum
   // Ende des Nachladens auf dem alten Text stehen bleiben.
@@ -8047,6 +8332,13 @@ function updateAnalyseScopeChips() {
 // Wochenansicht — dorthin führt der Chip, wenn man das will. Steht nur eine
 // Markierung, wird die aufgehoben; dafür braucht es kein Nachladen.
 function resetAnalyseSelection() {
+  // „Stunden": zuerst nur die markierte Uhrzeit, dann zurück auf heute.
+  if (analyseHourSel) {
+    analyseHourSel = null;
+    applySecSelection(analyseView);
+    updateAnalyseContext();
+    return;
+  }
   const wasDrilled = analyseScope.parent !== null;
   analyseClearSelections();
   if (wasDrilled) {
@@ -8077,70 +8369,74 @@ function analyseReturnMarker(index) {
 // Balken sagt "wovon". Ihr Text ändert sich nie, nur die Markierung wandert.
 document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
   chip.addEventListener('click', () => {
-    const unit = chip.dataset.scope;
-    const from = ANALYSE_ZOOM_ORDER.indexOf(analyseScope.mode);
-    const to = ANALYSE_ZOOM_ORDER.indexOf(unit);
+    if (chip.dataset.scope === 'hours' && !ANALYSE_HOURS_VIEWS.includes(analyseView)) return;
+    analyseZoomTo(chip.dataset.scope);
+  });
+});
 
-    // Eine Stufe feiner + markierter Balken = hinein, in genau diesen Balken:
-    // aus einem Monat werden seine Wochen, aus einer Woche ihre Tage. Die
-    // Markierung gilt für alle Bereiche; gemerkt wird nur, wo das Label lag,
-    // damit es beim Zurück dort wieder auftaucht.
-    if (to === from - 1 && analyseSel && analyseBuckets.length) {
-      const idx = Math.min(analyseSel.index, analyseBuckets.length - 1);
-      const b = analyseBuckets[idx];
-      const bStart = b.monthStart || b.weekStart;
-      if (bStart) {
-        const today = todayStartDate();
-        let end = b.monthStart
-          ? new Date(bStart.getFullYear(), bStart.getMonth() + 1, 0)
-          : new Date(bStart.getTime());
-        if (b.weekStart) end.setDate(end.getDate() + 6);
-        if (end > today) end = today;
-        analyseScope = {
-          mode: unit,
-          parent: Object.assign({
-            unit: b.monthStart ? 'month' : 'week',
-            start: new Date(bStart.getTime()), end,
-            up: analyseScope.parent
-          }, analyseReturnMarker(idx))
-        };
-        analyseClearSelections();
-        updateAnalyseScopeChips();
-        loadAnalyse();
-        return;
-      }
-    }
+function analyseZoomTo(unit) {
+  const from = ANALYSE_ZOOM_ORDER.indexOf(analyseScope.mode);
+  const to = ANALYSE_ZOOM_ORDER.indexOf(unit);
 
-    // Gröber, während der Ausschnitt aufgezogen ist = wieder heraus, mit dem
-    // Balken von damals noch markiert. Zwei Stufen auf einmal (Tage → Monate)
-    // rollen beide auf, markiert bleibt der Balken der Zielstufe.
-    if (to > from && analyseScope.parent) {
-      let scope = analyseScope, back = null;
-      while (scope.parent && ANALYSE_ZOOM_ORDER.indexOf(scope.mode) < to) {
-        back = scope.parent;
-        scope = { mode: ANALYSE_ZOOM_ORDER[ANALYSE_ZOOM_ORDER.indexOf(scope.mode) + 1], parent: scope.parent.up };
-      }
-      analyseScope = scope;
+  // Eine Stufe feiner + markierter Balken = hinein, in genau diesen Balken:
+  // aus einem Monat werden seine Wochen, aus einer Woche ihre Tage, aus einem
+  // Tag seine Stunden. Die Markierung gilt für alle Bereiche; gemerkt wird
+  // nur, wo das Label lag, damit es beim Zurück dort wieder auftaucht.
+  if (to === from - 1 && analyseSel && analyseBuckets.length) {
+    const idx = Math.min(analyseSel.index, analyseBuckets.length - 1);
+    const b = analyseBuckets[idx];
+    const bStart = b.monthStart || b.weekStart || b.dayStart;
+    if (bStart) {
+      const today = todayStartDate();
+      let end = b.monthStart
+        ? new Date(bStart.getFullYear(), bStart.getMonth() + 1, 0)
+        : new Date(bStart.getTime());
+      if (b.weekStart) end.setDate(end.getDate() + 6);
+      if (end > today) end = today;
+      analyseScope = {
+        mode: unit,
+        parent: Object.assign({
+          unit: b.monthStart ? 'month' : b.weekStart ? 'week' : 'day',
+          start: new Date(bStart.getTime()), end,
+          up: analyseScope.parent
+        }, analyseReturnMarker(idx))
+      };
       analyseClearSelections();
-      if (back && back.returnIndex !== null) {
-        analyseSel = { index: back.returnIndex };
-        if (back.returnView) analyseActiveChart[back.returnView] = back.returnChart;
-      }
       updateAnalyseScopeChips();
       loadAnalyse();
       return;
     }
+  }
 
-    // Nochmal auf den aktiven Chip = zurück auf den laufenden Zeitraum. Sonst
-    // käme man aus einem aufgezogenen Ausschnitt nicht mehr zu "heute", weil
-    // die feinere Stufe ja wieder dorthin zurückführen würde.
-    if (unit === analyseScope.mode && analyseScope.parent === null) return;
-    analyseScope = { mode: unit, parent: null };
+  // Gröber, während der Ausschnitt aufgezogen ist = wieder heraus, mit dem
+  // Balken von damals noch markiert. Zwei Stufen auf einmal (Tage → Monate)
+  // rollen beide auf, markiert bleibt der Balken der Zielstufe.
+  if (to > from && analyseScope.parent) {
+    let scope = analyseScope, back = null;
+    while (scope.parent && ANALYSE_ZOOM_ORDER.indexOf(scope.mode) < to) {
+      back = scope.parent;
+      scope = { mode: ANALYSE_ZOOM_ORDER[ANALYSE_ZOOM_ORDER.indexOf(scope.mode) + 1], parent: scope.parent.up };
+    }
+    analyseScope = scope;
     analyseClearSelections();
+    if (back && back.returnIndex !== null) {
+      analyseSel = { index: back.returnIndex };
+      if (back.returnView) analyseActiveChart[back.returnView] = back.returnChart;
+    }
     updateAnalyseScopeChips();
     loadAnalyse();
-  });
-});
+    return;
+  }
+
+  // Nochmal auf den aktiven Chip = zurück auf den laufenden Zeitraum. Sonst
+  // käme man aus einem aufgezogenen Ausschnitt nicht mehr zu "heute", weil
+  // die feinere Stufe ja wieder dorthin zurückführen würde.
+  if (unit === analyseScope.mode && analyseScope.parent === null) return;
+  analyseScope = { mode: unit, parent: null };
+  analyseClearSelections();
+  updateAnalyseScopeChips();
+  loadAnalyse();
+}
 
 async function loadAnalyse() {
   ANALYSE_VIEWS.forEach((v) => {

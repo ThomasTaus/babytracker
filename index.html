@@ -6231,6 +6231,21 @@ function fuetternDayEvents(dayKey, docs) {
   }).filter(Boolean).sort((a, b) => a.t - b.t);
 }
 
+// Die Tage eines Buckets, je mit ihren Einträgen. `complete` = ganz vorbei
+// und nach der Geburt — nur solche Tage gehen in einen Ø-Tagesverlauf ein;
+// der laufende Tag bliebe ab jetzt flach und zöge den Abend nach unten.
+function fuetternBucketDayEvents(dayKeys, docs) {
+  const todayKey = isoDate(todayStartDate());
+  const byKey = {};
+  docs.forEach((f) => { const k = analyseBusinessDateKey(f); if (k) (byKey[k] = byKey[k] || []).push(f); });
+  return dayKeys.map((key) => ({
+    key,
+    isToday: key === todayKey,
+    complete: key < todayKey && analyseCountedDays([key]) === 1,
+    events: fuetternDayEvents(key, byKey[key] || [])
+  }));
+}
+
 function computeFuetternAnalysis(days, feedMap) {
   const perDay = days.map((d, i) => {
     const docs = feedMap[i].filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f));
@@ -6260,12 +6275,13 @@ function computeFuetternAnalysis(days, feedMap) {
       // Für die Kacheln, wenn die Legende von „Fütterungen pro Tag“ eine Art isoliert
       intervalBottleH: analyseIntervalH(bottle),
       intervalBreastH: analyseIntervalH(breast),
-      // Für „Stunden": jeder Eintrag mit seiner Uhrzeit (Minuten seit
-      // Mitternacht), sortiert. Nur bei Tages-Buckets — Wochen und Monate
-      // brauchen das nicht.
-      events: d.dayKeys.length === 1 ? fuetternDayEvents(d.dayKeys[0], feedMap[i]) : []
+      // Jeder Tag des Buckets mit seinen Einträgen auf der Uhrzeit-Achse
+      // (Minuten seit Mitternacht) — für „Stunden" und die
+      // Tagesverlauf-Karten. `events` ist der Tag selbst bei Tages-Buckets.
+      dayEvents: fuetternBucketDayEvents(d.dayKeys, feedMap[i])
     };
   });
+  perDay.forEach((b) => { b.events = b.dayEvents.length === 1 ? b.dayEvents[0].events : []; });
   const totalDays = analyseTotalDays(days);
   const totalCount = perDay.reduce((s, d) => s + d.bottleCount + d.breastCount, 0);
   const totalBottle = perDay.reduce((s, d) => s + d.bottleCount, 0);
@@ -7055,6 +7071,19 @@ const FUETTERN_CHARTS = {
   }
 };
 
+// Tagesverlauf in Tage/Wochen/Monate: dieselben Reihen wie die Karten oben,
+// aber aufsummiert über die Uhrzeit (0–24 Uhr). Ohne Markierung der Ø der
+// vollständigen Tage des Ausschnitts als gefüllte Fläche; mit Markierung der
+// markierte Ausschnitt als Fläche und derselbe Ø gestrichelt. In „Stunden"
+// fehlen sie (kein `hours`) — dort ist jede Karte schon ein Tagesverlauf.
+// Untertitel nur die Einheit, wie „Anteil der Tage" bei „Uhrzeit des Schlafs".
+Object.assign(FUETTERN_CHARTS, {
+  'fu-v-menge': { type: 'verlauf', title: 'Trinkmenge im Tagesverlauf', sub: 'Menge in ml', unit: 'ml', series: FUETTERN_CHARTS['fu-menge'].series },
+  'fu-v-pump': { type: 'verlauf', title: 'Abpumpen im Tagesverlauf', sub: 'Menge in ml', unit: 'ml', series: FUETTERN_CHARTS['fu-pump'].series },
+  'fu-v-still': { type: 'verlauf', title: 'Stilldauer im Tagesverlauf', sub: 'Dauer in Min.', unit: 'Min.', series: FUETTERN_CHARTS['fu-still'].series }
+});
+const FUETTERN_VERLAUF = ['fu-v-menge', 'fu-v-pump', 'fu-v-still'];
+
 const WINDELN_CHARTS = {
   'wi-wechsel': {
     title: 'Wechsel pro Tag',
@@ -7226,7 +7255,7 @@ const ANALYSE_SECTION_UI = {
   fuettern: {
     hostId: 'analyse-view-fuettern',
     charts: FUETTERN_CHARTS,
-    order: ['fu-anzahl', 'fu-menge', 'fu-pump', 'fu-still', 'fu-seite'],
+    order: ['fu-anzahl', 'fu-menge', 'fu-pump', 'fu-still', 'fu-seite', 'fu-v-menge', 'fu-v-pump', 'fu-v-still'],
     tileClass: 'a-stat-row',
     tileColor: 'var(--fuettern-strong)',
     tiles: [
@@ -7303,6 +7332,8 @@ let analyseSel = null;
 // { t } — in „Stunden" die markierte Uhrzeit (Minuten seit Mitternacht) statt
 // eines Balkens.
 let analyseHourSel = null;
+// { t, chart } — die markierte Uhrzeit in den Tagesverlauf-Karten (Tage/Wochen/Monate).
+let analyseVerlaufSel = null;
 // view -> chartId: welches Diagramm des Bereichs das schwebende Label trägt.
 // Das bleibt Sache des Bereichs — der Finger lag ja nur auf einem davon.
 const analyseActiveChart = { fuettern: null, windeln: null, schlafen: null };
@@ -7320,6 +7351,7 @@ const analyseBuilt = { fuettern: false, windeln: false, schlafen: false };
 function analyseClearSelections() {
   analyseSel = null;
   analyseHourSel = null;
+  analyseVerlaufSel = null;
 }
 
 // Ohne eigene Wahl trägt das erste Diagramm des Bereichs das Label — sonst
@@ -7670,6 +7702,173 @@ function hoursPick(view, chartId, clientX) {
   applyHoursSelection(view);
 }
 
+// --- Tagesverlauf in Tage/Wochen/Monate -------------------------------------
+// Kumuliert je Tag im 5-Minuten-Raster (289 Punkte, 0–24 Uhr).
+function verlaufCum(events, series) {
+  const a = new Float32Array(289);
+  let v = 0, j = 0;
+  for (let g = 0; g < 289; g++) {
+    while (j < events.length && events[j].t <= g * 5) { v += series.inc(events[j]); j++; }
+    a[g] = v;
+  }
+  return a;
+}
+// Ø mehrerer Tage, über ±45 Min. geglättet — der Mittelwert weniger Treppen
+// sähe sonst selbst wie eine Treppe aus.
+function verlaufAvg(days, series) {
+  const a = new Float32Array(289);
+  if (!days.length) return a;
+  days.forEach((d) => { const c = verlaufCum(d.events, series); for (let g = 0; g < 289; g++) a[g] += c[g]; });
+  const out = new Float32Array(289);
+  for (let g = 1; g < 289; g++) {
+    let v = 0;
+    for (let k = g - 9; k <= g + 9; k++) v += a[Math.max(0, Math.min(288, k))];
+    out[g] = v / 19 / days.length;
+  }
+  return out;
+}
+
+function secVerlaufInner(chartId, cfg, analysis) {
+  const baseline = 95, X = HOURS_X;
+  const series = secVisibleSeries(chartId, cfg);
+  const ink = cfg.series[0].color;
+  const allDays = analysis.perDay.flatMap((b) => b.dayEvents);
+  // Der Ø des Ausschnitts ändert sich nur mit Daten und Filter — gemerkt am
+  // Analyse-Objekt, sonst rechnete jedes Wischen über die Balken ihn neu.
+  const cacheKey = chartId + ':' + (analyseFilter[chartId] || '');
+  analysis.verlaufRef = analysis.verlaufRef || {};
+  const ref = analysis.verlaufRef[cacheKey] = analysis.verlaufRef[cacheKey] ||
+    series.map((se) => verlaufAvg(allDays.filter((d) => d.complete), se));
+  const refTot = (g) => ref.reduce((sum, c) => sum + c[g], 0);
+
+  const idx = analyseSel ? Math.min(analyseSel.index, analysis.perDay.length - 1) : -1;
+  const b = idx >= 0 ? analysis.perDay[idx] : null;
+  const day = b && b.dayEvents.length === 1 ? b.dayEvents[0] : null;
+  const end = day && day.isToday ? Math.max(0, Math.min(1440, analyseNowMinutes())) : 1440;
+  const g0 = (t) => Math.floor(Math.min(t, end) / 5);
+
+  // Die Fläche: ein einzelner Tag als Treppe seiner Einträge, sonst der Ø
+  // (des markierten Ausschnitts bzw. des ganzen Zeitraums).
+  let fill = null, dayCum = null;
+  if (day) dayCum = series.map((se) => verlaufCum(day.events, se));
+  else fill = b ? series.map((se) => verlaufAvg(b.dayEvents.filter((d) => d.complete), se)) : ref;
+  const valAt = (t) => (dayCum || fill).reduce((sum, c) => sum + c[g0(t)], 0);
+  const endVal = valAt(end);
+  const maxVal = Math.max(1, endVal, refTot(288)) * 1.12;
+  const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - 82]);
+
+  let lowPts, totPts;
+  const dots = [];
+  if (day) {
+    const incOf = (e) => series.reduce((sum, se) => sum + se.inc(e), 0);
+    let low = 0, tot = 0;
+    lowPts = [[X(0), y(0)]]; totPts = [[X(0), y(0)]];
+    day.events.filter((e) => e.t <= end && incOf(e) > 0).forEach((e) => {
+      lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
+      low += series[0].inc(e); tot += incOf(e);
+      lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
+      dots.push([X(e.t), y(tot), series[0].inc(e) > 0 ? series[0].color : series[series.length - 1].color]);
+    });
+    lowPts.push([X(end), y(low)]); totPts.push([X(end), y(tot)]);
+  } else {
+    lowPts = []; totPts = [];
+    for (let g = 0; g <= 288; g += 2) {
+      lowPts.push([X(g * 5), y(fill[0][g])]);
+      totPts.push([X(g * 5), y(fill.reduce((sum, c) => sum + c[g], 0))]);
+    }
+  }
+  const pl = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(2) + ',' + p[1].toFixed(2)).join('');
+  const floor = 'L' + X(end).toFixed(2) + ',' + baseline + 'L4,' + baseline + 'Z';
+  // Voll deckend im Linien-Blau; die Trinkmenge gestapelt wie in ihrer Karte oben.
+  let curve = series.length > 1
+    ? '<path d="' + pl(totPts) + pl(lowPts.slice().reverse()).replace('M', 'L') + 'Z" fill="' + series[1].color + '"/>' +
+      '<path d="' + pl(lowPts) + floor + '" fill="' + series[0].color + '"/>'
+    : '<path d="' + pl(totPts) + floor + '" fill="' + series[0].color + '"/>';
+  curve += '<path d="' + pl(totPts) + '" fill="none" stroke="' + ink + '" stroke-width="2.2" stroke-linejoin="round"/>';
+  dots.forEach((p) => {
+    curve += '<circle cx="' + p[0].toFixed(2) + '" cy="' + p[1].toFixed(2) + '" r="3.2" fill="' + p[2] + '" stroke="' + ink + '" stroke-width="1.3"/>';
+  });
+
+  const txt = (x, yy, str, o) => '<text' + (o && o.cls ? ' class="' + o.cls + '"' : '') + ' x="' + x + '" y="' + yy +
+    '" font-family="Work Sans, sans-serif" font-size="13" font-weight="' + ((o && o.w) || 400) + '" fill="' +
+    ((o && o.fill) || 'oklch(52% 0.006 250)') + '" text-anchor="' + ((o && o.anchor) || 'middle') + '">' + str + '</text>';
+  let out = '<defs><clipPath id="clip-v-' + chartId + '"><rect class="ar-clip-v" x="0" y="0" width="0" height="' + baseline + '"/></clipPath></defs>';
+  if (end < 1440) out += '<rect x="' + X(end).toFixed(2) + '" y="6" width="' + (304 - X(end)).toFixed(2) + '" height="' + (baseline - 6) + '" fill="oklch(96% 0.003 250)"/>';
+  out += '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
+  [360, 720, 1080].forEach((t) => { out += '<line x1="' + X(t) + '" y1="95" x2="' + X(t) + '" y2="98" stroke="oklch(87% 0.004 250)" stroke-width="1"/>'; });
+  out += '<g class="ar-dim">' + curve + '</g><g class="ar-hi" clip-path="url(#clip-v-' + chartId + ')">' + curve + '</g>';
+  // Mit Markierung derselbe Ø wie ohne, gestrichelt. Der weiße Unterstrich
+  // hält ihn auch über der dunklen Fläche lesbar.
+  if (b) {
+    let rp = '';
+    for (let g = 0; g <= 288; g += 2) rp += (g ? 'L' : 'M') + X(g * 5).toFixed(1) + ',' + y(refTot(g)).toFixed(1);
+    out += '<path d="' + rp + '" fill="none" stroke="white" stroke-width="3" stroke-opacity="0.85"/>' +
+      '<path d="' + rp + '" fill="none" stroke="' + ink + '" stroke-width="1.6" stroke-dasharray="3,3"/>';
+  }
+  out += '<circle cx="' + X(end).toFixed(2) + '" cy="' + y(endVal).toFixed(2) + '" r="3.4" fill="' + ink + '" stroke="white" stroke-width="1.5"/>';
+  const endText = (day ? '' : 'Ø ') + analyseRound(endVal);
+  out += end < 1440
+    ? txt((X(end) + 7).toFixed(2), (y(endVal) + 4.5).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: 'start' })
+    : txt(298, (y(endVal) - 8).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: 'end' });
+  const nowX = end < 1440 ? X(end) : null;
+  [[0, '0', 'start', 6], [360, '6'], [720, '12'], [1080, '18'], [1440, '24', 'end', 304]].forEach(([t, str, anchor, x]) => {
+    if (nowX !== null && Math.abs(X(t) - nowX) < 22) return;
+    out += txt(x || X(t), 111, str, { anchor });
+  });
+  if (nowX !== null) out += txt(Math.max(18, Math.min(288, nowX)).toFixed(2), 111, 'Jetzt', { w: 700, fill: ink });
+
+  analyseRender[chartId] = {
+    cfg, series, verlauf: true, builtFor: idx, end, single: !!day, marked: !!b,
+    cxOf: X, yOf: (v) => y(v), valAt, refAt: (t) => refTot(Math.floor(t / 5)),
+    tAt: (vx) => Math.max(0, Math.min(end, Math.round((vx - 4) / 300 * 1440 / 5) * 5))
+  };
+  return out + SEC_MARKER;
+}
+
+// Markierte Uhrzeit: Kurven danach verblassen in allen drei Karten, Linie,
+// Punkt und Label nur in der berührten.
+function applyVerlaufSelection(view) {
+  const sec = ANALYSE_SECTION_UI[view];
+  const activeChart = analyseVerlaufSel ? analyseVerlaufSel.chart : null;
+  FUETTERN_VERLAUF.forEach((chartId) => {
+    const r = analyseRender[chartId];
+    const svgEl = document.querySelector('#' + sec.hostId + ' svg[data-chart="' + chartId + '"]');
+    if (!r || !r.verlauf || !svgEl) return;
+    const wrap = svgEl.parentElement, tip = wrap.querySelector('.a-tip'), sc = svgEl.querySelector('.sc');
+    const t = analyseVerlaufSel ? Math.min(analyseVerlaufSel.t, r.end) : null;
+    const active = t !== null && chartId === activeChart;
+    svgEl.classList.toggle('has-sel', t !== null);
+    svgEl.classList.toggle('is-active', active);
+    const clip = svgEl.querySelector('.ar-clip-v');
+    if (clip) clip.setAttribute('width', t === null ? 0 : r.cxOf(t));
+    if (!active) { sc.style.display = 'none'; tip.hidden = true; return; }
+    const cx = r.cxOf(t), v = r.valAt(t), cy = r.yOf(v);
+    sc.style.display = '';
+    sc.querySelector('.sc-line').setAttribute('x1', cx);
+    sc.querySelector('.sc-line').setAttribute('x2', cx);
+    sc.querySelector('.sc-line').setAttribute('y2', cy);
+    sc.querySelector('.sc-dot').setAttribute('cx', cx);
+    sc.querySelector('.sc-dot').setAttribute('cy', cy);
+    const unit = r.cfg.unit;
+    tip.hidden = false;
+    tip.innerHTML = '<div class="a-tip-v">' + (r.single ? '' : 'Ø ') + analyseRound(v) + ' ' + unit + '</div>' +
+      '<div class="a-tip-s">bis ' + analyseClockText(t) + (r.marked ? ' · Ø ' + analyseRound(r.refAt(t)) + ' ' + unit : '') + '</div>';
+    positionAnalyseTip(tip, wrap, svgEl, cx);
+  });
+}
+
+function verlaufPick(view, chartId, clientX) {
+  const svgEl = document.querySelector('#' + ANALYSE_SECTION_UI[view].hostId + ' svg[data-chart="' + chartId + '"]');
+  const r = analyseRender[chartId];
+  if (!svgEl || !r || !(svgEl.getBoundingClientRect().width > 0)) return;
+  const t = r.tAt(svgViewX(svgEl, clientX));
+  if (analyseVerlaufSel && analyseVerlaufSel.t === t && analyseVerlaufSel.chart === chartId) return;
+  const first = !analyseVerlaufSel;
+  analyseVerlaufSel = { t, chart: chartId };
+  applyVerlaufSelection(view);
+  if (first) updateAnalyseContext();
+}
+
 // Anteilsdiagramm. Anders als bei den anderen Balken ist jede Säule gleich
 // hoch: sie zeigt nur das Verhältnis, die Menge steht eine Karte höher.
 // Deshalb steht die Skala fest auf 0–100 % und wächst nicht mit dem größten
@@ -7820,6 +8019,7 @@ function secClockInner(chartId, cfg, analysis) {
 
 function secChartInner(chartId, cfg, analysis) {
   if (analyseScope.mode === 'hours' && cfg.hours) return secHoursInner(chartId, cfg, analysis);
+  if (cfg.type === 'verlauf') return secVerlaufInner(chartId, cfg, analysis);
   if (cfg.type === 'clock') return secClockInner(chartId, cfg, analysis);
   if (cfg.type === 'area') return secAreaInner(chartId, cfg, analysis);
   if (cfg.type === 'share') return secShareInner(chartId, cfg, analysis);
@@ -7838,10 +8038,15 @@ function secCardShell(view, chartId) {
     '<div class="a-legend">' + cfg.series.map((s) =>
       '<button type="button" class="lg" data-chart="' + chartId + '" data-series="' + s.key + '">' +
       '<i style="background:' + s.color + ';"></i>' + s.label + '</button>').join('') + '</div>';
-  return '<div class="a-card" data-card="' + chartId + '">' +
-    '<div class="a-card-value-row">' +
+  // Tagesverlauf: der lange Titel steht für sich, die Legende rückt in die
+  // Zeile darunter neben den kurzen Untertitel — sonst bräche der Titel um.
+  const head = cfg.type === 'verlauf'
+    ? '<div class="a-card-label">' + cfg.title + '</div>' +
+      '<div class="a-card-value-row"><div class="a-card-value"></div>' + legend + '</div>'
+    : '<div class="a-card-value-row">' +
       '<div><div class="a-card-label">' + cfg.title + '</div><div class="a-card-value"></div></div>' + legend +
-    '</div>' +
+      '</div>';
+  return '<div class="a-card" data-card="' + chartId + '">' + head +
     '<div class="a-chart-wrap"><div class="a-tip" hidden></div>' +
       // Höhere Diagramme behalten den Maßstab der übrigen (105 px für 118 Einheiten).
       '<svg class="a-chart" viewBox="0 0 308 ' + (cfg.viewH || 118) + '" data-chart="' + chartId + '"' +
@@ -7890,8 +8095,9 @@ function updateAnalyseContext() {
   ctx.querySelector('[data-ctx-text]').textContent = b ? b.contextLabel
     : analyseScope.parent ? analyseParentTitle(analyseScope.parent)
     : ANALYSE_ZOOM_UI[analyseScope.mode].rangeText;
-  // Farbig = ein bestimmter Ausschnitt, grau = der laufende Zeitraum.
-  ctx.classList.toggle('sel', !!b || analyseScope.parent !== null);
+  // Farbig = ein bestimmter Ausschnitt, grau = der laufende Zeitraum. Eine
+  // markierte Uhrzeit in den Tagesverlauf-Karten braucht ebenfalls das ✕.
+  ctx.classList.toggle('sel', !!b || analyseScope.parent !== null || !!analyseVerlaufSel);
 }
 
 // Kennzahl-Kacheln und Kontextzeile folgen dem markierten Balken. Der
@@ -7931,12 +8137,20 @@ function applySecSelection(view, center) {
   updateSecStats(view);
   const b = analyseSelectedBucket(view);
   if (sec.extra) sec.extra.update(a, b, center);
+  // Die Tagesverlauf-Karten zeigen den markierten Ausschnitt selbst — sie
+  // werden neu gezeichnet, sobald ein anderer Balken markiert ist.
+  if (view === 'fuettern') {
+    const idx = analyseSel ? analyseSel.index : -1;
+    if (FUETTERN_VERLAUF.some((id) => !analyseRender[id] || analyseRender[id].builtFor !== idx)) {
+      FUETTERN_VERLAUF.forEach((id) => updateSecCard(view, id));
+    }
+  }
 
   const activeChart = secActiveChart(view);
   sec.order.forEach((chartId) => {
     const r = analyseRender[chartId];
     const svgEl = document.querySelector('#' + sec.hostId + ' svg[data-chart="' + chartId + '"]');
-    if (!r || !svgEl) return;
+    if (!r || !svgEl || r.verlauf) return;
     const wrap = svgEl.parentElement;
     const tip = wrap.querySelector('.a-tip');
     const sc = svgEl.querySelector('.sc');
@@ -7987,6 +8201,7 @@ function applySecSelection(view, center) {
     // Messung fehl (verstecktes Tab), bleibt es mittig statt zu zerbrechen.
     positionAnalyseTip(tip, wrap, svgEl, cx);
   });
+  if (view === 'fuettern') applyVerlaufSelection(view);
 }
 
 function updateSecCard(view, chartId) {
@@ -8011,7 +8226,7 @@ function updateSecCard(view, chartId) {
     qualLabel.toLowerCase() + '</span>' : '';
   const r = analyseRender[chartId];
   // „Stunden": Stand des Tages neben dem Ø der übrigen Tage zur selben Uhrzeit.
-  card.querySelector('.a-card-value').innerHTML = (hours
+  card.querySelector('.a-card-value').innerHTML = (cfg.type === 'verlauf' ? cfg.sub : hours
     ? cfg.hours.head(r.total) + (r.refAt ? ' <span style="color:var(--text-muted); font-weight:500;">· Ø ' + cfg.hours.ref(r.refAt(r.end)) + '</span>' : '')
     : cfg.headline(r.mean)) + qual;
   // Klein/Groß tritt zurück, solange eine Farbe gewählt ist.
@@ -8021,7 +8236,7 @@ function updateSecCard(view, chartId) {
   });
   const unit = card.querySelector('.a-axis-unit');
   unit.textContent = hours ? 'Uhrzeit' : 'Kalenderwoche';
-  unit.hidden = analyseScope.mode !== 'weeks' && !hours;
+  unit.hidden = cfg.type === 'verlauf' || (analyseScope.mode !== 'weeks' && !hours);
   // Die Notiz erklärt die Warnfarbe — nur zeigen, wenn ein Balken sie trägt.
   if (cfg.legendNote) {
     const note = card.querySelector('.a-legend');
@@ -8152,9 +8367,10 @@ function secPick(view, chartId, i, toggle) {
     const mouse = e.pointerType === 'mouse';
     // „Stunden": dieselbe Gestenerkennung, aber eine Uhrzeit statt eines
     // Balkens. Ein Tipp setzt sie, er hebt sie nicht auf (dafür das ✕).
-    if (analyseRender[id].hours) {
-      scrub = { view, id, startX: e.clientX, startY: e.clientY, locked: mouse, hours: true };
-      if (mouse) hoursPick(view, id, e.clientX);
+    if (analyseRender[id].hours || analyseRender[id].verlauf) {
+      const pickT = analyseRender[id].hours ? hoursPick : verlaufPick;
+      scrub = { view, id, startX: e.clientX, startY: e.clientY, locked: mouse, hours: true, pickT };
+      if (mouse) pickT(view, id, e.clientX);
       return;
     }
     const i0 = secIndexAt(svgEl, e.clientX);
@@ -8180,7 +8396,7 @@ function secPick(view, chartId, i, toggle) {
     const svgEl = document.querySelector('#' + ANALYSE_SECTION_UI[scrub.view].hostId +
       ' svg[data-chart="' + scrub.id + '"]');
     if (!svgEl) return;
-    if (scrub.hours) { hoursPick(scrub.view, scrub.id, e.clientX); return; }
+    if (scrub.hours) { scrub.pickT(scrub.view, scrub.id, e.clientX); return; }
     if (Math.abs(e.clientX - scrub.startX) > 4) scrub.moved = true;
     secPick(scrub.view, scrub.id, secIndexAt(svgEl, e.clientX), false);
   });
@@ -8197,7 +8413,7 @@ function secPick(view, chartId, i, toggle) {
     // sonst bleibt der Fokusrahmen des Systems stehen (auf Android orange).
     const ae = document.activeElement;
     if (ae && ae.classList && ae.classList.contains('hit') && ae.blur) ae.blur();
-    if (s.hours) { if (!s.locked) hoursPick(s.view, s.id, s.startX); return; }
+    if (s.hours) { if (!s.locked) s.pickT(s.view, s.id, s.startX); return; }
 
     // Nie festgelegt = kurzer Tipp ohne nennenswerte Bewegung: jetzt erst
     // auswählen, bzw. eine bestehende Markierung wieder aufheben.
@@ -8333,6 +8549,12 @@ function updateAnalyseScopeChips() {
 // Markierung, wird die aufgehoben; dafür braucht es kein Nachladen.
 function resetAnalyseSelection() {
   // „Stunden": zuerst nur die markierte Uhrzeit, dann zurück auf heute.
+  if (analyseVerlaufSel) {
+    analyseVerlaufSel = null;
+    applySecSelection(analyseView);
+    updateAnalyseContext();
+    return;
+  }
   if (analyseHourSel) {
     analyseHourSel = null;
     applySecSelection(analyseView);

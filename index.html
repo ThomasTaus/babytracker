@@ -7069,8 +7069,7 @@ const FUETTERN_CHARTS = {
     tipValue: (v) => analyseRound(v) + ' ml',
     detail: (v) => analyseRound(v) + ' ml'
   },
-  // Steht neben der Trinkmenge, weil beide in ml zählen — und bewusst vor
-  // Stilldauer/Seitenbalance, die aneinander hängen.
+  // Abpumpen ist keine Mahlzeit — die Karte steht deshalb nach Trinkmenge und Stilldauer.
   'fu-pump': {
     type: 'area',
     title: 'Abgepumpte Menge',
@@ -7319,7 +7318,7 @@ const ANALYSE_SECTION_UI = {
   fuettern: {
     hostId: 'analyse-view-fuettern',
     charts: FUETTERN_CHARTS,
-    order: ['fu-anzahl', 'fu-menge', 'fu-v-menge', 'fu-pump', 'fu-v-pump', 'fu-still', 'fu-v-still', 'fu-seite'],
+    order: ['fu-menge', 'fu-v-menge', 'fu-still', 'fu-v-still', 'fu-seite', 'fu-pump', 'fu-v-pump', 'fu-anzahl'],
     // Was zusammengehört, teilt sich eine Karte: Tageswert und Tagesverlauf,
     // bei der Stilldauer dazu die Seitenbalance, deren Legende beide filtert.
     groups: [['fu-menge', 'fu-v-menge'], ['fu-pump', 'fu-v-pump'], ['fu-still', 'fu-v-still', 'fu-seite']],

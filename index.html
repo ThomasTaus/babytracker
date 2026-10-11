@@ -2200,10 +2200,18 @@ document.querySelectorAll('.tabbar').forEach((nav) => {
 });
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
-    showScreen(btn.dataset.target);
     // Der Analyse-Tab führt immer auf die Übersicht — sie ist die Einstiegs-
-    // ebene, die Detailbereiche liegen darunter.
-    if (btn.dataset.target === 'analyse') showAnalyseView('overview');
+    // ebene, die Detailbereiche liegen darunter — und beginnt bei den
+    // Standard-Zoomstufen: Übersicht „Tage", Bereiche „Stunden".
+    const analyse = btn.dataset.target === 'analyse';
+    if (analyse) {
+      analyseZoomChoice = null;
+      analyseScope = { mode: 'days', parent: null };
+      analyseClearSelections();
+      analyseView = 'overview';
+    }
+    showScreen(btn.dataset.target);
+    if (analyse) showAnalyseView('overview');
   });
 });
 
@@ -8775,12 +8783,21 @@ const ANALYSE_SECTIONS = {
   }
 };
 let analyseView = 'overview';
+// Die zuletzt per Chip gewählte Zoomstufe (null = keine). Solange keine oder
+// „Stunden" gewählt ist, öffnen die Bereiche in „Stunden" — auch nach einem
+// Abstecher in die Übersicht, die „Stunden" nicht kennt und in „Tage" steht.
+// Jedes Öffnen des Analyse-Tabs beginnt wieder bei diesen Standards.
+let analyseZoomChoice = null;
 
 function showAnalyseView(view) {
   analyseView = view;
   // „Stunden" gibt es nur in einzelnen Bereichen. Anderswo zurück auf „Tage",
   // der gezeigte Tag bleibt dort markiert — wie ein Tipp auf den Chip.
   if (analyseScope.mode === 'hours' && !ANALYSE_HOURS_VIEWS.includes(view)) analyseZoomTo('days');
+  // Standard in den Bereichen: heute in „Stunden" — außer man hat selbst eine
+  // Stufe gewählt oder in der Übersicht etwas markiert bzw. aufgezogen.
+  else if ((analyseZoomChoice === null || analyseZoomChoice === 'hours') && ANALYSE_HOURS_VIEWS.includes(view) && analyseScope.mode === 'days' &&
+      !analyseScope.parent && !analyseSel) analyseZoomTo('hours');
   updateAnalyseScopeChips();
   ANALYSE_VIEWS.forEach((v) => {
     document.getElementById('analyse-view-' + v).style.display = v === view ? 'flex' : 'none';
@@ -8869,6 +8886,7 @@ function analyseReturnMarker(index) {
 document.querySelectorAll('.a-range-chip[data-scope]').forEach((chip) => {
   chip.addEventListener('click', () => {
     if (chip.dataset.scope === 'hours' && !ANALYSE_HOURS_VIEWS.includes(analyseView)) return;
+    analyseZoomChoice = chip.dataset.scope;
     analyseZoomTo(chip.dataset.scope);
   });
 });

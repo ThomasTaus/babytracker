@@ -6981,7 +6981,8 @@ function fuetternSideSeries() {
     key: 'min', label: left ? 'Links' : 'Rechts',
     color: left ? FUETTERN_COLOR : FUETTERN_BREAST_COLOR,
     value: (d) => (left ? d.breastLeftMin : d.breastRightMin) / analyseDayDivisor(d),
-    mean: (a) => (left ? a.avgBreastLeftMinExact : a.avgBreastRightMinExact)
+    mean: (a) => (left ? a.avgBreastLeftMinExact : a.avgBreastRightMinExact),
+    inc: (e) => (e.meal && e.f.type === 'breast' ? Number(left ? e.f.leftMinutes : e.f.rightMinutes) || 0 : 0)
   };
 }
 
@@ -7379,7 +7380,7 @@ function windelnColorSeries() {
 // kommt dann von dort und ersetzt die eigenen.
 function secForcedSeries(chartId) {
   if (chartId === 'wi-wechsel') return windelnColorSeries();
-  if (chartId === 'fu-still') return fuetternSideSeries();
+  if (chartId === 'fu-still' || chartId === 'fu-v-still') return fuetternSideSeries();
   return null;
 }
 
@@ -7735,7 +7736,9 @@ function secVerlaufInner(chartId, cfg, analysis) {
   const allDays = analysis.perDay.flatMap((b) => b.dayEvents);
   // Der Ø des Ausschnitts ändert sich nur mit Daten und Filter — gemerkt am
   // Analyse-Objekt, sonst rechnete jedes Wischen über die Balken ihn neu.
-  const cacheKey = chartId + ':' + (analyseFilter[chartId] || '');
+  // Die Reihen gehören in den Schlüssel: die Seitenwahl ersetzt die Reihe der
+  // Stilldauer, ohne den Filter dieser Karte anzufassen.
+  const cacheKey = chartId + ':' + series.map((se) => se.label).join('|');
   analysis.verlaufRef = analysis.verlaufRef || {};
   const ref = analysis.verlaufRef[cacheKey] = analysis.verlaufRef[cacheKey] ||
     series.map((se) => verlaufAvg(allDays.filter((d) => d.complete), se));
@@ -8451,8 +8454,8 @@ function secPick(view, chartId, i, toggle) {
     if (analyseColorFilter && c === 'wi-wechsel') { analyseColorFilter = null; analyseFilter[c] = k; }
     else analyseFilter[c] = analyseFilter[c] === k ? null : k;
     updateSecCard(analyseView, c);
-    // Die Seitenwahl steuert auch die Stilldauer darüber.
-    if (c === 'fu-seite') updateSecCard('fuettern', 'fu-still');
+    // Die Seitenwahl steuert auch die Stilldauer und ihren Tagesverlauf.
+    if (c === 'fu-seite') { updateSecCard('fuettern', 'fu-still'); updateSecCard('fuettern', 'fu-v-still'); }
     applySecSelection(analyseView);
   });
 

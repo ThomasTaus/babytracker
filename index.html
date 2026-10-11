@@ -345,10 +345,11 @@
   #screen-analyse .a-chart.is-active.has-sel .endval { opacity: 0; }
   /* Dasselbe Verblassen auf einer durchgehenden Kurve: sie tritt zurück, und
      eine zweite, auf den markierten Tag beschnittene Kopie liegt voll deckend
-     darüber. */
-  #screen-analyse .a-chart .ar-hi { display: none; }
+     darüber. Beim Aufheben bleibt die Kopie stehen, bis die Kurve darunter wieder voll
+     deckend ist — verschwände sie sofort, blitzte das Diagramm kurz blass auf. */
+  #screen-analyse .a-chart .ar-hi { visibility: hidden; transition: visibility 0s linear .16s; }
   #screen-analyse .a-chart.has-sel .ar-dim { opacity: 0.3; }
-  #screen-analyse .a-chart.has-sel .ar-hi { display: inline; }
+  #screen-analyse .a-chart.has-sel .ar-hi { visibility: visible; transition-delay: 0s; }
 
   /* Schwebendes Label über dem Diagramm — darf die Kartenüberschrift überlagern */
   #screen-analyse .a-tip {
@@ -7679,8 +7680,9 @@ function applyHoursSelection(view) {
     const active = t !== null && chartId === activeChart;
     svgEl.classList.toggle('has-sel', t !== null);
     svgEl.classList.toggle('is-active', active);
+    // Ohne Markierung bleibt der Ausschnitt stehen: die Kopie blendet noch aus.
     const clip = svgEl.querySelector('.ar-clip-h');
-    if (clip) clip.setAttribute('width', t === null ? 0 : r.cxOf(t));
+    if (clip && t !== null) clip.setAttribute('width', r.cxOf(t));
     if (!active) { sc.style.display = 'none'; tip.hidden = true; return; }
     const cx = r.cxOf(t), v = r.cumAt(t), cy = r.yOf(v);
     sc.style.display = '';
@@ -7846,8 +7848,9 @@ function applyVerlaufSelection(view) {
     const active = t !== null && chartId === activeChart;
     svgEl.classList.toggle('has-sel', t !== null);
     svgEl.classList.toggle('is-active', active);
+    // Ohne Markierung bleibt der Ausschnitt stehen: die Kopie blendet noch aus.
     const clip = svgEl.querySelector('.ar-clip-v');
-    if (clip) clip.setAttribute('width', t === null ? 0 : r.cxOf(t));
+    if (clip && t !== null) clip.setAttribute('width', r.cxOf(t));
     if (!active) { sc.style.display = 'none'; tip.hidden = true; return; }
     const cx = r.cxOf(t), v = r.valAt(t), cy = r.yOf(v);
     sc.style.display = '';

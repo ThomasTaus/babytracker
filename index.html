@@ -271,12 +271,19 @@
 
   #screen-fuettern .bt-add { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text); font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer; }
 
-  /* Der Switcher steht dauerhaft im Kopf und führt auch zurück zur Übersicht.
+  /* Zwei Ebenen: Die Übersicht hat keinen Switcher, man kommt nur über ihre
+     Kacheln in einen Bereich. In den Bereichen stehen „‹ zur Übersicht" über
+     der Überschrift und direkt darunter der Switcher, dann erst die Chips.
      Der gewählte Bereich ist in seiner eigenen Farbe gefüllt — dieselbe Sprache
      wie der Nachts/Tagsüber-Umschalter im Schlafen-Bereich. */
-  #screen-analyse .a-sw-row { display: flex; align-items: center; margin-top: 14px; }
+  #screen-analyse .a-back-row { display: none; margin: -14px 0 10px; }
+  #screen-analyse .a-sw-row { display: none; align-items: center; margin-top: 16px; }
+  #screen-analyse.a-detail .a-back-row { display: block; }
+  #screen-analyse.a-detail .a-sw-row { display: flex; }
+  #screen-analyse .a-chip-row { display: flex; gap: 8px; margin-top: 16px; }
+  #screen-analyse.a-detail .a-chip-row { margin-top: 14px; }
   #screen-analyse .a-seg { flex: 1; display: flex; background: var(--surface-alt); border-radius: 14px; padding: 4px; gap: 3px; }
-  #screen-analyse .a-seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 9px 2px; border-radius: 11px; font-weight: 600; font-size: 11.5px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
+  #screen-analyse .a-seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 2px; border-radius: 11px; font-weight: 600; font-size: 13px; color: var(--text-muted); cursor: pointer; border: none; background: none; font-family: 'Work Sans', sans-serif; }
   #screen-analyse .a-seg-btn.active { background: var(--btn); color: white; }
   /* Wie die Klein/Groß-Karten in „Windel wechseln": beide Zustände tragen
      einen sichtbaren Rahmen, der gewählte zusätzlich Füllung und dunkle
@@ -1196,6 +1203,7 @@
     color: var(--text); display: none; flex-direction: column;
   ">
     <div style="flex-shrink: 0; padding: 32px 24px 0;">
+      <div class="a-back-row"><button class="back-btn" data-back="analyse" style="margin-bottom: 0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>zur Übersicht</button></div>
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
           <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
@@ -1213,7 +1221,24 @@
         </div>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 16px;">
+      <div class="a-sw-row">
+        <div class="a-seg">
+          <button class="a-seg-btn" data-view="fuettern" style="--btn: var(--fuettern-strong);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+            Füttern
+          </button>
+          <button class="a-seg-btn" data-view="windeln" style="--btn: var(--windeln);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>
+            Windeln
+          </button>
+          <button class="a-seg-btn" data-view="schlafen" style="--btn: var(--schlafen-strong);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+            Schlafen
+          </button>
+        </div>
+      </div>
+
+      <div class="a-chip-row">
         <div class="a-range-chip off" data-scope="hours" aria-disabled="true">Stunden</div>
         <div class="a-range-chip active" data-scope="days">Tage</div>
         <div class="a-range-chip" data-scope="weeks">Wochen</div>
@@ -1225,27 +1250,6 @@
         <button id="analyse-reset" class="a-ctx-reset" aria-label="Zeitraum zurücksetzen" title="Zeitraum zurücksetzen">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
-      </div>
-
-      <div class="a-sw-row">
-        <div class="a-seg">
-          <button class="a-seg-btn active" data-view="overview" style="--btn: var(--neutral-strong);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>
-            Übersicht
-          </button>
-          <button class="a-seg-btn" data-view="fuettern" style="--btn: var(--fuettern-strong);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
-            Füttern
-          </button>
-          <button class="a-seg-btn" data-view="windeln" style="--btn: var(--windeln);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>
-            Windeln
-          </button>
-          <button class="a-seg-btn" data-view="schlafen" style="--btn: var(--schlafen-strong);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
-            Schlafen
-          </button>
-        </div>
       </div>
     </div>
 
@@ -2246,6 +2250,7 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
     const where = btn.dataset.back;
     if (where === 'historie') showScreen('heute');
     else if (where === 'entwicklung') closeEntwicklungDialog();
+    else if (where === 'analyse') showAnalyseView('overview');
     else leaveEntryScreen(where, btn.classList.contains('entry-cancel'));
   });
 });
@@ -2292,6 +2297,8 @@ function uiNavDepth() {
   if (currentScreen === 'gesundheit') return 1 + medState.stack.length;
   // Profil gesperrt 1, Editor nach dem Stift 2
   if (currentScreen === 'profil') return profilEdit ? 2 : 1;
+  // Analyse-Übersicht 1, Bereich 2 (Wechsel zwischen Bereichen: gleiche Tiefe)
+  if (currentScreen === 'analyse') return analyseView === 'overview' ? 1 : 2;
   return 1;
 }
 
@@ -2317,6 +2324,7 @@ function navigateBackOneLevel() {
   else if (currentScreen === 'entwicklung' && entDialogOpen()) closeEntwicklungDialog();
   else if (currentScreen === 'gesundheit' && medState.stack.length) medBack();
   else if (currentScreen === 'profil' && profilEdit) closeProfilEdit();
+  else if (currentScreen === 'analyse' && analyseView !== 'overview') showAnalyseView('overview');
   else if (currentScreen !== 'heute') showScreen('heute');
 }
 
@@ -8811,6 +8819,7 @@ function showAnalyseView(view) {
   // Bereichswechsel ruhig wirkt.
   const sec = ANALYSE_SECTIONS[view];
   const screen = document.getElementById('screen-analyse');
+  screen.classList.toggle('a-detail', view !== 'overview');
   screen.style.setProperty('--sec-soft', sec.soft);
   screen.style.setProperty('--sec-strong', sec.strong);
   // Füllfarbe für weiße Schrift — dieselbe, die der „Eintrag speichern"-Knopf
@@ -8830,6 +8839,9 @@ function showAnalyseView(view) {
     if (ui.extra && ui.extra.onShow) ui.extra.onShow();
     applySecSelection(view, true);
   }
+  // Bereich = eine Stufe unter der Übersicht, damit die Android-Zurück-Taste
+  // dorthin führt statt aus der Analyse heraus.
+  syncHistory();
 }
 document.querySelectorAll('.a-seg-btn').forEach((btn) => {
   btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));

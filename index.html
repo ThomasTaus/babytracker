@@ -8222,11 +8222,10 @@ function updateSecCard(view, chartId) {
   const iso = analyseFilter[chartId];
   const cs = secForcedSeries(chartId);
   // Beim Anteilsdiagramm steckt die gewählte Seite schon im Kartenwert
-  // („51% L") — ein „nur links" daneben sagte dasselbe zweimal. In Füttern
-  // zeigt die eigene Legende ihre Auswahl schon selbst; der Zusatz bleibt dort
-  // nur, wenn eine andere Karte filtert (Seitenbalance → Stilldauer).
-  const qualLabel = cfg.type === 'share' ? null
-    : cs ? cs.label : (iso && view !== 'fuettern' ? cfg.series.find((s) => s.key === iso).label : null);
+  // („51% L") — ein „nur links" daneben sagte dasselbe zweimal. Die eigene
+  // Legende zeigt ihre Auswahl schon selbst; der Zusatz steht nur, wenn eine
+  // andere Karte filtert (Seitenbalance → Stilldauer, Farbe → Wechsel).
+  const qualLabel = cfg.type === 'share' ? null : cs ? cs.label : null;
   const qual = qualLabel ? ' <span class="qual" style="font-family:\'Work Sans\',sans-serif; font-size:12px; font-weight:600; color:var(--text-muted);">nur ' +
     qualLabel.toLowerCase() + '</span>' : '';
   const r = analyseRender[chartId];

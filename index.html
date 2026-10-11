@@ -5930,10 +5930,10 @@ const ANALYSE_MONTH_FULL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni'
 
 // Die Chips von fein nach grob. Ein Schritt nach links zoomt in den
 // markierten Balken hinein, einer nach rechts wieder heraus. „Stunden" zeigt
-// einen einzelnen Tag im Verlauf, aufsummiert über die Uhrzeit — in Füttern
-// und Schlafen; in der Übersicht und bei Windeln ist der Chip deaktiviert.
+// einen einzelnen Tag im Verlauf, aufsummiert über die Uhrzeit — in allen
+// Bereichen außer der Übersicht; dort ist der Chip deaktiviert.
 const ANALYSE_ZOOM_ORDER = ['hours', 'days', 'weeks', 'months'];
-const ANALYSE_HOURS_VIEWS = ['fuettern', 'schlafen'];
+const ANALYSE_HOURS_VIEWS = ['fuettern', 'windeln', 'schlafen'];
 
 // Zeitausschnitt der Analyse. Die Chips oben sind ein Zoomstufen-Regler, kein
 // reiner Zeitraum-Umschalter: sie sagen "wie fein", ein markierter Balken sagt
@@ -6370,6 +6370,16 @@ function analyseColorAvgExact(stats, totalDays) {
   return out;
 }
 
+// Wechsel eines Tages in Minuten ab Mitternacht, getrennt wie die Balken:
+// ein Wechsel mit klein und groß zählt als groß.
+function windelnDayEvents(dayKey, docs) {
+  const dayStart = new Date(dayKey + 'T00:00:00').getTime();
+  return docs.map((x) => {
+    const ts = entryBusinessTimestamp(x);
+    return ts ? { t: (ts - dayStart) / 60000, small: !!x.small && !x.big, big: !!x.big } : null;
+  }).filter((e) => e && e.t >= 0 && e.t <= 1440).sort((p, q) => p.t - q.t);
+}
+
 function computeWindelnAnalysis(days, diaperMap) {
   const perDay = days.map((d, i) => {
     const docs = diaperMap[i];
@@ -6385,7 +6395,9 @@ function computeWindelnAnalysis(days, diaperMap) {
       // tracking below already only cares about big regardless of small).
       small: docs.filter((x) => x.small && !x.big).length,
       big: docs.filter((x) => x.big).length,
-      total: docs.length
+      total: docs.length,
+      // „Stunden": die Wechsel des einen Tages auf der Uhrzeit-Achse.
+      events: d.dayKeys.length === 1 ? windelnDayEvents(d.dayKeys[0], docs) : []
     };
   });
   const totalDays = analyseTotalDays(days);
@@ -7146,9 +7158,13 @@ const WINDELN_CHARTS = {
   'wi-wechsel': {
     title: 'Wechsel pro Tag',
     series: [
-      { key: 'small', label: 'Klein', color: '#39ABAB', value: (d) => d.small / analyseDayDivisor(d), mean: (a) => a.avgSmallExact },
-      { key: 'big', label: 'Groß', color: '#8FD4D4', value: (d) => d.big / analyseDayDivisor(d), mean: (a) => a.avgBigExact }
+      { key: 'small', label: 'Klein', color: '#39ABAB', value: (d) => d.small / analyseDayDivisor(d), mean: (a) => a.avgSmallExact,
+        inc: (e) => (e.small ? 1 : 0) },
+      { key: 'big', label: 'Groß', color: '#8FD4D4', value: (d) => d.big / analyseDayDivisor(d), mean: (a) => a.avgBigExact,
+        inc: (e) => (e.big ? 1 : 0) }
     ],
+    // „Stunden": eine Stufe je Wechsel, 0–24 Uhr. Die Farbe bleibt dort außen vor.
+    hours: { title: 'Wechsel', head: (v) => String(analyseRound(v)), ref: (v) => analyseDe1(v), tip: (v) => analyseRound(v) + ' Wechsel' },
     barLabel: (v) => String(analyseRound(v)),
     headline: (v) => 'Ø ' + analyseDe1(v) + ' / Tag',
     tipValue: (v, b) => analyseCount(v, b.daysElapsed === 1) + ' Wechsel',
@@ -7371,7 +7387,7 @@ const ANALYSE_SECTION_UI = {
     ],
     stats: windelnStatValues,
     extra: {
-      shell: () => '<div class="a-card">' +
+      shell: () => '<div class="a-card" data-extra>' +
         '<div class="a-card-value-row"><div>' +
           '<div class="a-card-label">Farbverteilung</div>' +
           '<div class="a-card-value" data-color-count></div>' +
@@ -8317,7 +8333,7 @@ function updateSecStats(view) {
   const sec = ANALYSE_SECTION_UI[view];
   const a = analyseData[view];
   if (!a) return;
-  // „Stunden": Füttern zählt bis zur markierten Uhrzeit, Schlafen zeigt den Tag.
+  // „Stunden": Füttern zählt bis zur markierten Uhrzeit, Windeln und Schlafen zeigen den Tag.
   const hours = analyseScope.mode === 'hours' && ANALYSE_HOURS_VIEWS.includes(view);
   const b = !hours ? analyseSelectedBucket(view) : view === 'fuettern' ? fuetternHoursBucket(a) : analyseHoursDay(a);
   const vals = sec.stats(a, b);
@@ -8474,8 +8490,9 @@ function renderAnalyseSection(view, analysis) {
     analyseColorFilter = null;
   }
   sec.order.forEach((id) => updateSecCard(view, id));
-  // „Uhrzeit des Schlafs" ist schon ein Tagesverlauf — in „Stunden" fehlt sie
-  // wie die übrigen Karten ohne eigene Stunden-Ansicht.
+  // „Uhrzeit des Schlafs" ist schon ein Tagesverlauf, die Farbverteilung der
+  // Windeln hat keine Uhrzeit — in „Stunden" fehlen beide wie die übrigen
+  // Karten ohne eigene Stunden-Ansicht.
   const extraEl = host.querySelector('[data-extra]');
   if (extraEl) extraEl.hidden = analyseScope.mode === 'hours';
 

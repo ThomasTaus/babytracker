@@ -8454,6 +8454,9 @@ function secPick(view, chartId, i, toggle) {
     if (analyseColorFilter && c === 'wi-wechsel') { analyseColorFilter = null; analyseFilter[c] = k; }
     else analyseFilter[c] = analyseFilter[c] === k ? null : k;
     updateSecCard(analyseView, c);
+    // Trinkmenge und ihr Tagesverlauf teilen eine Auswahl.
+    const twin = { 'fu-menge': 'fu-v-menge', 'fu-v-menge': 'fu-menge' }[c];
+    if (twin) { analyseFilter[twin] = analyseFilter[c]; updateSecCard(analyseView, twin); }
     // Die Seitenwahl steuert auch die Stilldauer und ihren Tagesverlauf.
     if (c === 'fu-seite') { updateSecCard('fuettern', 'fu-still'); updateSecCard('fuettern', 'fu-v-still'); }
     applySecSelection(analyseView);

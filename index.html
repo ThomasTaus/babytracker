@@ -8085,9 +8085,10 @@ function updateAnalyseContext() {
   const ctx = document.getElementById('analyse-context');
   if (!ctx) return;
   // „Stunden": ein Tag — „Heute", solange nichts weiter gewählt ist, sonst
-  // sein Name. Dunkel, sobald ein bestimmter Ausschnitt gezeigt wird.
+  // sein Name. Dunkel, sobald ein bestimmter Ausschnitt gezeigt wird. Eine
+  // markierte Uhrzeit allein bekommt kein ✕ — sie schließt per Tipp daneben.
   if (analyseScope.mode === 'hours') {
-    const plain = !analyseHourSel && !analyseScope.parent;
+    const plain = !analyseScope.parent;
     const day = analyseBuckets[analyseBuckets.length - 1];
     ctx.querySelector('[data-ctx-text]').textContent = plain || !day ? 'Heute' : day.contextLabel;
     ctx.classList.toggle('sel', !plain);
@@ -8098,9 +8099,8 @@ function updateAnalyseContext() {
   ctx.querySelector('[data-ctx-text]').textContent = b ? b.contextLabel
     : analyseScope.parent ? analyseParentTitle(analyseScope.parent)
     : ANALYSE_ZOOM_UI[analyseScope.mode].rangeText;
-  // Farbig = ein bestimmter Ausschnitt, grau = der laufende Zeitraum. Eine
-  // markierte Uhrzeit in den Tagesverlauf-Karten braucht ebenfalls das ✕.
-  ctx.classList.toggle('sel', !!b || analyseScope.parent !== null || !!analyseVerlaufSel);
+  // Farbig = ein bestimmter Ausschnitt, grau = der laufende Zeitraum.
+  ctx.classList.toggle('sel', !!b || analyseScope.parent !== null);
 }
 
 // Kennzahl-Kacheln und Kontextzeile folgen dem markierten Balken. Der
@@ -8345,6 +8345,30 @@ function secPick(view, chartId, i, toggle) {
   applySecSelection(view);
 }
 
+// Markierte Uhrzeit („Stunden" und Tagesverlauf-Karten) aufheben. Sie hat kein
+// ✕: ein Tipp daneben oder noch einmal auf die Markierung schließt das Label.
+function clearAnalyseTimeSel() {
+  if (!analyseHourSel && !analyseVerlaufSel) return;
+  analyseHourSel = null;
+  analyseVerlaufSel = null;
+  if (ANALYSE_SECTION_UI[analyseView]) applySecSelection(analyseView);
+  updateAnalyseContext();
+}
+
+// Liegt der Finger auf der markierten Uhrzeit dieses Diagramms? Großzügig
+// (24 px), ein Finger trifft die dünne Linie nie genau.
+function analyseTimeSelNear(view, chartId, clientX) {
+  const r = analyseRender[chartId];
+  const svgEl = document.querySelector('#' + ANALYSE_SECTION_UI[view].hostId + ' svg[data-chart="' + chartId + '"]');
+  if (!r || !svgEl) return false;
+  const t = r.hours
+    ? (analyseHourSel && secActiveChart(view) === chartId ? analyseHourSel.t : null)
+    : (analyseVerlaufSel && analyseVerlaufSel.chart === chartId ? analyseVerlaufSel.t : null);
+  const m = svgEl.getScreenCTM();
+  if (t === null || !m || !m.a) return false;
+  return Math.abs(m.a * r.cxOf(Math.min(t, r.end)) + m.e - clientX) <= 24;
+}
+
 (function wireAnalyseScrubbing() {
   const host = document.getElementById('analyse-body');
   let scrub = null;
@@ -8370,11 +8394,13 @@ function secPick(view, chartId, i, toggle) {
     // Scrollen über das Diagramm hinweg, um versehentlich etwas zu markieren.
     const mouse = e.pointerType === 'mouse';
     // „Stunden": dieselbe Gestenerkennung, aber eine Uhrzeit statt eines
-    // Balkens. Ein Tipp setzt sie, er hebt sie nicht auf (dafür das ✕).
+    // Balkens. Ein Tipp setzt sie; ein Tipp auf die bestehende Markierung
+    // hebt sie auf — deshalb wählt die Maus dort nicht schon beim Drücken.
     if (analyseRender[id].hours || analyseRender[id].verlauf) {
       const pickT = analyseRender[id].hours ? hoursPick : verlaufPick;
-      scrub = { view, id, startX: e.clientX, startY: e.clientY, locked: mouse, hours: true, pickT };
-      if (mouse) pickT(view, id, e.clientX);
+      const near = analyseTimeSelNear(view, id, e.clientX);
+      scrub = { view, id, startX: e.clientX, startY: e.clientY, locked: mouse && !near, hours: true, pickT, near };
+      if (mouse && !near) pickT(view, id, e.clientX);
       return;
     }
     const i0 = secIndexAt(svgEl, e.clientX);
@@ -8417,7 +8443,10 @@ function secPick(view, chartId, i, toggle) {
     // sonst bleibt der Fokusrahmen des Systems stehen (auf Android orange).
     const ae = document.activeElement;
     if (ae && ae.classList && ae.classList.contains('hit') && ae.blur) ae.blur();
-    if (s.hours) { if (!s.locked) s.pickT(s.view, s.id, s.startX); return; }
+    if (s.hours) {
+      if (!s.locked) { if (s.near) clearAnalyseTimeSel(); else s.pickT(s.view, s.id, s.startX); }
+      return;
+    }
 
     // Nie festgelegt = kurzer Tipp ohne nennenswerte Bewegung: jetzt erst
     // auswählen, bzw. eine bestehende Markierung wieder aufheben.
@@ -8470,6 +8499,28 @@ function secPick(view, chartId, i, toggle) {
     e.preventDefault();
     secPick(analyseView, hit.closest('svg').dataset.chart, Number(hit.dataset.i), true);
   });
+})();
+
+// Ein kurzer Tipp irgendwo außerhalb der Uhrzeit-Diagramme schließt deren
+// Label. Scrollen zählt nicht: der Browser schickt dann pointercancel, und
+// eine Mausbewegung über 10 px gilt ebenfalls nicht als Tipp.
+(function wireAnalyseTimeSelDismiss() {
+  let down = null;
+  document.addEventListener('pointerdown', (e) => {
+    down = null;
+    if (!analyseHourSel && !analyseVerlaufSel) return;
+    const svgEl = e.target && e.target.closest ? e.target.closest('svg.a-chart') : null;
+    const r = svgEl && analyseRender[svgEl.dataset.chart];
+    if (r && (r.hours || r.verlauf)) return;
+    down = { x: e.clientX, y: e.clientY };
+  }, true);
+  document.addEventListener('pointercancel', () => { down = null; }, true);
+  document.addEventListener('pointerup', (e) => {
+    const d = down;
+    down = null;
+    if (!d || Math.abs(e.clientX - d.x) > 10 || Math.abs(e.clientY - d.y) > 10) return;
+    clearAnalyseTimeSel();
+  }, true);
 })();
 
 const ANALYSE_VIEWS = ['overview', 'fuettern', 'windeln', 'schlafen'];
@@ -8555,19 +8606,7 @@ function updateAnalyseScopeChips() {
 // Wochenansicht — dorthin führt der Chip, wenn man das will. Steht nur eine
 // Markierung, wird die aufgehoben; dafür braucht es kein Nachladen.
 function resetAnalyseSelection() {
-  // „Stunden": zuerst nur die markierte Uhrzeit, dann zurück auf heute.
-  if (analyseVerlaufSel) {
-    analyseVerlaufSel = null;
-    applySecSelection(analyseView);
-    updateAnalyseContext();
-    return;
-  }
-  if (analyseHourSel) {
-    analyseHourSel = null;
-    applySecSelection(analyseView);
-    updateAnalyseContext();
-    return;
-  }
+  // Eine markierte Uhrzeit hebt analyseClearSelections() gleich mit auf.
   const wasDrilled = analyseScope.parent !== null;
   analyseClearSelections();
   if (wasDrilled) {

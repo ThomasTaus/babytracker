@@ -6644,6 +6644,17 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
 // Fläche (ab x1) stehen die Hilfslinien-Beschriftungen 50 % / 100 %, damit
 // sie nie über den Daten liegen — in beiden Ansichten gleich.
 const SLEEP_CLOCK = { x0: 4, x1: 278, top: 12, base: 95 };
+// Isoliert die Legende von „Gesamtschlaf pro Tag" eine Reihe, zeigen die
+// Diagramme darunter nur deren Zeitraum: Nachts das Nachtfenster, Tagsüber
+// den Rest des Bandes — in deren Farbe. Minuten ab Bandbeginn.
+function sleepAxisRange() {
+  const p = readProfil();
+  const win = (parseMinutes(p.nightTo) - parseMinutes(p.nightFrom) + 1440) % 1440;
+  const f = analyseFilter['schlaf-gesamt'];
+  const se = f && win > 0 && SCHLAFEN_CHARTS['schlaf-gesamt'].series.find((s) => s.key === f);
+  if (!se) return { t0: 0, t1: 1440, step: 4, color: '#4B3F9E' };
+  return f === 'night' ? { t0: 0, t1: win, step: 2, color: se.color } : { t0: win, t1: 1440, step: 2, color: se.color };
+}
 // Was gerade gezeichnet ist — braucht das Wischen, um den Wert unter dem
 // Finger nachzuschlagen.
 let sleepClockState = null;
@@ -6653,28 +6664,36 @@ function svgSleepClock(spans, shareArr) {
   const p = readProfil();
   const fromMin = parseMinutes(p.nightFrom);
   const winMin = (parseMinutes(p.nightTo) - fromMin + 1440) % 1440;
-  const x = (min) => x0 + min / 1440 * (x1 - x0);
+  const { t0, t1, step, color } = sleepAxisRange();
+  const x = (min) => x0 + (min - t0) / (t1 - t0) * (x1 - x0);
   const y = (v) => base - v * (base - top);
-  let out = '<rect x="' + x0 + '" y="2" width="' + (x(winMin) - x0) + '" height="' + (base - 2) + '" fill="#E8E5F9"/>';
-  sleepClockState = { fromMin, spans, share: shareArr, curveY: null };
+  // Das Nachtfenster hinterlegt, soweit es im Ausschnitt liegt.
+  const shadeEnd = Math.min(winMin, t1);
+  let out = shadeEnd > t0 ? '<rect x="' + x0 + '" y="2" width="' + (x(shadeEnd) - x0) + '" height="' + (base - 2) + '" fill="#E8E5F9"/>' : '';
+  const iA = Math.floor(t0 / SLEEP_SLOT_MIN), iB = Math.ceil(t1 / SLEEP_SLOT_MIN);
+  sleepClockState = { fromMin, spans, share: shareArr, curveY: null, t0, t1, iA, iB, px: null };
   [0.5, 1].forEach((v) => {
     out += '<line x1="' + x0 + '" y1="' + y(v) + '" x2="' + x1 + '" y2="' + y(v) + '" stroke="oklch(87% 0.004 250)" stroke-dasharray="2,3"/>' +
       '<text x="' + (x1 + 4) + '" y="' + (y(v) + 3.5) + '" font-family="Work Sans, sans-serif" font-size="10" fill="oklch(52% 0.006 250)">' + (v * 100) + ' %</text>';
   });
 
   if (spans) {
-    spans.forEach(([a, b]) => {
-      out += '<rect x="' + x(a) + '" y="' + top + '" width="' + Math.max(1.5, x(b) - x(a)) + '" height="' + (base - top) + '" fill="#4B3F9E"/>';
+    spans.forEach(([a0, b0]) => {
+      const a = Math.max(a0, t0), b = Math.min(b0, t1);
+      if (b <= a) return;
+      out += '<rect x="' + x(a) + '" y="' + top + '" width="' + Math.max(1.5, x(b) - x(a)) + '" height="' + (base - top) + '" fill="' + color + '"/>';
     });
   } else {
+    // Geglättet über das ganze Band, dann nur die Viertelstunden im Ausschnitt.
     const vals = shareArr.map((v) => (v === null ? 0 : v));
     const sm = vals.map((_, i) => {
       const w = vals.slice(Math.max(0, i - 1), i + 2);
       return w.reduce((s, v) => s + v, 0) / w.length;
-    });
-    const dx = (x1 - x0) / sm.length;
-    const px = sm.map((_, i) => x0 + (i + 0.5) * dx), py = sm.map(y);
+    }).slice(iA, iB);
+    const dx = (x(t0 + SLEEP_SLOT_MIN) - x(t0));
+    const px = sm.map((_, i) => x((iA + i + 0.5) * SLEEP_SLOT_MIN)), py = sm.map(y);
     sleepClockState.curveY = py;
+    sleepClockState.px = px;
     const n = sm.length, slope = [], tan = [];
     for (let i = 0; i < n - 1; i++) slope.push((py[i + 1] - py[i]) / dx);
     for (let i = 0; i < n; i++) {
@@ -6687,15 +6706,15 @@ function svgSleepClock(spans, shareArr) {
       seg += ' C' + (px[i] + dx / 3) + ',' + (py[i] + tan[i] * dx / 3) + ' ' + (px[i + 1] - dx / 3) + ',' + (py[i + 1] - tan[i + 1] * dx / 3) + ' ' + px[i + 1] + ',' + py[i + 1];
     }
     const line = 'M' + x0 + ',' + py[0] + ' L' + px[0] + ',' + py[0] + seg + ' L' + x1 + ',' + py[n - 1];
-    out += '<path d="' + line + ' L' + x1 + ',' + base + ' L' + x0 + ',' + base + ' Z" fill="#4B3F9E"/>';
+    out += '<path d="' + line + ' L' + x1 + ',' + base + ' L' + x0 + ',' + base + ' Z" fill="' + color + '"/>';
   }
 
   out += '<line x1="' + x0 + '" y1="' + base + '" x2="' + x1 + '" y2="' + base + '" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
-  // Volle Stunden alle 4 Stunden, ab der ersten vollen Stunde im Band.
+  // Volle Stunden (alle 4, im Ausschnitt alle 2), ab der ersten vollen Stunde.
   let labels = '';
-  for (let h = Math.ceil(fromMin / 60); h * 60 - fromMin <= 1440; h += 4) {
+  for (let h = Math.ceil((fromMin + t0) / 60); h * 60 - fromMin <= t1; h += step) {
     const off = h * 60 - fromMin;
-    const anchor = off < 10 ? 'start' : (off > 1430 ? 'end' : 'middle');
+    const anchor = off - t0 < 10 ? 'start' : (t1 - off < 10 ? 'end' : 'middle');
     labels += '<text x="' + x(off) + '" y="111" text-anchor="' + anchor + '">' + (h % 24) + '</text>';
   }
   return out + '<g font-family="Work Sans, sans-serif" font-size="13" fill="oklch(52% 0.006 250)">' + labels + '</g>' + SEC_MARKER;
@@ -6728,7 +6747,7 @@ function showSleepClockAt(svgEl, clientX) {
   const box = svgEl.getBoundingClientRect();
   if (!(box.width > 0)) return;
   const vx = Math.max(x0, Math.min(x1, svgViewX(svgEl, clientX)));
-  const off = (vx - x0) / (x1 - x0) * 1440;
+  const off = st.t0 + (vx - x0) / (x1 - x0) * (st.t1 - st.t0);
   const clock = (min) => minutesToHHMM(st.fromMin + min);
   let cx = vx, cy, value, sub;
   if (st.spans) {
@@ -6746,10 +6765,10 @@ function showSleepClockAt(svgEl, clientX) {
         : 'kein Schlaf eingetragen';
     }
   } else {
-    const i = Math.max(0, Math.min(SLEEP_SLOTS - 1, Math.floor(off / SLEEP_SLOT_MIN)));
+    const i = Math.max(st.iA, Math.min(st.iB - 1, Math.floor(off / SLEEP_SLOT_MIN)));
     const raw = st.share[i];
-    cx = x0 + (i + 0.5) * (x1 - x0) / SLEEP_SLOTS;
-    cy = st.curveY[i];
+    cx = st.px[i - st.iA];
+    cy = st.curveY[i - st.iA];
     value = raw === null ? 'keine Daten' : analyseRound(raw * 100) + ' % mit Schlaf';
     sub = clock(i * SLEEP_SLOT_MIN) + '–' + clock((i + 1) * SLEEP_SLOT_MIN);
   }
@@ -7207,7 +7226,10 @@ SCHLAFEN_CHARTS['schlaf-v-gesamt'] = {
   legendFrom: 'schlaf-gesamt',
   series: SCHLAFEN_CHARTS['schlaf-gesamt'].series.map((s) => ({ ...s, cum: (d) => d.cum[s.key] })),
   num: (v) => analyseHhmm(v / 60),
-  axis: () => ({ from: parseMinutes(readProfil().nightFrom), x1: SLEEP_CLOCK.x1, step: 4 })
+  axis: () => {
+    const r = sleepAxisRange();
+    return { from: parseMinutes(readProfil().nightFrom), x1: SLEEP_CLOCK.x1, step: r.step, t0: r.t0, t1: r.t1 };
+  }
 };
 
 // --- Kennzahl-Kacheln ----------------------------------------------------
@@ -7788,11 +7810,15 @@ function verlaufAvg(days, series) {
 // Achse: Füttern 0–24 Uhr über die volle Breite. Schlafen beginnt wie
 // „Uhrzeit des Schlafs" mit dem Nachtfenster und endet bei derselben Breite
 // (axis.x1), damit die Stunden beider Diagramme senkrecht übereinander stehen.
+// axis.t0–t1: gezeigter Ausschnitt (Minuten ab Achsenbeginn) — in Schlafen
+// nur das Nachtfenster oder nur der Tag, wenn die Legende eine Reihe isoliert.
 function secVerlaufInner(chartId, cfg, analysis) {
   const baseline = 95;
-  const axis = cfg.axis ? cfg.axis() : { from: 0, x1: 304, step: 6 };
-  const x1 = axis.x1;
-  const X = (t) => 4 + t / 1440 * (x1 - 4);
+  const axis = Object.assign({ from: 0, x1: 304, step: 6, t0: 0, t1: 1440 }, cfg.axis ? cfg.axis() : {});
+  const { x1, t0, t1 } = axis;
+  const X = (t) => 4 + (t - t0) / (t1 - t0) * (x1 - 4);
+  const gA = Math.ceil(t0 / 5), gB = Math.floor(t1 / 5);
+  const gStep = gB - gA > 150 ? 2 : 1;
   const num = cfg.num || analyseRound;
   const series = secVisibleSeries(chartId, cfg);
   const ink = cfg.series[0].color;
@@ -7812,7 +7838,7 @@ function secVerlaufInner(chartId, cfg, analysis) {
   const day = b && b.dayEvents.length === 1 ? b.dayEvents[0] : null;
   // nowT: Schlafen rechnet „jetzt" ab Beginn seines Bandes, nicht ab 0 Uhr.
   const nowT = day ? (day.nowT !== undefined ? day.nowT : day.isToday ? analyseNowMinutes() : 1440) : 1440;
-  const end = Math.max(0, Math.min(1440, nowT));
+  const end = Math.max(t0, Math.min(t1, nowT));
   const g0 = (t) => Math.floor(Math.min(t, end) / 5);
   const continuous = !!series[0].cum;
 
@@ -7823,14 +7849,14 @@ function secVerlaufInner(chartId, cfg, analysis) {
   else fill = b ? series.map((se) => verlaufAvg(b.dayEvents.filter((d) => d.complete), se)) : ref;
   const valAt = (t) => (dayCum || fill).reduce((sum, c) => sum + c[g0(t)], 0);
   const endVal = valAt(end);
-  const maxVal = Math.max(1, endVal, refTot(288)) * 1.12;
+  const maxVal = Math.max(1, endVal, refTot(gB)) * 1.12;
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - 82]);
 
   let lowPts, totPts;
   const dots = [];
   if (day && continuous) {
     lowPts = []; totPts = [];
-    for (let g = 0; g * 5 < end; g++) {
+    for (let g = gA; g * 5 < end; g++) {
       lowPts.push([X(g * 5), y(dayCum[0][g])]);
       totPts.push([X(g * 5), y(dayCum.reduce((sum, c) => sum + c[g], 0))]);
     }
@@ -7849,7 +7875,7 @@ function secVerlaufInner(chartId, cfg, analysis) {
     lowPts.push([X(end), y(low)]); totPts.push([X(end), y(tot)]);
   } else {
     lowPts = []; totPts = [];
-    for (let g = 0; g <= 288; g += 2) {
+    for (let g = gA; g <= gB; g += gStep) {
       lowPts.push([X(g * 5), y(fill[0][g])]);
       totPts.push([X(g * 5), y(fill.reduce((sum, c) => sum + c[g], 0))]);
     }
@@ -7870,45 +7896,45 @@ function secVerlaufInner(chartId, cfg, analysis) {
     '" font-family="Work Sans, sans-serif" font-size="13" font-weight="' + ((o && o.w) || 400) + '" fill="' +
     ((o && o.fill) || 'oklch(52% 0.006 250)') + '" text-anchor="' + ((o && o.anchor) || 'middle') + '">' + str + '</text>';
   let out = '<defs><clipPath id="clip-v-' + chartId + '"><rect class="ar-clip-v" x="0" y="0" width="0" height="' + baseline + '"/></clipPath></defs>';
-  if (end < 1440) out += '<rect x="' + X(end).toFixed(2) + '" y="6" width="' + (x1 - X(end)).toFixed(2) + '" height="' + (baseline - 6) + '" fill="oklch(96% 0.003 250)"/>';
+  if (end < t1) out += '<rect x="' + X(end).toFixed(2) + '" y="6" width="' + (x1 - X(end)).toFixed(2) + '" height="' + (baseline - 6) + '" fill="oklch(96% 0.003 250)"/>';
   out += '<line x1="4" y1="95" x2="' + x1 + '" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
-  // Volle Stunden im Abstand axis.step, ab der ersten im Band.
+  // Volle Stunden im Abstand axis.step, ab der ersten im Ausschnitt.
   const ticks = [];
   // „24" nur am Ende einer 0–24-Achse; mitten im Band heißt Mitternacht „0".
-  for (let h = Math.ceil(axis.from / 60); h * 60 - axis.from <= 1440; h += axis.step) {
+  for (let h = Math.ceil((axis.from + t0) / 60); h * 60 - axis.from <= t1; h += axis.step) {
     const t = h * 60 - axis.from;
     ticks.push([t, t === 1440 && h === 24 ? '24' : String(h % 24)]);
   }
   ticks.forEach(([t]) => {
-    if (t > 0 && t < 1440) out += '<line x1="' + X(t) + '" y1="95" x2="' + X(t) + '" y2="98" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
+    if (t > t0 && t < t1) out += '<line x1="' + X(t) + '" y1="95" x2="' + X(t) + '" y2="98" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
   });
   out += '<g class="ar-dim">' + curve + '</g><g class="ar-hi" clip-path="url(#clip-v-' + chartId + ')">' + curve + '</g>';
   // Mit Markierung derselbe Ø wie ohne, gestrichelt. Der weiße Unterstrich
   // hält ihn auch über der dunklen Fläche lesbar.
   if (b) {
     let rp = '';
-    for (let g = 0; g <= 288; g += 2) rp += (g ? 'L' : 'M') + X(g * 5).toFixed(1) + ',' + y(refTot(g)).toFixed(1);
+    for (let g = gA; g <= gB; g += gStep) rp += (g > gA ? 'L' : 'M') + X(g * 5).toFixed(1) + ',' + y(refTot(g)).toFixed(1);
     out += '<path d="' + rp + '" fill="none" stroke="white" stroke-width="3" stroke-opacity="0.85"/>' +
       '<path d="' + rp + '" fill="none" stroke="' + ink + '" stroke-width="1.6" stroke-dasharray="3,3"/>';
   }
   out += '<circle cx="' + X(end).toFixed(2) + '" cy="' + y(endVal).toFixed(2) + '" r="3.4" fill="' + ink + '" stroke="white" stroke-width="1.5"/>';
   const endText = (day ? '' : 'Ø ') + num(endVal);
-  out += end < 1440
+  out += end < t1
     ? txt((X(end) + 7).toFixed(2), (y(endVal) + 4.5).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: 'start' })
     : txt(x1 - 6, (y(endVal) - 8).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: 'end' });
-  const nowX = end < 1440 ? X(end) : null;
+  const nowX = end < t1 ? X(end) : null;
   ticks.forEach(([t, str]) => {
     if (nowX !== null && Math.abs(X(t) - nowX) < 22) return;
-    const anchor = t < 10 ? 'start' : t > 1430 ? 'end' : 'middle';
+    const anchor = t - t0 < 10 ? 'start' : t1 - t < 10 ? 'end' : 'middle';
     out += txt(anchor === 'start' ? X(t) + 2 : X(t), 111, str, { anchor });
   });
   if (nowX !== null) out += txt(Math.max(18, Math.min(x1 - 16, nowX)).toFixed(2), 111, 'Jetzt', { w: 700, fill: ink });
 
   analyseRender[chartId] = {
-    cfg, series, verlauf: true, builtFor: idx, end, single: !!day, marked: !!b, num,
+    cfg, series, verlauf: true, builtFor: idx, end, t0, single: !!day, marked: !!b, num,
     cxOf: X, yOf: (v) => y(v), valAt, refAt: (t) => refTot(Math.floor(t / 5)),
     clockAt: (t) => analyseClockText(axis.from ? (axis.from + t) % 1440 : t),
-    tAt: (vx) => Math.max(0, Math.min(end, Math.round((vx - 4) / (x1 - 4) * 1440 / 5) * 5))
+    tAt: (vx) => Math.max(t0, Math.min(end, t0 + Math.round((vx - 4) / (x1 - 4) * (t1 - t0) / 5) * 5))
   };
   return out + SEC_MARKER;
 }
@@ -7932,7 +7958,7 @@ function applyVerlaufSelection(view) {
     const svgEl = document.querySelector('#' + sec.hostId + ' svg[data-chart="' + chartId + '"]');
     if (!r || !r.verlauf || !svgEl) return;
     const wrap = svgEl.parentElement, tip = wrap.querySelector('.a-tip'), sc = svgEl.querySelector('.sc');
-    const t = sel ? Math.min(sel.t, r.end) : null;
+    const t = sel ? Math.max(r.t0, Math.min(sel.t, r.end)) : null;
     const active = t !== null && chartId === activeChart;
     svgEl.classList.toggle('has-sel', t !== null);
     svgEl.classList.toggle('is-active', active);

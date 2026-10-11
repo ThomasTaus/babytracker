@@ -5930,10 +5930,10 @@ const ANALYSE_MONTH_FULL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni'
 
 // Die Chips von fein nach grob. Ein Schritt nach links zoomt in den
 // markierten Balken hinein, einer nach rechts wieder heraus. „Stunden" zeigt
-// einen einzelnen Tag im Verlauf, aufsummiert über die Uhrzeit — vorerst nur
-// im Bereich Füttern; anderswo ist der Chip deaktiviert.
+// einen einzelnen Tag im Verlauf, aufsummiert über die Uhrzeit — in Füttern
+// und Schlafen; in der Übersicht und bei Windeln ist der Chip deaktiviert.
 const ANALYSE_ZOOM_ORDER = ['hours', 'days', 'weeks', 'months'];
-const ANALYSE_HOURS_VIEWS = ['fuettern'];
+const ANALYSE_HOURS_VIEWS = ['fuettern', 'schlafen'];
 
 // Zeitausschnitt der Analyse. Die Chips oben sind ein Zoomstufen-Regler, kein
 // reiner Zeitraum-Umschalter: sie sagen "wie fein", ein markierter Balken sagt
@@ -6481,15 +6481,20 @@ function computeSchlafenAnalysis(days, sleepSpans) {
         allNights.push(n);
       }
       const dw = dayWindowOf(day);
+      // Uhrzeit des Schlafs: das 24-Stunden-Band dieses Tages.
+      const band = nightWindowEnding(day).start.getTime();
+      const napEvents = [];
       sleeps.forEach((iv) => {
         const ov = spanOverlapMinutes(iv, dw);
         dayMin += ov;
         // Ein Schläfchen zählt an dem Tag, auf den der größte Teil seines
-        // Tagesanteils fällt.
-        if (ov > 0 && !iv.isNight && ov * 2 >= iv.dayMin) napCount++;
+        // Tagesanteils fällt — in „Stunden" zu seiner Einschlafzeit im Band.
+        if (ov > 0 && !iv.isNight && ov * 2 >= iv.dayMin) {
+          napCount++;
+          napEvents.push({ t: Math.max(0, (iv.start.getTime() - band) / 60000), nap: true });
+        }
       });
-      // Uhrzeit des Schlafs: das 24-Stunden-Band dieses Tages.
-      const band = nightWindowEnding(day).start.getTime();
+      napEvents.sort((p, q) => p.t - q.t);
       for (let i = 0; i < SLEEP_SLOTS; i++) {
         const s = band + i * slotMs, e = s + slotMs;
         if (e > now.getTime() || dataStart === null || e <= dataStart) continue;
@@ -6529,7 +6534,8 @@ function computeSchlafenAnalysis(days, sleepSpans) {
         dayEvents.push({
           key, isToday: stop < bandEnd, nowT: (stop - band) / 60000,
           complete: stop === bandEnd && nightOk && analyseCountedDays([key]) === 1,
-          cum: { night, nap }
+          cum: { night, nap },
+          events: napEvents
         });
       }
       // Ein einzelner Tag zeigt seine echten Schlafblöcke (Minuten ab Bandbeginn).
@@ -6568,7 +6574,9 @@ function computeSchlafenAnalysis(days, sleepSpans) {
       // Balken folgen kann, ohne neu zu rechnen.
       sleepShare: share(slotSum, slotCount),
       sleepSpans: spans,
-      dayEvents
+      dayEvents,
+      // „Stunden": die Schläfchen des einen Tages als Stufen.
+      events: dayEvents.length === 1 ? dayEvents[0].events : []
     };
   });
 
@@ -7151,10 +7159,21 @@ const WINDELN_CHARTS = {
 const SCHLAFEN_CHARTS = {
   'schlaf-gesamt': {
     title: 'Gesamtschlaf pro Tag',
+    // cum: die aufsummierte Schlafkurve eines Tages in Minuten (Tagesverlauf, „Stunden").
     series: [
-      { key: 'night', label: 'Nachts', color: '#4B3F9E', value: (d) => d.nightMinutes / 60, mean: (a) => a.avgNightHExact },
-      { key: 'nap', label: 'Tagsüber', color: '#B7ADEB', value: (d) => d.napMinutes / analyseDayDivisor(d) / 60, mean: (a) => a.avgNapHExact }
+      { key: 'night', label: 'Nachts', color: '#4B3F9E', value: (d) => d.nightMinutes / 60, mean: (a) => a.avgNightHExact, cum: (d) => d.cum.night },
+      { key: 'nap', label: 'Tagsüber', color: '#B7ADEB', value: (d) => d.napMinutes / analyseDayDivisor(d) / 60, mean: (a) => a.avgNapHExact, cum: (d) => d.cum.nap }
     ],
+    // „Stunden": derselbe Tag als Schlafkurve über das Band ab dem Nachtfenster,
+    // im Ausschnitt der Legende (Nachts/Tagsüber) wie der Tagesverlauf.
+    hours: {
+      title: 'Gesamtschlaf', head: (v) => analyseHhmm(v / 60) + ' Std.', ref: (v) => analyseHhmm(v / 60) + ' Std.',
+      tip: (v) => analyseHhmm(v / 60) + ' Std.', num: (v) => analyseHhmm(v / 60),
+      axis: () => {
+        const r = sleepAxisRange();
+        return { from: parseMinutes(readProfil().nightFrom), x1: 304, step: r.step, t0: r.t0, t1: r.t1 };
+      }
+    },
     barLabel: (v) => String(analyseRound(v)),
     headline: (v) => 'Ø ' + analyseHhmm(v) + ' Std.',
     tipValue: (v) => analyseHhmm(v) + ' Std.',
@@ -7210,7 +7229,14 @@ const SCHLAFEN_CHARTS = {
   },
   'schlaf-naps': {
     title: 'Schläfchen tagsüber',
-    series: [{ key: 'napc', label: 'Schläfchen', color: '#4B3F9E', value: (d) => d.napCount / analyseDayDivisor(d), mean: (a) => a.avgNapCountExact }],
+    series: [{ key: 'napc', label: 'Schläfchen', color: '#4B3F9E', value: (d) => d.napCount / analyseDayDivisor(d), mean: (a) => a.avgNapCountExact,
+      inc: (e) => (e.nap ? 1 : 0) }],
+    // „Stunden": eine Stufe je Schläfchen zu seiner Einschlafzeit.
+    hours: {
+      title: 'Schläfchen tagsüber', head: (v) => String(analyseRound(v)), ref: (v) => analyseDe1(v),
+      tip: (v) => analyseRound(v) + ' Schläfchen',
+      axis: () => ({ from: parseMinutes(readProfil().nightFrom), x1: 304, step: 4, t0: 0, t1: 1440 })
+    },
     barLabel: (v) => String(analyseRound(v)),
     headline: (v) => 'Ø ' + analyseDe1(v) + ' / Tag',
     tipValue: (v) => analyseDe1(v) + ' Schläfchen',
@@ -7223,7 +7249,7 @@ const SCHLAFEN_CHARTS = {
 SCHLAFEN_CHARTS['schlaf-v-gesamt'] = {
   type: 'verlauf', title: 'Gesamtschlaf im Tagesverlauf', sub: 'Dauer in Std.', unit: 'Std.',
   legendFrom: 'schlaf-gesamt',
-  series: SCHLAFEN_CHARTS['schlaf-gesamt'].series.map((s) => ({ ...s, cum: (d) => d.cum[s.key] })),
+  series: SCHLAFEN_CHARTS['schlaf-gesamt'].series,
   num: (v) => analyseHhmm(v / 60),
   axis: () => {
     const r = sleepAxisRange();
@@ -7382,7 +7408,7 @@ const ANALYSE_SECTION_UI = {
       id: 'schlaf-uhr',
       // Bewusst keine Klasse a-chart und kein data-chart: das Wischen über die
       // Balkendiagramme soll diese Karte nicht erfassen.
-      shell: (part) => '<div class="' + (part ? 'a-part' : 'a-card') + '">' +
+      shell: (part) => '<div class="' + (part ? 'a-part' : 'a-card') + '" data-extra>' +
         '<div class="a-card-label">Uhrzeit des Schlafs</div>' +
         '<div class="a-card-value" style="margin-bottom:8px;">Anteil der Tage</div>' +
         '<div class="a-chart-wrap"><div class="a-tip" hidden></div>' +
@@ -7621,14 +7647,43 @@ function secHoursInner(chartId, cfg, analysis) {
   const day = analyseHoursDay(analysis);
   const series = secVisibleSeries(chartId, cfg);
   const ink = cfg.series[0].color;
-  const end = analyseHoursEnd(day);
+  const hc = cfg.hours;
+  const num = hc.num || ((v) => String(analyseRound(v)));
+  // Achse: Füttern 0–24 Uhr. Schlafen 24 Stunden ab Beginn des Nachtfensters,
+  // beim Gesamtschlaf im Ausschnitt der Legende (axis.t0–t1, Minuten ab
+  // Achsenbeginn) — wie der Tagesverlauf in „Tage".
+  const axis = Object.assign({ from: 0, x1: 304, step: 6, t0: 0, t1: 1440 }, hc.axis ? hc.axis() : {});
+  const { x1, t0, t1 } = axis;
+  const X = (t) => 4 + (t - t0) / (t1 - t0) * (x1 - 4);
+  const gA = Math.ceil(t0 / 5), gB = Math.floor(t1 / 5);
+  // Schlafen bringt seine Kurve fertig mit (cum) und rechnet „jetzt" ab Beginn
+  // seines Bandes; Füttern und die Schläfchen summieren Einträge zu Stufen.
+  const continuous = !!series[0].cum;
+  const deOf = (d) => (d.dayEvents && d.dayEvents.length === 1 ? d.dayEvents[0] : null);
+  const de = deOf(day);
+  const nowT = de && de.nowT !== undefined ? de.nowT : analyseHoursEnd(day);
+  const end = Math.max(t0, Math.min(t1, nowT));
+  const live = nowT < 1440;
+  const cumOf = (d, list, t) => {
+    if (continuous) {
+      const x = deOf(d);
+      if (!x) return 0;
+      const g = Math.floor(Math.max(0, Math.min(1440, t)) / 5);
+      return list.reduce((s, se) => s + se.cum(x)[g], 0);
+    }
+    return d.events.reduce((s, e) => (e.t <= t ? s + list.reduce((a, se) => a + se.inc(e), 0) : s), 0);
+  };
+  const cum = (d, t) => cumOf(d, series, t);
   const incOf = (e) => series.reduce((s, se) => s + se.inc(e), 0);
-  const cum = (d, t) => d.events.reduce((s, e) => (e.t <= t ? s + incOf(e) : s), 0);
 
-  // Ø-Verlauf: die übrigen Tage des Fensters, ohne Tage vor der Geburt. Im
-  // 5-Minuten-Raster vorberechnet und über ±45 Min. geglättet — der Mittelwert
-  // weniger Treppen sähe sonst selbst wie eine Treppe aus.
-  const refDays = analysis.perDay.slice(0, -1).filter((d) => d.daysCounted > 0);
+  // Ø-Verlauf: die übrigen abgeschlossenen Tage des Fensters (nach der Geburt,
+  // in Schlafen nur mit Nachteinträgen). Im 5-Minuten-Raster vorberechnet und
+  // über ±45 Min. geglättet — der Mittelwert weniger Treppen sähe sonst selbst
+  // wie eine Treppe aus.
+  const refDays = analysis.perDay.slice(0, -1).filter((d) => {
+    const x = deOf(d);
+    return x ? x.complete : d.daysCounted > 0;
+  });
   const refAt = refDays.length ? (t) => refDays.reduce((s, d) => s + cum(d, t), 0) / refDays.length : null;
   const refArr = refAt ? Array.from({ length: 289 }, (_, k) => refAt(k * 5)) : null;
   const refSmooth = (k) => {
@@ -7638,25 +7693,36 @@ function secHoursInner(chartId, cfg, analysis) {
   };
 
   const total = cum(day, end);
-  const refEnd = refArr ? refArr[288] : 0;
+  const refEnd = refArr ? refArr[gB] : 0;
   const maxVal = Math.max(1, total, refEnd) * 1.1;
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - 82]);
-  const X = HOURS_X;
 
   // Stufen: die untere Reihe und die Summe, jeweils mit senkrechtem Sprung
-  // an der Uhrzeit des Eintrags.
-  const evs = day.events.filter((e) => e.t <= end && incOf(e) > 0);
-  let low = 0, tot = 0;
-  const lowPts = [[X(0), y(0)]], totPts = [[X(0), y(0)]], dots = [];
-  evs.forEach((e) => {
-    lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
-    low += series[0].inc(e); tot += incOf(e);
-    lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
-    dots.push([X(e.t), y(tot), series[0].inc(e) > 0 ? series[0].color : series[series.length - 1].color]);
-  });
-  lowPts.push([X(end), y(low)]); totPts.push([X(end), y(tot)]);
+  // an der Uhrzeit des Eintrags. Schlaf steigt dagegen, solange geschlafen wird.
+  let lowPts, totPts;
+  const dots = [];
+  if (continuous) {
+    lowPts = []; totPts = [];
+    for (let g = gA; g * 5 < end; g++) {
+      lowPts.push([X(g * 5), y(cumOf(day, [series[0]], g * 5))]);
+      totPts.push([X(g * 5), y(cum(day, g * 5))]);
+    }
+    lowPts.push([X(end), y(cumOf(day, [series[0]], end))]);
+    totPts.push([X(end), y(total)]);
+  } else {
+    const evs = day.events.filter((e) => e.t <= end && incOf(e) > 0);
+    let low = 0, tot = 0;
+    lowPts = [[X(t0), y(0)]]; totPts = [[X(t0), y(0)]];
+    evs.forEach((e) => {
+      lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
+      low += series[0].inc(e); tot += incOf(e);
+      lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
+      dots.push([X(e.t), y(tot), series[0].inc(e) > 0 ? series[0].color : series[series.length - 1].color]);
+    });
+    lowPts.push([X(end), y(low)]); totPts.push([X(end), y(tot)]);
+  }
   const pl = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(2) + ',' + p[1].toFixed(2)).join('');
-  const floor = 'L' + X(end).toFixed(2) + ',' + baseline + 'L' + X(0) + ',' + baseline + 'Z';
+  const floor = 'L' + X(end).toFixed(2) + ',' + baseline + 'L' + X(t0) + ',' + baseline + 'Z';
   // Voll deckend wie die Tagesverlauf-Karten in „Tage" — dieselbe Art Diagramm.
   let curve = series.length > 1
     ? '<path d="' + pl(totPts) + pl(lowPts.slice().reverse()).replace('M', 'L') + 'Z" fill="' + series[1].color + '"/>' +
@@ -7671,44 +7737,56 @@ function secHoursInner(chartId, cfg, analysis) {
     '" font-family="Work Sans, sans-serif" font-size="13" font-weight="' + ((o && o.w) || 400) + '" fill="' +
     ((o && o.fill) || 'oklch(52% 0.006 250)') + '" text-anchor="' + ((o && o.anchor) || 'middle') + '">' + s + '</text>';
 
+  // Läuft der Tag noch und liegt „jetzt" im Ausschnitt, ist der Rest hinterlegt.
+  const open = live && end < t1;
   let out = '<defs><clipPath id="clip-h-' + chartId + '"><rect class="ar-clip-h" x="0" y="0" width="0" height="' + baseline + '"/></clipPath></defs>';
-  // Was vom heutigen Tag noch kommt, liegt leicht hinterlegt.
-  if (day.isToday) out += '<rect x="' + X(end).toFixed(2) + '" y="6" width="' + (304 - X(end)).toFixed(2) + '" height="' + (baseline - 6) + '" fill="oklch(96% 0.003 250)"/>';
-  out += '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
-  [360, 720, 1080].forEach((t) => { out += '<line x1="' + X(t) + '" y1="95" x2="' + X(t) + '" y2="98" stroke="oklch(87% 0.004 250)" stroke-width="1"/>'; });
+  if (open) out += '<rect x="' + X(end).toFixed(2) + '" y="6" width="' + (x1 - X(end)).toFixed(2) + '" height="' + (baseline - 6) + '" fill="oklch(96% 0.003 250)"/>';
+  out += '<line x1="4" y1="95" x2="' + x1 + '" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
+  // Volle Stunden im Abstand axis.step; „24" nur am Ende einer 0–24-Achse.
+  const ticks = [];
+  for (let h = Math.ceil((axis.from + t0) / 60); h * 60 - axis.from <= t1; h += axis.step) {
+    const t = h * 60 - axis.from;
+    ticks.push([t, t === 1440 && h === 24 ? '24' : String(h % 24)]);
+  }
+  ticks.forEach(([t]) => {
+    if (t > t0 && t < t1) out += '<line x1="' + X(t) + '" y1="95" x2="' + X(t) + '" y2="98" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
+  });
   out += '<g class="ar-dim">' + curve + '</g><g class="ar-hi" clip-path="url(#clip-h-' + chartId + ')">' + curve + '</g>';
   if (refArr) {
+    const kStep = gB - gA > 150 ? 2 : 1;
     let ref = '';
-    for (let k = 0; k <= 288; k += 2) ref += (k ? 'L' : 'M') + X(k * 5).toFixed(1) + ',' + y(refSmooth(k)).toFixed(1);
+    for (let k = gA; k <= gB; k += kStep) ref += (k > gA ? 'L' : 'M') + X(k * 5).toFixed(1) + ',' + y(refSmooth(k)).toFixed(1);
     // Wie im Tagesverlauf: der weiße Unterstrich hält den Ø auch über der
     // dunklen Fläche lesbar.
     out += '<path d="' + ref + '" fill="none" stroke="white" stroke-width="3" stroke-opacity="0.85"/>' +
       '<path d="' + ref + '" fill="none" stroke="' + ink + '" stroke-width="1.6" stroke-dasharray="3,3"/>';
   }
-  out += '<circle cx="' + X(end).toFixed(2) + '" cy="' + y(tot).toFixed(2) + '" r="3.4" fill="' + ink + '" stroke="white" stroke-width="1.5"/>';
-  const endText = analyseRound(total) + '';
-  if (day.isToday) {
+  out += '<circle cx="' + X(end).toFixed(2) + '" cy="' + y(total).toFixed(2) + '" r="3.4" fill="' + ink + '" stroke="white" stroke-width="1.5"/>';
+  const endText = num(total);
+  if (open) {
     // Heute: Wert rechts neben dem Jetzt-Punkt, Ø-Tagesende ganz rechts.
-    const right = X(end) > 260;
-    out += txt((X(end) + (right ? -6 : 7)).toFixed(2), (y(tot) + (right ? -7 : 4.5)).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: right ? 'end' : 'start' });
-    if (refArr && !right) out += txt(302, (y(refEnd) - 5).toFixed(2), 'Ø ' + cfg.hours.ref(refEnd).replace(/ (ml|Min\.)$/, ''), { w: 600, anchor: 'end' });
+    const right = X(end) > x1 - 44;
+    out += txt((X(end) + (right ? -6 : 7)).toFixed(2), (y(total) + (right ? -7 : 4.5)).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: right ? 'end' : 'start' });
+    if (refArr && !right) out += txt(x1 - 2, (y(refEnd) - 5).toFixed(2), 'Ø ' + hc.ref(refEnd).replace(/ (ml|Min\.|Std\.)$/, ''), { w: 600, anchor: 'end' });
   } else {
-    out += txt((X(end) - 6).toFixed(2), (y(tot) - 7).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: 'end' });
+    out += txt((X(end) - 6).toFixed(2), (y(total) - 7).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: 'end' });
   }
-  // Achse: volle Stunden; „Jetzt" heute an der aktuellen Uhrzeit. Liegt es zu
-  // nah an einer Marke, weicht die Marke.
-  const nowX = day.isToday ? X(end) : null;
-  [[0, '0', 'start', 6], [360, '6'], [720, '12'], [1080, '18'], [1440, '24', 'end', 304]].forEach(([t, s, anchor, x]) => {
+  // „Jetzt" heute an der aktuellen Uhrzeit. Liegt es zu nah an einer Marke,
+  // weicht die Marke.
+  const nowX = open ? X(end) : null;
+  ticks.forEach(([t, s]) => {
     if (nowX !== null && Math.abs(X(t) - nowX) < 22) return;
-    out += txt(x || X(t), 111, s, { anchor });
+    const anchor = t - t0 < 10 ? 'start' : t1 - t < 10 ? 'end' : 'middle';
+    out += txt(anchor === 'start' ? X(t) + 2 : X(t), 111, s, { anchor });
   });
-  if (nowX !== null) out += txt(Math.max(18, Math.min(288, nowX)).toFixed(2), 111, 'Jetzt', { w: 700, fill: ink });
+  if (nowX !== null) out += txt(Math.max(18, Math.min(x1 - 16, nowX)).toFixed(2), 111, 'Jetzt', { w: 700, fill: ink });
 
   analyseRender[chartId] = {
-    cfg, series, hours: true, end, total,
+    cfg, series, hours: true, end, t0, total,
     refAt: refAt || null, refEnd: refArr ? refEnd : null,
     cxOf: X, yOf: (v) => y(v), cumAt: (t) => cum(day, t),
-    tAt: (vx) => Math.max(0, Math.min(end, Math.round((vx - 4) / 300 * 1440 / 5) * 5))
+    clockAt: (t) => analyseClockText(axis.from ? (axis.from + t) % 1440 : t),
+    tAt: (vx) => Math.max(t0, Math.min(end, t0 + Math.round((vx - 4) / (x1 - 4) * (t1 - t0) / 5) * 5))
   };
   return out + SEC_MARKER;
 }
@@ -7744,7 +7822,7 @@ function applyHoursSelection(view) {
     const wrap = svgEl.parentElement;
     const tip = wrap.querySelector('.a-tip');
     const sc = svgEl.querySelector('.sc');
-    const t = analyseHourSel ? Math.min(analyseHourSel.t, r.end) : null;
+    const t = analyseHourSel ? Math.max(r.t0, Math.min(analyseHourSel.t, r.end)) : null;
     const active = t !== null && chartId === activeChart;
     svgEl.classList.toggle('has-sel', t !== null);
     svgEl.classList.toggle('is-active', active);
@@ -7759,9 +7837,10 @@ function applyHoursSelection(view) {
     sc.querySelector('.sc-line').setAttribute('y2', cy);
     sc.querySelector('.sc-dot').setAttribute('cx', cx);
     sc.querySelector('.sc-dot').setAttribute('cy', cy);
-    const sub = 'bis ' + analyseClockText(t) + (r.refAt ? ' · Ø ' + r.cfg.hours.ref(r.refAt(t)) : '');
+    const sub = 'bis ' + r.clockAt(t) + (r.refAt ? ' · Ø ' + r.cfg.hours.ref(r.refAt(t)) : '');
+    const value = r.cfg.hours.tip ? r.cfg.hours.tip(v) : r.cfg.tipValue(v, { daysElapsed: 1 });
     tip.hidden = false;
-    tip.innerHTML = '<div class="a-tip-v">' + r.cfg.tipValue(v, { daysElapsed: 1 }) + '</div><div class="a-tip-s">' + sub + '</div>';
+    tip.innerHTML = '<div class="a-tip-v">' + value + '</div><div class="a-tip-s">' + sub + '</div>';
     positionAnalyseTip(tip, wrap, svgEl, cx);
   });
 }
@@ -8238,8 +8317,9 @@ function updateSecStats(view) {
   const sec = ANALYSE_SECTION_UI[view];
   const a = analyseData[view];
   if (!a) return;
-  const hours = analyseScope.mode === 'hours' && view === 'fuettern';
-  const b = hours ? fuetternHoursBucket(a) : analyseSelectedBucket(view);
+  // „Stunden": Füttern zählt bis zur markierten Uhrzeit, Schlafen zeigt den Tag.
+  const hours = analyseScope.mode === 'hours' && ANALYSE_HOURS_VIEWS.includes(view);
+  const b = !hours ? analyseSelectedBucket(view) : view === 'fuettern' ? fuetternHoursBucket(a) : analyseHoursDay(a);
   const vals = sec.stats(a, b);
   // „Ø" nur, wo wirklich gemittelt wird — bei einem einzelnen Tag nicht.
   const isAvg = !b || b.daysElapsed > 1;
@@ -8394,6 +8474,10 @@ function renderAnalyseSection(view, analysis) {
     analyseColorFilter = null;
   }
   sec.order.forEach((id) => updateSecCard(view, id));
+  // „Uhrzeit des Schlafs" ist schon ein Tagesverlauf — in „Stunden" fehlt sie
+  // wie die übrigen Karten ohne eigene Stunden-Ansicht.
+  const extraEl = host.querySelector('[data-extra]');
+  if (extraEl) extraEl.hidden = analyseScope.mode === 'hours';
 
   const insight = host.querySelector('[data-insight]');
   // Die Hinweise vergleichen Tage miteinander — in „Stunden" passen sie nicht.

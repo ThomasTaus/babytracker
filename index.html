@@ -291,6 +291,8 @@
   #screen-analyse .a-axis-unit { text-align: right; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-top: 2px; }
   #screen-analyse .a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; }
   #screen-analyse .a-card:last-child { margin-bottom: 0; }
+  /* Mehrere Diagramme in einer Karte: eine dünne Linie trennt sie. */
+  #screen-analyse .a-part + .a-part { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
   #screen-analyse .a-card-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px; }
   #screen-analyse .a-card-value { font-family: 'Fredoka', sans-serif; font-size: 15px; font-weight: 600; }
   #screen-analyse .a-card-value-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
@@ -7033,10 +7035,10 @@ const FUETTERN_CHARTS = {
   },
   'fu-still': {
     type: 'area',
-    title: 'Stilldauer (Brust)',
+    title: 'Stilldauer',
     series: [{ key: 'min', label: 'Stilldauer', color: FUETTERN_COLOR, value: (d) => d.breastMin / analyseDayDivisor(d), mean: (a) => a.avgBreastMinExact,
       inc: (e) => (e.meal && e.f.type === 'breast' ? (e.f.minutes || 0) : 0) }],
-    hours: { title: 'Stilldauer (Brust)', head: (v) => analyseRound(v) + ' Min.', ref: (v) => analyseRound(v) + ' Min.' },
+    hours: { title: 'Stilldauer', head: (v) => analyseRound(v) + ' Min.', ref: (v) => analyseRound(v) + ' Min.' },
     headline: (v) => 'Ø ' + analyseRound(v) + ' Min. / Tag',
     tipValue: (v) => analyseRound(v) + ' Min.',
     detail: (v) => analyseRound(v) + ' Min.'
@@ -7080,7 +7082,7 @@ const FUETTERN_CHARTS = {
 // fehlen sie (kein `hours`) — dort ist jede Karte schon ein Tagesverlauf.
 // Untertitel nur die Einheit, wie „Anteil der Tage" bei „Uhrzeit des Schlafs".
 Object.assign(FUETTERN_CHARTS, {
-  'fu-v-menge': { type: 'verlauf', title: 'Trinkmenge im Tagesverlauf', sub: 'Menge in ml', unit: 'ml', series: FUETTERN_CHARTS['fu-menge'].series },
+  'fu-v-menge': { type: 'verlauf', title: 'Trinkmenge im Tagesverlauf', sub: 'Menge in ml', unit: 'ml', series: FUETTERN_CHARTS['fu-menge'].series, noLegend: true },
   'fu-v-pump': { type: 'verlauf', title: 'Abpumpen im Tagesverlauf', sub: 'Menge in ml', unit: 'ml', series: FUETTERN_CHARTS['fu-pump'].series },
   'fu-v-still': { type: 'verlauf', title: 'Stilldauer im Tagesverlauf', sub: 'Dauer in Min.', unit: 'Min.', series: FUETTERN_CHARTS['fu-still'].series }
 });
@@ -7258,6 +7260,9 @@ const ANALYSE_SECTION_UI = {
     hostId: 'analyse-view-fuettern',
     charts: FUETTERN_CHARTS,
     order: ['fu-anzahl', 'fu-menge', 'fu-v-menge', 'fu-pump', 'fu-v-pump', 'fu-still', 'fu-v-still', 'fu-seite'],
+    // Was zusammengehört, teilt sich eine Karte: Tageswert und Tagesverlauf,
+    // bei der Stilldauer dazu die Seitenbalance, deren Legende beide filtert.
+    groups: [['fu-menge', 'fu-v-menge'], ['fu-pump', 'fu-v-pump'], ['fu-still', 'fu-v-still', 'fu-seite']],
     tileClass: 'a-stat-row',
     tileColor: 'var(--fuettern-strong)',
     tiles: [
@@ -8040,11 +8045,13 @@ function secChartInner(chartId, cfg, analysis) {
 // genau einmal gebaut und danach nie wieder angefasst — beim Wechsel der
 // Zoomstufe tauscht nur der Inhalt der SVG und ein paar Textknoten. Ein voller
 // Neuaufbau würde wie ein Seitenaufbau wirken.
-function secCardShell(view, chartId) {
+// part: das Diagramm teilt sich eine Karte mit anderen (sec.groups) — dann
+// trägt nicht es selbst den Kartenrahmen, sondern die Gruppe.
+function secCardShell(view, chartId, part) {
   const cfg = ANALYSE_SECTION_UI[view].charts[chartId];
   // Eine einzelne Reihe hat keine Filter-Legende, kann aber eine erklärende
-  // Notiz tragen (legendNote).
-  const legend = cfg.series.length < 2 ? (cfg.legendNote || '') :
+  // Notiz tragen (legendNote). noLegend: die Legende darüber gilt mit.
+  const legend = cfg.noLegend ? '' : cfg.series.length < 2 ? (cfg.legendNote || '') :
     '<div class="a-legend">' + cfg.series.map((s) =>
       '<button type="button" class="lg" data-chart="' + chartId + '" data-series="' + s.key + '">' +
       '<i style="background:' + s.color + ';"></i>' + s.label + '</button>').join('') + '</div>';
@@ -8056,7 +8063,7 @@ function secCardShell(view, chartId) {
     : '<div class="a-card-value-row">' +
       '<div><div class="a-card-label">' + cfg.title + '</div><div class="a-card-value"></div></div>' + legend +
       '</div>';
-  return '<div class="a-card" data-card="' + chartId + '">' + head +
+  return '<div class="' + (part ? 'a-part' : 'a-card') + '" data-card="' + chartId + '">' + head +
     '<div class="a-chart-wrap"><div class="a-tip" hidden></div>' +
       // Höhere Diagramme behalten den Maßstab der übrigen (105 px für 118 Einheiten).
       '<svg class="a-chart" viewBox="0 0 308 ' + (cfg.viewH || 118) + '" data-chart="' + chartId + '"' +
@@ -8072,7 +8079,12 @@ function secShellHtml(view) {
       '<div class="a-stat-tile"><div class="a-stat-num" data-stat="' + t.key + '" style="color:' + sec.tileColor + ';">–</div>' +
       '<div class="a-stat-cap" data-cap="' + t.key + '"></div></div>').join('') +
     '</div>' +
-    sec.order.map((id) => secCardShell(view, id)).join('') +
+    sec.order.map((id) => {
+      const group = (sec.groups || []).find((g) => g.includes(id));
+      if (!group) return secCardShell(view, id);
+      if (group[0] !== id) return '';
+      return '<div class="a-card">' + group.map((g) => secCardShell(view, g, true)).join('') + '</div>';
+    }).join('') +
     (sec.extra ? sec.extra.shell() : '') +
     '<div class="a-insight" data-insight hidden style="background:' + sec.insight.bg + '; color:' + sec.insight.fg + ';">' +
       ANALYSE_ICON_STAR + '<span></span></div>';
@@ -8491,9 +8503,8 @@ function analyseTimeSelNear(view, chartId, clientX) {
     if (analyseColorFilter && c === 'wi-wechsel') { analyseColorFilter = null; analyseFilter[c] = k; }
     else analyseFilter[c] = analyseFilter[c] === k ? null : k;
     updateSecCard(analyseView, c);
-    // Trinkmenge und ihr Tagesverlauf teilen eine Auswahl.
-    const twin = { 'fu-menge': 'fu-v-menge', 'fu-v-menge': 'fu-menge' }[c];
-    if (twin) { analyseFilter[twin] = analyseFilter[c]; updateSecCard(analyseView, twin); }
+    // Die Legende der Trinkmenge gilt auch für ihren Tagesverlauf darunter.
+    if (c === 'fu-menge') { analyseFilter['fu-v-menge'] = analyseFilter[c]; updateSecCard(analyseView, 'fu-v-menge'); }
     // Die Seitenwahl steuert auch die Stilldauer und ihren Tagesverlauf.
     if (c === 'fu-seite') { updateSecCard('fuettern', 'fu-still'); updateSecCard('fuettern', 'fu-v-still'); }
     applySecSelection(analyseView);

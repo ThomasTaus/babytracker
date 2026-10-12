@@ -56,7 +56,7 @@
      zum Rand der Kachel (4px + halbe 44px-Kopfzeile). */
   .ht-rows { display: flex; flex-direction: column; margin-top: 4px; padding: 6px 8px 4px 0; border-top: 1px solid var(--border); }
   .ht-rows[hidden] { display: none; }
-  .ht-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 72px 1fr 92px 10px; align-items: center; column-gap: 8px; min-height: 34px; margin-left: -8px; padding-left: 8px; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .ht-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 64px 1fr 60px 38px 10px; align-items: center; column-gap: 8px; min-height: 34px; margin-left: -8px; padding-left: 8px; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   /* in srgb mischen: in oklch nimmt „transparent" den Farbton 0 mit und färbt Türkis rötlich */
   @media (hover: hover) { .ht-row:hover { background: color-mix(in srgb, var(--card-soft) 55%, transparent); } }
   .ht-row:active { background: var(--card-soft); }
@@ -65,10 +65,10 @@
   .ht-sc { position: relative; display: block; height: 14px; }
   .ht-sc svg { width: 100%; height: 14px; display: block; }
   .ht-dot { position: absolute; top: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--ht-strong); box-shadow: 0 0 0 2px var(--surface); }
-  .ht-miss { grid-column: 2 / 4; font-size: 12px; font-weight: 600; color: var(--warn); }
-  .ht-v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; display: flex; justify-content: flex-end; align-items: baseline; gap: 5px; }
-  .ht-v b { font-size: 14px; font-weight: 700; }
-  .ht-v small { font-size: 11.5px; font-weight: 600; color: var(--ht-strong); }
+  .ht-miss { grid-column: 2 / 5; font-size: 12px; font-weight: 600; color: var(--warn); }
+  /* Wert rechtsbündig (bis „1050 ml"), Abweichung linksbündig daneben */
+  .ht-v { text-align: right; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ht-d { text-align: left; font-size: 11.5px; font-weight: 600; color: var(--ht-strong); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ht-chev { color: var(--text-muted); opacity: 0.7; }
 
   /* Fußleiste: auf jeder Seite dieselbe, gebaut von renderTabbars(). Alle
@@ -5772,11 +5772,13 @@ function heuteTrendRow(key, val, ref, missing) {
     state = out ? (val > mid ? ', mehr als üblich' : ', weniger als üblich') : ', im üblichen Bereich';
     const d = r.diff ? r.diff(val, mid) : Math.round(val) - Math.round(mid);
     const txt = out && d ? (r.dfmt || String)(Math.abs(d)) : '';
-    if (txt) delta = '<small>' + (d > 0 ? '+' : '−') + txt + '</small>';
+    if (txt) delta = (d > 0 ? '+' : '−') + txt;
   }
+  // Wert und Abweichung in eigenen Spalten: die Werte stehen rechtsbündig
+  // untereinander, auch wenn daneben eine Abweichung steht.
   return open + r.label + ' heute ' + r.fmt(val) + state + '. Analyse öffnen">' +
     '<span class="ht-l">' + r.label + '</span><span class="ht-sc">' + scale + '</span>' +
-    '<span class="ht-v"><b>' + r.fmt(val) + '</b>' + delta + '</span>' + HEUTE_TREND_CHEV + '</button>';
+    '<span class="ht-v">' + r.fmt(val) + '</span><span class="ht-d">' + delta + '</span>' + HEUTE_TREND_CHEV + '</button>';
 }
 
 function putHeuteTrend(id, rows) {

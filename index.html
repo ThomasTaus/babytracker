@@ -4914,6 +4914,20 @@ function sleepInterval(entry) {
   return { start, end: new Date(start.getTime() + mins * 60000) };
 }
 
+// Die Schlafspannen für die Analyse und die Trendzeilen auf Heute. Ein
+// laufender Timer-Schlaf zählt bis jetzt mit — so stimmt der Stand des
+// Tages schon während des Schlafs, nicht erst nach dem Aufwachen.
+function analyseSleepSpans(naps, nights, now) {
+  return naps.map((n) => {
+    if (n.endTime == null && n.startTime) {
+      const start = new Date(n.startTime);
+      return Number.isNaN(start.getTime()) || start >= now ? null : { start, end: now };
+    }
+    return sleepInterval(n);
+  }).concat(nights.map((n) => sleepInterval({ ...n, _type: 'night' })))
+    .filter(Boolean);
+}
+
 // Das Nachtfenster, das am Kalendertag `day` endet — die Nacht gehört zum
 // Morgen, an dem sie endet. Liegt „von" nach „bis" (20–8 Uhr), beginnt es am
 // Vorabend.
@@ -5802,11 +5816,8 @@ async function renderHeuteTrend(now) {
   const wind = heuteTrendValues(windeln, WINDELN_CHARTS['wi-wechsel'].series);
   putHeuteTrend('windeln-trend', [heuteTrendRow('wind', wind.val, wind.ref)]);
 
-  // Schlafen: wie in der Analyse nur abgeschlossene Schläfe — ein laufendes
-  // Schläfchen zählt erst, wenn es beendet ist.
-  const spans = naps.map(sleepInterval)
-    .concat(nights.map((n) => sleepInterval({ ...n, _type: 'night' })))
-    .filter(Boolean);
+  // Schlafen: dieselben Spannen wie die Analyse, ein laufender Schlaf bis jetzt.
+  const spans = analyseSleepSpans(naps, nights, now);
   const schlafen = computeSchlafenAnalysis(days, spans);
   const [nightSe, napSe] = ['night', 'nap'].map((k) => SCHLAFEN_CHARTS['schlaf-gesamt'].series.find((s) => s.key === k));
   const today = todayStartDate();
@@ -6056,6 +6067,8 @@ setInterval(() => {
   document.querySelectorAll('#timeline-container [data-run-since]').forEach((el) => {
     el.textContent = runningMinutesLabel(Number(el.dataset.runSince));
   });
+  // Ein laufender Schlaf zählt in den Trendzeilen bis jetzt — mitwachsen lassen.
+  if (currentUser && document.getElementById('schlafen-running-badge').style.display === 'flex') renderHeuteTrend(new Date()).catch(() => {});
 }, 30000);
 
 // Ein Zeitverlauf-Eintrag öffnet seine Bearbeiten-Maske (laufende: ihren
@@ -9186,9 +9199,7 @@ async function loadAnalyse() {
 
     const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(feedings, days));
     const windeln = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days));
-    const sleeps = naps.map(sleepInterval)
-      .concat(nights.map((n) => sleepInterval({ ...n, _type: 'night' })))
-      .filter(Boolean);
+    const sleeps = analyseSleepSpans(naps, nights, new Date());
     const schlafen = computeSchlafenAnalysis(days, sleeps);
 
     analyseOverview = { fuettern, windeln, schlafen };

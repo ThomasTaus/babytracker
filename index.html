@@ -51,7 +51,7 @@
   .heute-card { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.12s; }
   .heute-card:active:not(:has(.ht-row:active)) { background: var(--card-soft) !important; }
   .quick-btn { width: 44px; height: 44px; border-radius: 12px; background: transparent; border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
-  /* Trend: heute bis jetzt gegen die letzten 10 Tage bis zur selben Uhrzeit.
+  /* Trend: heute bis jetzt gegen den Ø der Analyse „Stunden“ zur selben Uhrzeit.
      Die Linie trennt sie von der Kopfzeile, mit gleichem Abstand darüber wie
      zum Rand der Kachel (4px + halbe 44px-Kopfzeile). */
   .ht-rows { display: flex; flex-direction: column; margin-top: 4px; padding: 6px 8px 4px 0; border-top: 1px solid var(--border); }
@@ -5689,33 +5689,40 @@ async function getMostRecentByBusinessTime(name, predicate) {
   return docs[0];
 }
 
-// --- Heute: Trend gegen die letzten 10 Tage ---
-// Je Größe der Stand heute bis jetzt und derselbe Stand an jedem der letzten
-// 10 Tage bis zur selben Uhrzeit. Das graue Feld ist die übliche Schwankung:
-// die mittleren Tage, die zwei höchsten und zwei niedrigsten fallen raus. Die
-// Mitte der Skala ist der Median, gemessen wird in dieser Schwankung — das
-// Feld liegt deshalb in jeder Zeile etwa gleich breit in der Mitte. Bewusst
-// keine Ampelfarben: der Punkt zeigt nur, wo heute steht. Die Abweichung als
-// Zahl steht nur da, wo er außerhalb des Feldes liegt.
-const HEUTE_TREND_DAYS = 10;
+// --- Heute: Trend wie in der Analyse „Stunden" ---
+// Je Größe der Stand heute bis jetzt gegen die Vergleichstage der Analyse
+// bis zur selben Uhrzeit — gerechnet mit denselben Funktionen
+// (analyseHoursBasis), damit Heute und „Stunden" dieselben Zahlen zeigen.
+// Mitte der Skala = Ø der Vergleichstage (die 6 abgeschlossenen Tage vor
+// heute im 7-Tage-Fenster), die Abweichung ist der Abstand dazu. Das graue
+// Feld ist die übliche Schwankung: die Vergleichstage ohne den höchsten und
+// den niedrigsten. Bewusst keine Ampelfarben: der Punkt zeigt nur, wo heute
+// steht; die Abweichung als Zahl steht nur da, wo er außerhalb des Feldes liegt.
 // Mit weniger Vergleichstagen nur der Wert, ohne Skala.
 const HEUTE_TREND_MIN_DAYS = 4;
 const heuteHm = (min) => { const m = Math.round(min); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
 // minSpan: kleinste halbe Skalenbreite, damit ein sehr gleichmäßiges Band
-// nicht jede Kleinigkeit an den Rand schiebt.
+// nicht jede Kleinigkeit an den Rand schiebt. diff: die Abweichung so, wie
+// sie sich aus den Zahlen der Analyse ergibt (beide gerundet bzw. Ø mit einer
+// Nachkommastelle bei der Anzahl).
 const HEUTE_TREND_ROWS = {
-  ml: { label: 'Fläschchen', minSpan: 30, fmt: (v) => Math.round(v) + ' ml', dfmt: (d) => String(Math.round(d)) },
-  brust: { label: 'Brust', minSpan: 5, fmt: (v) => Math.round(v) + ' Min', dfmt: (d) => String(Math.round(d)) },
-  wind: { label: 'Anzahl', minSpan: 1, fmt: (v) => Math.round(v) + '×', dfmt: (d) => String(Math.round(d)) },
+  ml: { label: 'Fläschchen', minSpan: 30, fmt: (v) => Math.round(v) + ' ml' },
+  brust: { label: 'Brust', minSpan: 5, fmt: (v) => Math.round(v) + ' Min' },
+  wind: {
+    label: 'Anzahl', minSpan: 1, fmt: (v) => Math.round(v) + '×',
+    diff: (v, mid) => Math.round(v) - Math.round(mid * 10) / 10, dfmt: (d) => analyseDe1(d).replace(/,0$/, '')
+  },
   tag: { label: 'Tagsüber', minSpan: 15, fmt: (v) => heuteHm(v) + ' h', dfmt: heuteHm },
   nacht: { label: 'Nachts', minSpan: 20, fmt: (v) => heuteHm(v) + ' h', dfmt: heuteHm }
 };
 const HEUTE_TREND_CHEV = '<svg class="ht-chev" width="10" height="14" viewBox="0 0 10 14" aria-hidden="true"><path d="M3 2l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+// Mitte = Ø; das Feld ohne den höchsten und den niedrigsten Tag, aber nie so,
+// dass der Ø außerhalb läge (sehr schiefe Verteilung).
 function heuteTrendBand(ref) {
-  const s = ref.slice().sort((a, b) => a - b), n = s.length, k = Math.floor(n * 0.2);
-  const med = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
-  return { med, lo: s[k], hi: s[n - 1 - k] };
+  const s = ref.slice().sort((a, b) => a - b), n = s.length;
+  const mid = s.reduce((a, v) => a + v, 0) / n;
+  return { mid, lo: Math.min(s[1], mid), hi: Math.max(s[n - 2], mid) };
 }
 
 // Eine Zeile; '' wenn es nichts zu zeigen gibt (heute und an allen
@@ -5730,27 +5737,28 @@ function heuteTrendRow(key, val, ref, missing) {
   if (val === 0 && ref.every((v) => v === 0)) return '';
   let scale = '', delta = '', state = '';
   if (ref.length >= HEUTE_TREND_MIN_DAYS) {
-    const { med, lo, hi } = heuteTrendBand(ref);
-    // Das Feld liegt in jeder Zeile gleich: 30–70 % der Skala, der Median
-    // genau in der Mitte. Jede Seite misst in ihrer eigenen Hälfte des
-    // Feldes (Median bis unten bzw. oben): innen füllt sie ihre 20 %,
-    // außerhalb geht es im selben Maß weiter, bis der Punkt am Rand (6 / 94 %)
-    // stehen bleibt. minHalf: kleinstes Maß draußen, damit ein schmales Feld
-    // nicht jede Kleinigkeit an den Rand schiebt.
+    const { mid, lo, hi } = heuteTrendBand(ref);
+    // Das Feld liegt in jeder Zeile gleich: 30–70 % der Skala, der Ø genau
+    // in der Mitte. Jede Seite misst in ihrer eigenen Hälfte des Feldes (Ø
+    // bis unten bzw. oben): innen füllt sie ihre 20 %, außerhalb geht es im
+    // selben Maß weiter, bis der Punkt am Rand (6 / 94 %) stehen bleibt.
+    // minHalf: kleinstes Maß draußen, damit ein schmales Feld nicht jede
+    // Kleinigkeit an den Rand schiebt.
     const minHalf = r.minSpan / 2.5;
     const x = (v) => {
-      const d = Math.abs(v - med), half = v < med ? med - lo : hi - med;
+      const d = Math.abs(v - mid), half = v < mid ? mid - lo : hi - mid;
       const pos = d <= half ? (half ? d / half * 20 : 0) : 20 + (d - half) / Math.max(half, minHalf) * 20;
-      return Math.max(6, Math.min(94, v < med ? 50 - pos : 50 + pos));
+      return Math.max(6, Math.min(94, v < mid ? 50 - pos : 50 + pos));
     };
     scale = '<svg viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true">' +
       '<line x1="6" x2="94" y1="7" y2="7" stroke="var(--border)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>' +
       '<rect x="30" y="2" width="40" height="10" rx="5" fill="var(--border)"/></svg>' +
       '<span class="ht-dot" style="left: calc(' + x(val).toFixed(2) + '% - 6px);"></span>';
     const out = val < lo || val > hi;
-    state = out ? (val > med ? ', mehr als üblich' : ', weniger als üblich') : ', im üblichen Bereich';
-    const d = val - med, txt = out ? r.dfmt(Math.abs(d)) : '';
-    if (txt && txt !== '0' && txt !== '0:00') delta = '<small>' + (d > 0 ? '+' : '−') + txt + '</small>';
+    state = out ? (val > mid ? ', mehr als üblich' : ', weniger als üblich') : ', im üblichen Bereich';
+    const d = r.diff ? r.diff(val, mid) : Math.round(val) - Math.round(mid);
+    const txt = out && d ? (r.dfmt || String)(Math.abs(d)) : '';
+    if (txt) delta = '<small>' + (d > 0 ? '+' : '−') + txt + '</small>';
   }
   return open + r.label + ' heute ' + r.fmt(val) + state + '. Analyse öffnen">' +
     '<span class="ht-l">' + r.label + '</span><span class="ht-sc">' + scale + '</span>' +
@@ -5764,84 +5772,57 @@ function putHeuteTrend(id, rows) {
   el.hidden = !html;
 }
 
+// Stand heute und an den Vergleichstagen für eine Reihen-Auswahl — genau
+// wie die Kopfzeile der Stunden-Karte („Stand · Ø zur selben Uhrzeit").
+function heuteTrendValues(analysis, series) {
+  const b = analyseHoursBasis(analysis, series);
+  const t = Math.max(0, Math.min(1440, b.nowT));
+  return { val: b.cum(b.day, t), ref: b.refDays.map((d) => b.cum(d, t)) };
+}
+
 let heuteTrendSeq = 0;
-async function renderHeuteTrend(now, openNapP) {
+async function renderHeuteTrend(now) {
   const seq = ++heuteTrendSeq;
-  const today = todayStartDate();
-  // Ein Tag mehr als verglichen wird: liegt der älteste Eintrag davor, zählt
-  // auch der erste Vergleichstag voll — sonst erst der Tag nach dem Beginn.
-  const since = new Date(today);
-  since.setDate(since.getDate() - HEUTE_TREND_DAYS - 1);
-  const sleepSince = new Date(since);
+  // Dasselbe 7-Tage-Fenster und dieselben Abfragen wie loadAnalyse in „Stunden".
+  const { days, start } = buildAnalyseDayBuckets(null);
+  const sleepSince = new Date(start);
   sleepSince.setDate(sleepSince.getDate() - 1);
-  const [feedings, diapers, naps, nights, openNap] = await Promise.all([
-    entryQueryDocs(() => entryStoreSince('feedings', 'createdAt', since), () => query(collection(db, 'feedings'), where('createdAt', '>=', since))),
-    entryQueryDocs(() => entryStoreSince('diaperChanges', 'createdAt', since), () => query(collection(db, 'diaperChanges'), where('createdAt', '>=', since))),
-    entryQueryDocs(() => entryStoreSince('naps', 'createdAt', sleepSince), () => query(collection(db, 'naps'), where('createdAt', '>=', sleepSince))),
-    entryQueryDocs(() => entryStoreSince('nightWakeups', 'nightEnd', isoDate(sleepSince)), () => query(collection(db, 'nightWakeups'), where('nightEnd', '>=', isoDate(sleepSince)))),
-    openNapP.catch(() => null)
+  const since = (name, from) => entryQueryDocs(() => entryStoreSince(name, 'createdAt', from), () => query(collection(db, name), where('createdAt', '>=', from)));
+  const [feedings, diapers, nights, naps] = await Promise.all([
+    since('feedings', start), since('diaperChanges', start), since('nightWakeups', sleepSince), since('naps', sleepSince)
   ]);
   if (seq !== heuteTrendSeq) return;
 
-  // Vergleichstage: die 10 Tage vor heute, nach der Geburt und nach dem
-  // ersten Eintrag des Bereichs. cutoff: dieselbe Uhrzeit wie jetzt.
-  const birth = readProfil().birth;
-  const birthDay = birth ? new Date(birth + 'T00:00:00') : null;
-  const days = [];
-  for (let i = HEUTE_TREND_DAYS; i >= 1; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    if (!birthDay || d >= birthDay) days.push(d);
-  }
-  const cutoff = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
-  const firstTs = (list) => (list.length ? Math.min(...list.map((t) => t.getTime())) : null);
-  const daysAfter = (start) => (start === null ? [] : days.filter((d) => start < d.getTime()));
+  const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(feedings, days));
+  const ml = heuteTrendValues(fuettern, FUETTERN_CHARTS['fu-menge'].series);
+  const brust = heuteTrendValues(fuettern, FUETTERN_CHARTS['fu-still'].series);
+  putHeuteTrend('fuettern-trend', [heuteTrendRow('ml', ml.val, ml.ref), heuteTrendRow('brust', brust.val, brust.ref)]);
 
-  // Füttern: Mahlzeiten mit ihrer fachlichen Uhrzeit, Abpumpen zählt nicht.
-  const feedStamps = feedings.map((f) => ({ f, ts: entryBusinessTimestamp(f) })).filter((m) => m.ts);
-  const meals = feedStamps.filter((m) => fuetternIsMeal(m.f) && fuetternIsFinished(m.f));
-  const sumUntil = (from, to, val) => meals.reduce((s, m) => s + (m.ts >= from && m.ts <= to ? val(m.f) : 0), 0);
-  const mlOf = (f) => (f.type === 'bottle' ? Number(f.amount) || 0 : 0);
-  const brustOf = (f) => (f.type === 'breast' ? Number(f.minutes) || 0 : 0);
-  const feedDays = daysAfter(firstTs(feedStamps.map((m) => m.ts)));
-  putHeuteTrend('fuettern-trend', [
-    heuteTrendRow('ml', sumUntil(today, now, mlOf), feedDays.map((d) => sumUntil(d, cutoff(d), mlOf))),
-    heuteTrendRow('brust', sumUntil(today, now, brustOf), feedDays.map((d) => sumUntil(d, cutoff(d), brustOf)))
-  ]);
+  const windeln = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days));
+  const wind = heuteTrendValues(windeln, WINDELN_CHARTS['wi-wechsel'].series);
+  putHeuteTrend('windeln-trend', [heuteTrendRow('wind', wind.val, wind.ref)]);
 
-  // Windeln: Anzahl der Wechsel.
-  const diaperTs = diapers.map(entryBusinessTimestamp).filter(Boolean);
-  const countUntil = (from, to) => diaperTs.filter((t) => t >= from && t <= to).length;
-  putHeuteTrend('windeln-trend', [
-    heuteTrendRow('wind', countUntil(today, now), daysAfter(firstTs(diaperTs)).map((d) => countUntil(d, cutoff(d))))
-  ]);
-
-  // Schlafen: dieselben Spannen und Fenster wie die Analyse. Ein laufendes
-  // Schläfchen zählt bis jetzt mit.
+  // Schlafen: wie in der Analyse nur abgeschlossene Schläfe — ein laufendes
+  // Schläfchen zählt erst, wenn es beendet ist.
   const spans = naps.map(sleepInterval)
     .concat(nights.map((n) => sleepInterval({ ...n, _type: 'night' })))
     .filter(Boolean);
-  if (openNap && openNap.startTime) spans.push({ start: new Date(openNap.startTime), end: now });
-  const sleepStart = firstTs(spans.map((iv) => iv.start));
-  // Tagsüber: Schlaf im Tagesfenster (Ende des Nachtfensters bis zu seinem
-  // Beginn) bis zur Uhrzeit. Vor dem Ende der Nacht gibt es noch keinen Tag.
-  const napUntil = (d, to) => {
-    const dw = dayWindowOf(d);
-    const end = new Date(Math.min(dw.end.getTime(), to.getTime()));
-    if (end <= dw.start) return 0;
-    return spans.reduce((s, iv) => s + spanOverlapMinutes(iv, { start: dw.start, end }), 0);
-  };
-  const sleepDays = daysAfter(sleepStart);
+  const schlafen = computeSchlafenAnalysis(days, spans);
+  const [nightSe, napSe] = ['night', 'nap'].map((k) => SCHLAFEN_CHARTS['schlaf-gesamt'].series.find((s) => s.key === k));
+  const today = todayStartDate();
   const rows = [];
-  if (now > dayWindowOf(today).start) rows.push(heuteTrendRow('tag', napUntil(today, now), sleepDays.map((d) => napUntil(d, cutoff(d)))));
-  // Nachts: die Nacht, die heute endete, gegen die 10 davor — Nächte ohne
-  // Einträge zählen nicht mit. Läuft das Fenster noch, fehlt die Zeile.
+  // Tagsüber erst, wenn die Nacht vorbei ist.
+  if (now > dayWindowOf(today).start) {
+    const tag = heuteTrendValues(schlafen, [napSe]);
+    rows.push(heuteTrendRow('tag', tag.val, tag.ref));
+  }
+  // Nachts: die Nacht, die heute endete. Läuft ihr Fenster noch, fehlt die
+  // Zeile; ohne einen Schlaf darin steht „keine Einträge".
   const night = analyseNightWindow(today, spans, now);
-  if (!night.pending && sleepStart !== null && night.win.end.getTime() > sleepStart) {
-    const ref = days.map((d) => analyseNightWindow(d, spans, now))
-      .filter((n) => !n.pending && !n.missing && n.win.end.getTime() > sleepStart)
-      .map((n) => n.sleepMin);
-    rows.push(night.missing ? heuteTrendRow('nacht', 0, ref, true) : heuteTrendRow('nacht', night.sleepMin, ref));
+  const dataStart = spans.length ? Math.min(...spans.map((iv) => iv.start.getTime())) : null;
+  if (!night.pending && dataStart !== null && night.win.end.getTime() > dataStart) {
+    const nacht = heuteTrendValues(schlafen, [nightSe]);
+    rows.push(night.missing ? heuteTrendRow('nacht', 0, nacht.ref, true) : heuteTrendRow('nacht', nacht.val, nacht.ref));
   }
   putHeuteTrend('schlafen-trend', rows);
 }
@@ -6002,9 +5983,9 @@ async function loadOverview() {
     document.getElementById('schlafen-ago').textContent = 'Fehler beim Laden';
   }
 
-  // Trendzeilen der drei Kacheln — eigene Daten über 10 Tage; sie laufen
+  // Trendzeilen der drei Kacheln — eigenes 7-Tage-Fenster wie die Analyse; sie laufen
   // nebenher, damit der Zeitverlauf nicht auf sie wartet.
-  renderHeuteTrend(now, sleepData.then((r) => r[0])).catch(() => {
+  renderHeuteTrend(now).catch(() => {
     ['fuettern', 'windeln', 'schlafen'].forEach((k) => { document.getElementById(k + '-trend').hidden = true; });
   });
 
@@ -7824,10 +7805,38 @@ function analyseHoursEnd(day) {
   return day.isToday ? Math.max(0, Math.min(1440, analyseNowMinutes())) : 1440;
 }
 
+// Stand des gezeigten Tages und die Vergleichstage dazu: die übrigen
+// abgeschlossenen Tage des Fensters (nach der Geburt, in Schlafen nur mit
+// Nachteinträgen). Gemeinsam für die Diagramme hier und die Trendzeilen auf
+// Heute — beide zeigen damit dieselben Zahlen. Schlafen bringt seine Kurve
+// fertig mit (cum) und rechnet „jetzt" ab Beginn seines Bandes; Füttern und
+// die Schläfchen summieren Einträge zu Stufen.
+function analyseHoursBasis(analysis, series) {
+  const day = analyseHoursDay(analysis);
+  const continuous = !!series[0].cum;
+  const deOf = (d) => (d.dayEvents && d.dayEvents.length === 1 ? d.dayEvents[0] : null);
+  const de = deOf(day);
+  const nowT = de && de.nowT !== undefined ? de.nowT : analyseHoursEnd(day);
+  const cumOf = (d, list, t) => {
+    if (continuous) {
+      const x = deOf(d);
+      if (!x) return 0;
+      const g = Math.floor(Math.max(0, Math.min(1440, t)) / 5);
+      return list.reduce((s, se) => s + se.cum(x)[g], 0);
+    }
+    return d.events.reduce((s, e) => (e.t <= t ? s + list.reduce((a, se) => a + se.inc(e), 0) : s), 0);
+  };
+  const refDays = analysis.perDay.slice(0, -1).filter((d) => {
+    const x = deOf(d);
+    return x ? x.complete : d.daysCounted > 0;
+  });
+  return { day, nowT, continuous, cumOf, cum: (d, t) => cumOf(d, series, t), refDays };
+}
+
 function secHoursInner(chartId, cfg, analysis) {
   const baseline = 95;
-  const day = analyseHoursDay(analysis);
   const series = secVisibleSeries(chartId, cfg);
+  const { day, nowT, continuous, cumOf, cum, refDays } = analyseHoursBasis(analysis, series);
   const ink = cfg.series[0].color;
   const hc = cfg.hours;
   const num = hc.num || ((v) => String(analyseRound(v)));
@@ -7838,34 +7847,13 @@ function secHoursInner(chartId, cfg, analysis) {
   const { x1, t0, t1 } = axis;
   const X = (t) => 4 + (t - t0) / (t1 - t0) * (x1 - 4);
   const gA = Math.ceil(t0 / 5), gB = Math.floor(t1 / 5);
-  // Schlafen bringt seine Kurve fertig mit (cum) und rechnet „jetzt" ab Beginn
-  // seines Bandes; Füttern und die Schläfchen summieren Einträge zu Stufen.
-  const continuous = !!series[0].cum;
-  const deOf = (d) => (d.dayEvents && d.dayEvents.length === 1 ? d.dayEvents[0] : null);
-  const de = deOf(day);
-  const nowT = de && de.nowT !== undefined ? de.nowT : analyseHoursEnd(day);
   const end = Math.max(t0, Math.min(t1, nowT));
   const live = nowT < 1440;
-  const cumOf = (d, list, t) => {
-    if (continuous) {
-      const x = deOf(d);
-      if (!x) return 0;
-      const g = Math.floor(Math.max(0, Math.min(1440, t)) / 5);
-      return list.reduce((s, se) => s + se.cum(x)[g], 0);
-    }
-    return d.events.reduce((s, e) => (e.t <= t ? s + list.reduce((a, se) => a + se.inc(e), 0) : s), 0);
-  };
-  const cum = (d, t) => cumOf(d, series, t);
   const incOf = (e) => series.reduce((s, se) => s + se.inc(e), 0);
 
-  // Ø-Verlauf: die übrigen abgeschlossenen Tage des Fensters (nach der Geburt,
-  // in Schlafen nur mit Nachteinträgen). Im 5-Minuten-Raster vorberechnet und
-  // über ±45 Min. geglättet — der Mittelwert weniger Treppen sähe sonst selbst
+  // Ø-Verlauf der Vergleichstage, im 5-Minuten-Raster vorberechnet und über
+  // ±45 Min. geglättet — der Mittelwert weniger Treppen sähe sonst selbst
   // wie eine Treppe aus.
-  const refDays = analysis.perDay.slice(0, -1).filter((d) => {
-    const x = deOf(d);
-    return x ? x.complete : d.daysCounted > 0;
-  });
   const refAt = refDays.length ? (t) => refDays.reduce((s, d) => s + cum(d, t), 0) / refDays.length : null;
   const refArr = refAt ? Array.from({ length: 289 }, (_, k) => refAt(k * 5)) : null;
   const refSmooth = (k) => {

@@ -45,12 +45,31 @@
   /* Aus dem Heute-Zeitverlauf bearbeitet: das Datum steht fest. */
   input[type="date"]:disabled { color: var(--text-muted); opacity: 1; -webkit-text-fill-color: var(--text-muted); }
 
-  /* Heute-Kacheln: die ganze Kachel führt zur Eintragen-Seite, das „+" ist nur
-     noch Zeichen dafür. Beim Antippen kurz die helle Farbe des Bereichs. */
+  /* Heute-Kacheln: Kopfzeile und „+" führen zur Eintragen-Seite, die
+     Trendzeilen darunter in die Analyse. Beim Antippen kurz die helle Farbe
+     des Bereichs — auf der ganzen Kachel nur, wenn es keine Trendzeile war. */
   .heute-card { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.12s; }
-  .heute-card:active { background: var(--card-soft) !important; }
-  .quick-btn { width: 35px; height: 35px; border-radius: 10px; background: transparent; border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
-  .quick-row { margin-top: -17px; }
+  .heute-card:active:not(:has(.ht-row:active)) { background: var(--card-soft) !important; }
+  .quick-btn { width: 44px; height: 44px; border-radius: 12px; background: transparent; border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  /* Trend: heute bis jetzt gegen die letzten 10 Tage bis zur selben Uhrzeit.
+     Die Linie trennt sie von der Kopfzeile, mit gleichem Abstand darüber wie
+     zum Rand der Kachel (4px + halbe 44px-Kopfzeile). */
+  .ht-rows { display: flex; flex-direction: column; margin-top: 4px; padding: 6px 8px 4px 0; border-top: 1px solid var(--border); }
+  .ht-rows[hidden] { display: none; }
+  .ht-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 72px 1fr 92px 10px; align-items: center; column-gap: 8px; min-height: 34px; margin-left: -8px; padding-left: 8px; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* in srgb mischen: in oklch nimmt „transparent" den Farbton 0 mit und färbt Türkis rötlich */
+  @media (hover: hover) { .ht-row:hover { background: color-mix(in srgb, var(--card-soft) 55%, transparent); } }
+  .ht-row:active { background: var(--card-soft); }
+  .ht-row:focus-visible { outline: 2px solid var(--ht-strong); outline-offset: 2px; }
+  .ht-l { font-size: 12px; color: var(--text-muted); }
+  .ht-sc { position: relative; display: block; height: 14px; }
+  .ht-sc svg { width: 100%; height: 14px; display: block; }
+  .ht-dot { position: absolute; top: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--ht-strong); box-shadow: 0 0 0 2px var(--surface); }
+  .ht-miss { grid-column: 2 / 4; font-size: 12px; font-weight: 600; color: var(--warn); }
+  .ht-v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; display: flex; justify-content: flex-end; align-items: baseline; gap: 5px; }
+  .ht-v b { font-size: 14px; font-weight: 700; }
+  .ht-v small { font-size: 11.5px; font-weight: 600; color: var(--ht-strong); }
+  .ht-chev { color: var(--text-muted); opacity: 0.7; }
 
   /* Fußleiste: auf jeder Seite dieselbe, gebaut von renderTabbars(). Alle
      Einträge schwarz — der gewählte trägt eine Linie am oberen Rand. Die
@@ -467,8 +486,8 @@
       <div id="heute-med-hints" style="display: none; flex-direction: column; gap: 8px;"></div>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div class="heute-card" data-target="fuettern" style="--card-soft: var(--fuettern-soft); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--fuettern); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div class="heute-card" data-target="fuettern" style="--card-soft: var(--fuettern-soft); --ht-strong: var(--fuettern-strong); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--fuettern); border-radius: 16px; padding: 4px 6px 4px 14px; display: flex; flex-direction: column;">
+          <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/>
@@ -476,71 +495,58 @@
               </svg>
               <span style="font-weight: 700; font-size: 14px;">Füttern</span>
             </div>
-            <div style="display: flex; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 2px;">
               <div id="fuettern-running-badge" style="display: none; align-items: center; gap: 5px; background: var(--fuettern-soft); color: var(--fuettern-strong); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
                 <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--fuettern-strong); display: inline-block;"></span>
                 läuft
               </div>
               <span id="fuettern-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
-            </div>
-          </div>
-          <div id="fuettern-detail" style="font-size: 13.5px;"></div>
-          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
-            <span id="fuettern-stats" style="font-size: 11px; color: var(--text-muted);"></span>
-            <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
               <button class="quick-btn" data-target="fuettern" title="Eintrag hinzufügen" aria-label="Füttern: Eintrag hinzufügen">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
+          <div id="fuettern-trend" class="ht-rows" hidden></div>
         </div>
 
-        <div class="heute-card" data-target="windeln" style="--card-soft: var(--windeln-soft); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--windeln); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div class="heute-card" data-target="windeln" style="--card-soft: var(--windeln-soft); --ht-strong: var(--windeln); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--windeln); border-radius: 16px; padding: 4px 6px 4px 14px; display: flex; flex-direction: column;">
+          <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>
               </svg>
               <span style="font-weight: 700; font-size: 14px;">Windeln</span>
             </div>
-            <span id="windeln-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
-          </div>
-          <div id="windeln-detail" style="font-size: 13.5px;"></div>
-          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
-            <span id="windeln-stats" style="font-size: 11px; color: var(--text-muted);"></span>
-            <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 2px;">
+              <span id="windeln-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
               <button class="quick-btn" data-target="windeln" title="Eintrag hinzufügen" aria-label="Windeln: Eintrag hinzufügen">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
+          <div id="windeln-trend" class="ht-rows" hidden></div>
         </div>
 
-        <div class="heute-card" data-target="schlafen" style="--card-soft: var(--schlafen-soft); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--schlafen); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div class="heute-card" data-target="schlafen" style="--card-soft: var(--schlafen-soft); --ht-strong: var(--schlafen-strong); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--schlafen); border-radius: 16px; padding: 4px 6px 4px 14px; display: flex; flex-direction: column;">
+          <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
               </svg>
               <span style="font-weight: 700; font-size: 14px;">Schlafen</span>
             </div>
-            <div style="display: flex; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 2px;">
               <div id="schlafen-running-badge" style="display: none; align-items: center; gap: 5px; background: var(--schlafen-soft); color: var(--schlafen-strong); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
                 <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--schlafen-strong); display: inline-block;"></span>
                 läuft
               </div>
               <span id="schlafen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
-            </div>
-          </div>
-          <div id="schlafen-detail" style="font-size: 13.5px;"></div>
-          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
-            <span id="schlafen-stats" style="font-size: 11px; color: var(--text-muted);"></span>
-            <div class="quick-row" style="display: flex; gap: 14px; flex-shrink: 0;">
               <button class="quick-btn" data-target="schlafen" title="Eintrag hinzufügen" aria-label="Schlafen: Eintrag hinzufügen">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
+          <div id="schlafen-trend" class="ht-rows" hidden></div>
         </div>
       </div>
 
@@ -1203,7 +1209,7 @@
     color: var(--text); display: none; flex-direction: column;
   ">
     <div style="flex-shrink: 0; padding: 32px 24px 0;">
-      <div class="a-back-row"><button class="back-btn" data-back="analyse" style="margin-bottom: 0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>zur Übersicht</button></div>
+      <div class="a-back-row"><button class="back-btn" data-back="analyse" style="margin-bottom: 0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span id="analyse-back-label">zur Übersicht</span></button></div>
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
           <div style="width: 48px; height: 48px; border-radius: 16px; background: var(--neutral-soft); display: flex; align-items: center; justify-content: center; color: var(--neutral-strong); flex-shrink: 0;">
@@ -2160,6 +2166,8 @@ const screens = {
 // (opts.edit — dann setzt enterXEdit die Maske, hier wird nichts zurückgesetzt).
 function showScreen(target, opts = {}) {
   currentScreen = target;
+  // Aus der Analyse heraus gilt der Sprung von Heute nicht mehr.
+  if (target !== 'analyse') analyseOrigin = null;
   // Ein laufender Eintrag aus Zeitverlauf/Historie gilt nur, solange seine
   // Eintragen-Seite offen ist.
   if (target !== 'fuettern' && target !== 'schlafen') eintragRunning = false;
@@ -2209,6 +2217,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     // Standard-Zoomstufen: Übersicht „Tage", Bereiche „Stunden".
     const analyse = btn.dataset.target === 'analyse';
     if (analyse) {
+      analyseOrigin = null;
       analyseZoomChoice = null;
       analyseScope = { mode: 'days', parent: null };
       analyseClearSelections();
@@ -2219,9 +2228,14 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
   });
 });
 
-// Die ganze Kachel (samt „+") öffnet die Eintragen-Seite.
+// Die Kachel (samt „+") öffnet die Eintragen-Seite, eine Trendzeile darin
+// den Bereich in der Analyse.
 document.querySelectorAll('.heute-card').forEach((card) => {
-  card.addEventListener('click', () => showScreen(card.dataset.target));
+  card.addEventListener('click', (e) => {
+    const row = e.target.closest('.ht-row');
+    if (row) openAnalyseFromHeute(row.dataset.trend);
+    else showScreen(card.dataset.target);
+  });
 });
 document.getElementById('heute-all-entries').addEventListener('click', () => showScreen('historie'));
 
@@ -2250,7 +2264,7 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
     const where = btn.dataset.back;
     if (where === 'historie') showScreen('heute');
     else if (where === 'entwicklung') closeEntwicklungDialog();
-    else if (where === 'analyse') showAnalyseView('overview');
+    else if (where === 'analyse') { if (analyseOrigin === 'heute') showScreen('heute'); else showAnalyseView('overview'); }
     else leaveEntryScreen(where, btn.classList.contains('entry-cancel'));
   });
 });
@@ -2270,6 +2284,9 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
 // bzw. bei laufenden Einträgen die Eintragen-Seite mit dem Timer) liegt eine
 // Stufe unter seinem Ursprung.
 let currentScreen = 'heute';
+// 'heute', solange ein Analyse-Bereich über eine Heute-Trendzeile geöffnet
+// ist: „‹ Heute" und die Zurück-Taste führen dann dorthin statt zur Übersicht.
+let analyseOrigin = null;
 // Profil: null = gesperrte Ansicht, 'baby' / 'night' = Editor nach dem Stift.
 let profilEdit = null;
 // Der geöffnete Eintrag (mit _cat/_type wie in der Historie) und woher er
@@ -2297,8 +2314,9 @@ function uiNavDepth() {
   if (currentScreen === 'gesundheit') return 1 + medState.stack.length;
   // Profil gesperrt 1, Editor nach dem Stift 2
   if (currentScreen === 'profil') return profilEdit ? 2 : 1;
-  // Analyse-Übersicht 1, Bereich 2 (Wechsel zwischen Bereichen: gleiche Tiefe)
-  if (currentScreen === 'analyse') return analyseView === 'overview' ? 1 : 2;
+  // Analyse-Übersicht 1, Bereich 2 (Wechsel zwischen Bereichen: gleiche Tiefe).
+  // Von einer Heute-Trendzeile aus liegt der Bereich direkt unter Heute.
+  if (currentScreen === 'analyse') return analyseOrigin === 'heute' ? 1 : analyseView === 'overview' ? 1 : 2;
   return 1;
 }
 
@@ -2324,7 +2342,7 @@ function navigateBackOneLevel() {
   else if (currentScreen === 'entwicklung' && entDialogOpen()) closeEntwicklungDialog();
   else if (currentScreen === 'gesundheit' && medState.stack.length) medBack();
   else if (currentScreen === 'profil' && profilEdit) closeProfilEdit();
-  else if (currentScreen === 'analyse' && analyseView !== 'overview') showAnalyseView('overview');
+  else if (currentScreen === 'analyse' && analyseView !== 'overview' && analyseOrigin !== 'heute') showAnalyseView('overview');
   else if (currentScreen !== 'heute') showScreen('heute');
 }
 
@@ -5671,6 +5689,155 @@ async function getMostRecentByBusinessTime(name, predicate) {
   return docs[0];
 }
 
+// --- Heute: Trend gegen die letzten 10 Tage ---
+// Je Größe der Stand heute bis jetzt und derselbe Stand an jedem der letzten
+// 10 Tage bis zur selben Uhrzeit. Das graue Feld ist die übliche Schwankung:
+// die mittleren Tage, die zwei höchsten und zwei niedrigsten fallen raus. Die
+// Mitte der Skala ist der Median, gemessen wird in dieser Schwankung — das
+// Feld liegt deshalb in jeder Zeile etwa gleich breit in der Mitte. Bewusst
+// keine Ampelfarben: der Punkt zeigt nur, wo heute steht. Die Abweichung als
+// Zahl steht nur da, wo er außerhalb des Feldes liegt.
+const HEUTE_TREND_DAYS = 10;
+// Mit weniger Vergleichstagen nur der Wert, ohne Skala.
+const HEUTE_TREND_MIN_DAYS = 4;
+const heuteHm = (min) => { const m = Math.round(min); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
+// minSpan: kleinste halbe Skalenbreite, damit ein sehr gleichmäßiges Band
+// nicht jede Kleinigkeit an den Rand schiebt.
+const HEUTE_TREND_ROWS = {
+  ml: { label: 'Fläschchen', minSpan: 30, fmt: (v) => Math.round(v) + ' ml', dfmt: (d) => String(Math.round(d)) },
+  brust: { label: 'Brust', minSpan: 5, fmt: (v) => Math.round(v) + ' Min', dfmt: (d) => String(Math.round(d)) },
+  wind: { label: 'Anzahl', minSpan: 1, fmt: (v) => Math.round(v) + '×', dfmt: (d) => String(Math.round(d)) },
+  tag: { label: 'Tagsüber', minSpan: 15, fmt: (v) => heuteHm(v) + ' h', dfmt: heuteHm },
+  nacht: { label: 'Nachts', minSpan: 20, fmt: (v) => heuteHm(v) + ' h', dfmt: heuteHm }
+};
+const HEUTE_TREND_CHEV = '<svg class="ht-chev" width="10" height="14" viewBox="0 0 10 14" aria-hidden="true"><path d="M3 2l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function heuteTrendBand(ref) {
+  const s = ref.slice().sort((a, b) => a - b), n = s.length, k = Math.floor(n * 0.2);
+  const med = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+  return { med, lo: s[k], hi: s[n - 1 - k] };
+}
+
+// Eine Zeile; '' wenn es nichts zu zeigen gibt (heute und an allen
+// Vergleichstagen nichts). missing: die letzte Nacht hat keine Einträge.
+function heuteTrendRow(key, val, ref, missing) {
+  const r = HEUTE_TREND_ROWS[key];
+  const open = '<button type="button" class="ht-row" data-trend="' + key + '" aria-label="';
+  if (missing) {
+    return open + r.label + ': keine Einträge. Analyse öffnen"><span class="ht-l">' + r.label + '</span>' +
+      '<span class="ht-miss">keine Einträge</span>' + HEUTE_TREND_CHEV + '</button>';
+  }
+  if (val === 0 && ref.every((v) => v === 0)) return '';
+  let scale = '', delta = '', state = '';
+  if (ref.length >= HEUTE_TREND_MIN_DAYS) {
+    const { med, lo, hi } = heuteTrendBand(ref);
+    const span = Math.max(Math.max(hi - med, med - lo) * 2.5, r.minSpan);
+    const x = (v) => 50 + Math.max(-1, Math.min(1, (v - med) / span)) * 44;
+    let bx = x(lo), bw = x(hi) - x(lo);
+    if (bw < 4) { bx -= (4 - bw) / 2; bw = 4; }
+    scale = '<svg viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true">' +
+      '<line x1="6" x2="94" y1="7" y2="7" stroke="var(--border)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>' +
+      '<rect x="' + bx.toFixed(2) + '" y="2" width="' + bw.toFixed(2) + '" height="10" rx="5" fill="var(--border)"/></svg>' +
+      '<span class="ht-dot" style="left: calc(' + x(val).toFixed(2) + '% - 6px);"></span>';
+    const out = val < lo || val > hi;
+    state = out ? (val > med ? ', mehr als üblich' : ', weniger als üblich') : ', im üblichen Bereich';
+    const d = val - med, txt = out ? r.dfmt(Math.abs(d)) : '';
+    if (txt && txt !== '0' && txt !== '0:00') delta = '<small>' + (d > 0 ? '+' : '−') + txt + '</small>';
+  }
+  return open + r.label + ' heute ' + r.fmt(val) + state + '. Analyse öffnen">' +
+    '<span class="ht-l">' + r.label + '</span><span class="ht-sc">' + scale + '</span>' +
+    '<span class="ht-v"><b>' + r.fmt(val) + '</b>' + delta + '</span>' + HEUTE_TREND_CHEV + '</button>';
+}
+
+function putHeuteTrend(id, rows) {
+  const el = document.getElementById(id);
+  const html = rows.join('');
+  el.innerHTML = html;
+  el.hidden = !html;
+}
+
+let heuteTrendSeq = 0;
+async function renderHeuteTrend(now, openNapP) {
+  const seq = ++heuteTrendSeq;
+  const today = todayStartDate();
+  // Ein Tag mehr als verglichen wird: liegt der älteste Eintrag davor, zählt
+  // auch der erste Vergleichstag voll — sonst erst der Tag nach dem Beginn.
+  const since = new Date(today);
+  since.setDate(since.getDate() - HEUTE_TREND_DAYS - 1);
+  const sleepSince = new Date(since);
+  sleepSince.setDate(sleepSince.getDate() - 1);
+  const [feedings, diapers, naps, nights, openNap] = await Promise.all([
+    entryQueryDocs(() => entryStoreSince('feedings', 'createdAt', since), () => query(collection(db, 'feedings'), where('createdAt', '>=', since))),
+    entryQueryDocs(() => entryStoreSince('diaperChanges', 'createdAt', since), () => query(collection(db, 'diaperChanges'), where('createdAt', '>=', since))),
+    entryQueryDocs(() => entryStoreSince('naps', 'createdAt', sleepSince), () => query(collection(db, 'naps'), where('createdAt', '>=', sleepSince))),
+    entryQueryDocs(() => entryStoreSince('nightWakeups', 'nightEnd', isoDate(sleepSince)), () => query(collection(db, 'nightWakeups'), where('nightEnd', '>=', isoDate(sleepSince)))),
+    openNapP.catch(() => null)
+  ]);
+  if (seq !== heuteTrendSeq) return;
+
+  // Vergleichstage: die 10 Tage vor heute, nach der Geburt und nach dem
+  // ersten Eintrag des Bereichs. cutoff: dieselbe Uhrzeit wie jetzt.
+  const birth = readProfil().birth;
+  const birthDay = birth ? new Date(birth + 'T00:00:00') : null;
+  const days = [];
+  for (let i = HEUTE_TREND_DAYS; i >= 1; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    if (!birthDay || d >= birthDay) days.push(d);
+  }
+  const cutoff = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+  const firstTs = (list) => (list.length ? Math.min(...list.map((t) => t.getTime())) : null);
+  const daysAfter = (start) => (start === null ? [] : days.filter((d) => start < d.getTime()));
+
+  // Füttern: Mahlzeiten mit ihrer fachlichen Uhrzeit, Abpumpen zählt nicht.
+  const feedStamps = feedings.map((f) => ({ f, ts: entryBusinessTimestamp(f) })).filter((m) => m.ts);
+  const meals = feedStamps.filter((m) => fuetternIsMeal(m.f) && fuetternIsFinished(m.f));
+  const sumUntil = (from, to, val) => meals.reduce((s, m) => s + (m.ts >= from && m.ts <= to ? val(m.f) : 0), 0);
+  const mlOf = (f) => (f.type === 'bottle' ? Number(f.amount) || 0 : 0);
+  const brustOf = (f) => (f.type === 'breast' ? Number(f.minutes) || 0 : 0);
+  const feedDays = daysAfter(firstTs(feedStamps.map((m) => m.ts)));
+  putHeuteTrend('fuettern-trend', [
+    heuteTrendRow('ml', sumUntil(today, now, mlOf), feedDays.map((d) => sumUntil(d, cutoff(d), mlOf))),
+    heuteTrendRow('brust', sumUntil(today, now, brustOf), feedDays.map((d) => sumUntil(d, cutoff(d), brustOf)))
+  ]);
+
+  // Windeln: Anzahl der Wechsel.
+  const diaperTs = diapers.map(entryBusinessTimestamp).filter(Boolean);
+  const countUntil = (from, to) => diaperTs.filter((t) => t >= from && t <= to).length;
+  putHeuteTrend('windeln-trend', [
+    heuteTrendRow('wind', countUntil(today, now), daysAfter(firstTs(diaperTs)).map((d) => countUntil(d, cutoff(d))))
+  ]);
+
+  // Schlafen: dieselben Spannen und Fenster wie die Analyse. Ein laufendes
+  // Schläfchen zählt bis jetzt mit.
+  const spans = naps.map(sleepInterval)
+    .concat(nights.map((n) => sleepInterval({ ...n, _type: 'night' })))
+    .filter(Boolean);
+  if (openNap && openNap.startTime) spans.push({ start: new Date(openNap.startTime), end: now });
+  const sleepStart = firstTs(spans.map((iv) => iv.start));
+  // Tagsüber: Schlaf im Tagesfenster (Ende des Nachtfensters bis zu seinem
+  // Beginn) bis zur Uhrzeit. Vor dem Ende der Nacht gibt es noch keinen Tag.
+  const napUntil = (d, to) => {
+    const dw = dayWindowOf(d);
+    const end = new Date(Math.min(dw.end.getTime(), to.getTime()));
+    if (end <= dw.start) return 0;
+    return spans.reduce((s, iv) => s + spanOverlapMinutes(iv, { start: dw.start, end }), 0);
+  };
+  const sleepDays = daysAfter(sleepStart);
+  const rows = [];
+  if (now > dayWindowOf(today).start) rows.push(heuteTrendRow('tag', napUntil(today, now), sleepDays.map((d) => napUntil(d, cutoff(d)))));
+  // Nachts: die Nacht, die heute endete, gegen die 10 davor — Nächte ohne
+  // Einträge zählen nicht mit. Läuft das Fenster noch, fehlt die Zeile.
+  const night = analyseNightWindow(today, spans, now);
+  if (!night.pending && sleepStart !== null && night.win.end.getTime() > sleepStart) {
+    const ref = days.map((d) => analyseNightWindow(d, spans, now))
+      .filter((n) => !n.pending && !n.missing && n.win.end.getTime() > sleepStart)
+      .map((n) => n.sleepMin);
+    rows.push(night.missing ? heuteTrendRow('nacht', 0, ref, true) : heuteTrendRow('nacht', night.sleepMin, ref));
+  }
+  putHeuteTrend('schlafen-trend', rows);
+}
+
 function renderHeuteDate(now) {
   const ageWeeks = profilAgeWeeks(now);
   document.getElementById('heute-date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) +
@@ -5704,20 +5871,13 @@ async function loadOverview() {
     if (openFeeding) {
       fuetternBadge.style.display = 'flex';
       fuetternAgoEl.textContent = '';
-      document.getElementById('fuettern-detail').textContent = 'Stillt seit ' + formatTime(new Date(openFeeding.startTime));
     } else if (lastFeeding && entryBusinessTimestamp(lastFeeding)) {
       fuetternBadge.style.display = 'none';
-      fuetternAgoEl.textContent = timeAgo(entryBusinessTimestamp(lastFeeding));
-      document.getElementById('fuettern-detail').textContent = lastFeeding.type === 'bottle'
-        ? 'Fläschchen · ' + milkLabel(lastFeeding) + ' · ' + lastFeeding.amount + ' ml'
-        : 'Brust · ' + lastFeeding.minutes + ' Min';
+      fuetternAgoEl.textContent = 'zuletzt ' + timeAgo(entryBusinessTimestamp(lastFeeding));
     } else {
       fuetternBadge.style.display = 'none';
       fuetternAgoEl.textContent = '';
-      document.getElementById('fuettern-detail').textContent = 'Noch kein Eintrag';
     }
-    const totalMl = todayFeedings.filter((f) => f.type === 'bottle').reduce((sum, f) => sum + (f.amount || 0), 0);
-    document.getElementById('fuettern-stats').textContent = 'Heute: ' + todayFeedings.length + '×' + (totalMl > 0 ? ' · ' + totalMl + ' ml gesamt' : '');
     todayFeedings.forEach((f) => {
       const ts = entryBusinessTimestamp(f);
       if (!ts) return;
@@ -5766,7 +5926,7 @@ async function loadOverview() {
         });
       });
   } catch (error) {
-    document.getElementById('fuettern-detail').textContent = 'Fehler beim Laden';
+    document.getElementById('fuettern-ago').textContent = 'Fehler beim Laden';
   }
 
   // Windeln
@@ -5786,22 +5946,15 @@ async function loadOverview() {
       }
       return label;
     }
-    if (lastDiaper && entryBusinessTimestamp(lastDiaper)) {
-      document.getElementById('windeln-ago').textContent = timeAgo(entryBusinessTimestamp(lastDiaper));
-      document.getElementById('windeln-detail').innerHTML = diaperLabel(lastDiaper);
-    } else {
-      document.getElementById('windeln-ago').textContent = '';
-      document.getElementById('windeln-detail').textContent = 'Noch kein Eintrag';
-    }
-    const bigCount = todayDiapers.filter((d) => d.big).length;
-    document.getElementById('windeln-stats').textContent = 'Heute: ' + todayDiapers.length + '×' + (bigCount > 0 ? ' · davon ' + bigCount + '× groß' : '');
+    document.getElementById('windeln-ago').textContent = lastDiaper && entryBusinessTimestamp(lastDiaper)
+      ? 'zuletzt ' + timeAgo(entryBusinessTimestamp(lastDiaper)) : '';
     todayDiapers.forEach((d) => {
       const ts = entryBusinessTimestamp(d);
       if (!ts) return;
       timelineEvents.push({ ts, color: 'var(--windeln)', label: 'Windel', detail: ' ' + diaperLabel(d), entry: { ...d, _cat: 'windeln' } });
     });
   } catch (error) {
-    document.getElementById('windeln-detail').textContent = 'Fehler beim Laden';
+    document.getElementById('windeln-ago').textContent = 'Fehler beim Laden';
   }
 
   // Schlafen
@@ -5820,28 +5973,11 @@ async function loadOverview() {
     badge.style.display = openNap ? 'flex' : 'none';
     if (openNap) {
       schlafenAgoEl.textContent = '';
-      const elapsedMin = Math.max(0, Math.round((Date.now() - new Date(openNap.startTime).getTime()) / 60000));
-      document.getElementById('schlafen-detail').textContent = 'Schläft seit ' + formatTime(new Date(openNap.startTime)) + ' · ' + elapsedMin + ' Min';
     } else {
       // Der zuletzt beendete Schlaf — auch einer, der gestern Abend begann.
       const last = sleeps.filter((iv) => iv.end <= now).sort((a, b) => b.end - a.end)[0] || null;
-      document.getElementById('schlafen-detail').textContent = last && isoDate(last.end) === isoDate(now)
-        ? 'Schlaf: ' + formatDuration(Math.round((last.end - last.start) / 60000))
-        : 'Heute noch kein Schlaf';
-      schlafenAgoEl.textContent = last ? timeAgo(last.end) : '';
+      schlafenAgoEl.textContent = last ? 'zuletzt ' + timeAgo(last.end) : '';
     }
-
-    // Die Nacht, die heute endet, sobald ihr Fenster vorbei ist — auf Stunden
-    // gerundet. Ohne einen einzigen Schlaf darin zählt das ganze Fenster als
-    // wach und steht in Warnfarbe da, damit es nachgetragen wird.
-    const nightStatsEl = document.getElementById('schlafen-stats');
-    const night = analyseNightWindow(now, sleeps, now);
-    const hrs = (min) => Math.round(min / 60) + ' Std';
-    nightStatsEl.style.color = night.missing ? 'var(--warn)' : '';
-    nightStatsEl.style.fontWeight = night.missing ? '600' : '';
-    nightStatsEl.textContent = night.pending ? ''
-      : night.missing ? 'Nachts: keine Einträge · ' + hrs(night.wakeMin) + ' wach'
-      : 'Nachts: ' + hrs(night.sleepMin) + ' Schlaf · ' + hrs(night.wakeMin) + ' wach';
 
     todayNaps.forEach((n) => {
       const ts = n.source === 'timer' ? new Date(n.startTime) : timeOnDate(now, n.startTime);
@@ -5855,8 +5991,14 @@ async function loadOverview() {
       });
     });
   } catch (error) {
-    document.getElementById('schlafen-detail').textContent = 'Fehler beim Laden';
+    document.getElementById('schlafen-ago').textContent = 'Fehler beim Laden';
   }
+
+  // Trendzeilen der drei Kacheln — eigene Daten über 10 Tage; sie laufen
+  // nebenher, damit der Zeitverlauf nicht auf sie wartet.
+  renderHeuteTrend(now, sleepData.then((r) => r[0])).catch(() => {
+    ['fuettern', 'windeln', 'schlafen'].forEach((k) => { document.getElementById(k + '-trend').hidden = true; });
+  });
 
   // Zeitverlauf
   const container = document.getElementById('timeline-container');
@@ -8820,6 +8962,7 @@ function showAnalyseView(view) {
   const sec = ANALYSE_SECTIONS[view];
   const screen = document.getElementById('screen-analyse');
   screen.classList.toggle('a-detail', view !== 'overview');
+  document.getElementById('analyse-back-label').textContent = analyseOrigin === 'heute' ? 'Heute' : 'zur Übersicht';
   screen.style.setProperty('--sec-soft', sec.soft);
   screen.style.setProperty('--sec-strong', sec.strong);
   // Füllfarbe für weiße Schrift — dieselbe, die der „Eintrag speichern"-Knopf
@@ -8846,6 +8989,48 @@ function showAnalyseView(view) {
 document.querySelectorAll('.a-seg-btn').forEach((btn) => {
   btn.addEventListener('click', () => showAnalyseView(btn.dataset.view));
 });
+
+// Eine Trendzeile auf Heute führt in ihren Bereich, direkt in „Stunden" —
+// wie der Analyse-Tab ohne Markierungen, aber gleich eine Stufe tiefer.
+// chart: dorthin scrollen, sobald der Bereich gezeichnet ist; series: die
+// Legende dieses Diagramms (und seines Tagesverlaufs) darauf filtern.
+const HEUTE_TREND_TARGET = {
+  ml: { view: 'fuettern', chart: 'fu-menge' },
+  brust: { view: 'fuettern', chart: 'fu-still' },
+  wind: { view: 'windeln', chart: 'wi-wechsel' },
+  tag: { view: 'schlafen', chart: 'schlaf-gesamt', series: 'nap' },
+  nacht: { view: 'schlafen', chart: 'schlaf-gesamt', series: 'night' }
+};
+// Diagramm, zu dem nach dem nächsten Laden der Analyse gescrollt wird.
+let analysePendingScroll = null;
+function openAnalyseFromHeute(key) {
+  const t = HEUTE_TREND_TARGET[key];
+  if (!t) return;
+  if (t.series) {
+    const charts = ANALYSE_SECTION_UI[t.view].charts;
+    analyseFilter[t.chart] = t.series;
+    Object.keys(charts).filter((id) => charts[id].legendFrom === t.chart).forEach((id) => { analyseFilter[id] = t.series; });
+  }
+  analyseZoomChoice = null;
+  analyseClearSelections();
+  // Gleich in „Stunden" laden statt erst „Tage" und dann noch einmal.
+  analyseScope = { mode: 'hours', parent: null };
+  analyseView = t.view;
+  analysePendingScroll = t.chart;
+  showScreen('analyse');
+  analyseOrigin = 'heute';
+  showAnalyseView(t.view);
+}
+
+function applyAnalysePendingScroll() {
+  if (!analysePendingScroll) return;
+  const svgEl = document.querySelector('#analyse-view-' + analyseView + ' svg[data-chart="' + analysePendingScroll + '"]');
+  analysePendingScroll = null;
+  if (!svgEl) return;
+  const card = svgEl.closest('.a-card') || svgEl;
+  const body = document.getElementById('analyse-body');
+  body.scrollTop += card.getBoundingClientRect().top - body.getBoundingClientRect().top - 12;
+}
 
 function updateAnalyseScopeChips() {
   document.querySelectorAll('.a-range-chip[data-scope]').forEach((c) => {
@@ -9015,6 +9200,7 @@ async function loadAnalyse() {
     renderAnalyseSection('fuettern', fuettern);
     renderAnalyseSection('windeln', windeln);
     renderAnalyseSection('schlafen', schlafen);
+    applyAnalysePendingScroll();
 
   } catch (error) {
     ANALYSE_VIEWS.forEach((v) => {

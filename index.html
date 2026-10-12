@@ -5731,13 +5731,21 @@ function heuteTrendRow(key, val, ref, missing) {
   let scale = '', delta = '', state = '';
   if (ref.length >= HEUTE_TREND_MIN_DAYS) {
     const { med, lo, hi } = heuteTrendBand(ref);
-    const span = Math.max(Math.max(hi - med, med - lo) * 2.5, r.minSpan);
-    const x = (v) => 50 + Math.max(-1, Math.min(1, (v - med) / span)) * 44;
-    let bx = x(lo), bw = x(hi) - x(lo);
-    if (bw < 4) { bx -= (4 - bw) / 2; bw = 4; }
+    // Das Feld liegt in jeder Zeile gleich: 30–70 % der Skala, der Median
+    // genau in der Mitte. Jede Seite misst in ihrer eigenen Hälfte des
+    // Feldes (Median bis unten bzw. oben): innen füllt sie ihre 20 %,
+    // außerhalb geht es im selben Maß weiter, bis der Punkt am Rand (6 / 94 %)
+    // stehen bleibt. minHalf: kleinstes Maß draußen, damit ein schmales Feld
+    // nicht jede Kleinigkeit an den Rand schiebt.
+    const minHalf = r.minSpan / 2.5;
+    const x = (v) => {
+      const d = Math.abs(v - med), half = v < med ? med - lo : hi - med;
+      const pos = d <= half ? (half ? d / half * 20 : 0) : 20 + (d - half) / Math.max(half, minHalf) * 20;
+      return Math.max(6, Math.min(94, v < med ? 50 - pos : 50 + pos));
+    };
     scale = '<svg viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true">' +
       '<line x1="6" x2="94" y1="7" y2="7" stroke="var(--border)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>' +
-      '<rect x="' + bx.toFixed(2) + '" y="2" width="' + bw.toFixed(2) + '" height="10" rx="5" fill="var(--border)"/></svg>' +
+      '<rect x="30" y="2" width="40" height="10" rx="5" fill="var(--border)"/></svg>' +
       '<span class="ht-dot" style="left: calc(' + x(val).toFixed(2) + '% - 6px);"></span>';
     const out = val < lo || val > hi;
     state = out ? (val > med ? ', mehr als üblich' : ', weniger als üblich') : ', im üblichen Bereich';

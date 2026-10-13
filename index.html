@@ -5723,8 +5723,8 @@ async function getMostRecentByBusinessTime(name, predicate) {
 // (analyseHoursBasis), damit Heute und „Stunden" dieselben Zahlen zeigen.
 // Mitte der Skala = Ø der Vergleichstage (die 6 abgeschlossenen Tage vor
 // heute im 7-Tage-Fenster), die Abweichung ist der Abstand dazu. Das graue
-// Feld ist die übliche Schwankung: die Vergleichstage ohne den höchsten und
-// den niedrigsten. Bewusst keine Ampelfarben: der Punkt zeigt nur, wo heute
+// Feld ist die übliche Schwankung: Ø ± 1,5 Standardabweichungen der
+// Vergleichstage. Bewusst keine Ampelfarben: der Punkt zeigt nur, wo heute
 // steht; die Abweichung als Zahl steht nur da, wo er außerhalb des Feldes liegt.
 // Mit weniger Vergleichstagen nur der Wert, ohne Skala.
 const HEUTE_TREND_MIN_DAYS = 4;
@@ -5745,12 +5745,16 @@ const HEUTE_TREND_ROWS = {
 };
 const HEUTE_TREND_CHEV = '<svg class="ht-chev" width="10" height="14" viewBox="0 0 10 14" aria-hidden="true"><path d="M3 2l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-// Mitte = Ø; das Feld ohne den höchsten und den niedrigsten Tag, aber nie so,
-// dass der Ø außerhalb läge (sehr schiefe Verteilung).
+// Mitte = Ø; das Feld Ø ± 1,5 Standardabweichungen (Stichprobe, n − 1) —
+// dasselbe Maß wie der Ø der Analyse. Bei nur 6 Vergleichstagen liegen so
+// rund 4 von 5 gewöhnlichen Tagen im Feld. (Vorher: die Tage ohne den
+// höchsten und den niedrigsten — das traf nur knapp die Hälfte.)
+const HEUTE_TREND_SD = 1.5;
 function heuteTrendBand(ref) {
-  const s = ref.slice().sort((a, b) => a - b), n = s.length;
-  const mid = s.reduce((a, v) => a + v, 0) / n;
-  return { mid, lo: Math.min(s[1], mid), hi: Math.max(s[n - 2], mid) };
+  const n = ref.length;
+  const mid = ref.reduce((a, v) => a + v, 0) / n;
+  const sd = Math.sqrt(ref.reduce((a, v) => a + (v - mid) ** 2, 0) / (n - 1));
+  return { mid, lo: mid - HEUTE_TREND_SD * sd, hi: mid + HEUTE_TREND_SD * sd };
 }
 
 // Eine Zeile; '' wenn es nichts zu zeigen gibt (heute und an allen

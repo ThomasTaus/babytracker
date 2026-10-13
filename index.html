@@ -6828,8 +6828,9 @@ function computeSchlafenAnalysis(days, sleepSpans) {
       waketime: wakeOff === null ? null : clock(p.nightTo, wakeOff),
       // Dieselben Werte als Minuten ab 0 Uhr des Fensterbeginns bzw. -endes —
       // so bleiben sie über Mitternacht hinweg linear und lassen sich zeichnen.
+      // Nicht „wakeMin“: der Name gehört oben schon der Wachdauer.
       bedMin: bedOff === null ? null : parseMinutes(p.nightFrom) + bedOff,
-      wakeMin: wakeOff === null ? null : parseMinutes(p.nightTo) + wakeOff,
+      wakeClockMin: wakeOff === null ? null : parseMinutes(p.nightTo) + wakeOff,
       // Uhrzeit des Schlafs je Bucket, damit die unterste Karte dem markierten
       // Balken folgen kann, ohne neu zu rechnen.
       sleepShare: share(slotSum, slotCount),
@@ -8409,7 +8410,7 @@ function secClockInner(chartId, cfg, analysis) {
   const bandH = 62, bedTop = 32, bedBot = bedTop + bandH, wakeTop = bedBot + 22, wakeBot = wakeTop + bandH;
   const bedLabelY = 13, wakeLabelY = wakeBot + 29, baseline = wakeLabelY + 9;
   const beds = bs.map((b) => b.bedMin).filter((v) => v !== null);
-  const wakes = bs.map((b) => b.wakeMin).filter((v) => v !== null);
+  const wakes = bs.map((b) => b.wakeClockMin).filter((v) => v !== null);
   const spread = (vs) => (vs.length ? Math.max(...vs) - Math.min(...vs) : 0);
   const mid = (vs) => (vs.length ? (Math.max(...vs) + Math.min(...vs)) / 2 : 0);
   const span = Math.max(60, spread(beds), spread(wakes)) + 20;
@@ -8423,7 +8424,7 @@ function secClockInner(chartId, cfg, analysis) {
     cfg, bs, series: cfg.series, totals: bs.map((b) => b.bedMin), mean: analysis, cxOf,
     // Ohne Nacht sitzt die Markierung auf der Grundlinie.
     yOf: (v) => (v === null ? baseline : yBed(v)),
-    yOf2: (i) => (bs[i].wakeMin === null ? null : yWake(bs[i].wakeMin)),
+    yOf2: (i) => (bs[i].wakeClockMin === null ? null : yWake(bs[i].wakeClockMin)),
     idxAt: (vx) => Math.round((vx - x(0)) / step)
   };
 
@@ -8468,7 +8469,7 @@ function secClockInner(chartId, cfg, analysis) {
     const cx = x(i);
     let g = '';
     if (b.bedMin !== null) {
-      const yb = yBed(b.bedMin), yw = yWake(b.wakeMin);
+      const yb = yBed(b.bedMin), yw = yWake(b.wakeClockMin);
       const dot = (cy) => (b.isToday
         ? '<circle cx="' + cx + '" cy="' + cy + '" r="4.4" fill="' + color + '" stroke="white" stroke-width="1.5"/>'
         : '<circle cx="' + cx + '" cy="' + cy + '" r="4" fill="' + color + '"/>');
@@ -8476,7 +8477,7 @@ function secClockInner(chartId, cfg, analysis) {
         '<text class="val" x="' + cx + '" y="' + (yb - 9) + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' +
           color + '" text-anchor="middle">' + hour(b.bedMin) + '</text>' +
         '<text class="val" x="' + cx + '" y="' + (yw + 19) + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' +
-          color + '" text-anchor="middle">' + hour(b.wakeMin) + '</text>';
+          color + '" text-anchor="middle">' + hour(b.wakeClockMin) + '</text>';
     }
     out += '<g class="bk" data-i="' + i + '">' + g + secAxisLabel(b, cx, color, baseline + 17) + '</g>';
   });

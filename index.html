@@ -51,12 +51,21 @@
   .heute-card { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.12s; }
   .heute-card:active:not(:has(.ht-row:active)) { background: var(--card-soft) !important; }
   .quick-btn { width: 44px; height: 44px; border-radius: 12px; background: transparent; border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
-  /* Trend: heute bis jetzt gegen den Ø der Analyse „Stunden“ zur selben Uhrzeit.
-     Die Linie trennt sie von der Kopfzeile, mit gleichem Abstand darüber wie
-     zum Rand der Kachel (4px + halbe 44px-Kopfzeile). */
-  .ht-rows { display: flex; flex-direction: column; margin-top: 4px; padding: 6px 8px 4px 0; border-top: 1px solid var(--border); }
-  .ht-rows[hidden] { display: none; }
-  .ht-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 64px 1fr 60px 38px 10px; align-items: center; column-gap: 8px; min-height: 34px; margin-left: -8px; padding-left: 8px; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* Unter der Kopfzeile zwei Zonen, je mit Linie und kleiner Überschrift (Stil
+     wie „ZEITVERLAUF“): „Zuletzt“ — das letzte Ereignis je Kategorie — und
+     „Heute bis jetzt“ — der Trend gegen den Ø der Analyse „Stunden“. Beide
+     teilen die 72px-Namensspalte. */
+  .ht-zone { display: flex; flex-direction: column; margin-top: 4px; padding: 9px 8px 4px 0; border-top: 1px solid var(--border); }
+  .ht-zone[hidden] { display: none; }
+  .ht-cap { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 2px; }
+  .ht-ev { display: grid; grid-template-columns: 72px 1fr auto 10px; align-items: center; column-gap: 8px; min-height: 28px; }
+  .ht-ev .ht-t { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .ht-ev .ht-t .ht-sep, .ht-ev .ht-when { color: var(--text-muted); }
+  .ht-ev .ht-when { font-size: 11.5px; font-weight: 600; white-space: nowrap; text-align: right; }
+  .ht-ev .ht-run { color: var(--ht-strong); font-weight: 700; }
+  .ht-cdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; box-shadow: inset 0 0 0 1px oklch(0% 0 0 / 0.12); }
+  .ht-warn { display: inline-flex; width: 14px; height: 14px; border-radius: 50%; background: var(--warn); align-items: center; justify-content: center; vertical-align: -2px; margin-left: 4px; }
+  .ht-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 72px 1fr 60px 38px 10px; align-items: center; column-gap: 8px; min-height: 34px; margin-left: -8px; padding-left: 8px; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   /* in srgb mischen: in oklch nimmt „transparent" den Farbton 0 mit und färbt Türkis rötlich */
   @media (hover: hover) { .ht-row:hover { background: color-mix(in srgb, var(--card-soft) 55%, transparent); } }
   .ht-row:active { background: var(--card-soft); }
@@ -500,13 +509,13 @@
                 <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--fuettern-strong); display: inline-block;"></span>
                 läuft
               </div>
-              <span id="fuettern-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
               <button class="quick-btn" data-target="fuettern" title="Eintrag hinzufügen" aria-label="Füttern: Eintrag hinzufügen">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
-          <div id="fuettern-trend" class="ht-rows" hidden></div>
+          <div id="fuettern-last" class="ht-zone" hidden></div>
+          <div id="fuettern-trend" class="ht-zone" hidden></div>
         </div>
 
         <div class="heute-card" data-target="windeln" style="--card-soft: var(--windeln-soft); --ht-strong: var(--windeln); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--windeln); border-radius: 16px; padding: 4px 6px 4px 14px; display: flex; flex-direction: column;">
@@ -518,13 +527,13 @@
               <span style="font-weight: 700; font-size: 14px;">Windeln</span>
             </div>
             <div style="display: flex; align-items: center; gap: 2px;">
-              <span id="windeln-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
               <button class="quick-btn" data-target="windeln" title="Eintrag hinzufügen" aria-label="Windeln: Eintrag hinzufügen">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
-          <div id="windeln-trend" class="ht-rows" hidden></div>
+          <div id="windeln-last" class="ht-zone" hidden></div>
+          <div id="windeln-trend" class="ht-zone" hidden></div>
         </div>
 
         <div class="heute-card" data-target="schlafen" style="--card-soft: var(--schlafen-soft); --ht-strong: var(--schlafen-strong); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--schlafen); border-radius: 16px; padding: 4px 6px 4px 14px; display: flex; flex-direction: column;">
@@ -540,13 +549,13 @@
                 <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--schlafen-strong); display: inline-block;"></span>
                 läuft
               </div>
-              <span id="schlafen-ago" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
               <button class="quick-btn" data-target="schlafen" title="Eintrag hinzufügen" aria-label="Schlafen: Eintrag hinzufügen">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen)" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </div>
-          <div id="schlafen-trend" class="ht-rows" hidden></div>
+          <div id="schlafen-last" class="ht-zone" hidden></div>
+          <div id="schlafen-trend" class="ht-zone" hidden></div>
         </div>
       </div>
 
@@ -5627,13 +5636,15 @@ function todayStartDate() {
   return d;
 }
 
+// Kaufmännisch gerundet, nicht abgeschnitten: 1:30 her ist „vor 2 Std“ — die
+// gezeigte Zahl liegt so immer am nächsten am tatsächlichen Abstand.
 function timeAgo(date) {
-  const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+  const mins = Math.round((Date.now() - date.getTime()) / 60000);
   if (mins < 1) return 'gerade eben';
   if (mins < 60) return 'vor ' + mins + ' Min';
-  const hrs = Math.floor(mins / 60);
+  const hrs = Math.round(mins / 60);
   if (hrs < 24) return 'vor ' + hrs + ' Std';
-  const days = Math.floor(hrs / 24);
+  const days = Math.round(mins / 1440);
   return 'vor ' + days + (days === 1 ? ' Tag' : ' Tagen');
 }
 
@@ -5781,11 +5792,103 @@ function heuteTrendRow(key, val, ref, missing) {
     '<span class="ht-v">' + r.fmt(val) + '</span><span class="ht-d">' + delta + '</span>' + HEUTE_TREND_CHEV + '</button>';
 }
 
-function putHeuteTrend(id, rows) {
+// Eine Zone der Kachel: Überschrift und Zeilen, ohne Zeilen versteckt.
+function putHeuteZone(id, caption, rows) {
   const el = document.getElementById(id);
   const html = rows.join('');
-  el.innerHTML = html;
+  el.innerHTML = html ? '<div class="ht-cap">' + caption + '</div>' + html : '';
   el.hidden = !html;
+}
+function putHeuteTrend(id, rows) { putHeuteZone(id, 'Heute bis jetzt', rows); }
+
+// --- Heute: „Zuletzt“ ---
+// Je Kategorie das letzte Ereignis — Füttern: Fläschchen, Brust, Abpumpen;
+// Windeln: Klein, Groß; Schlafen: Schlaf. Nach Zeit sortiert, das jüngste
+// oben, alle Zeilen gleich gewichtet (das jüngste ist nicht zwingend das
+// wichtigste). „vor x“ zählt ab dem Ende, bei Brust, Abpumpen und Schlaf also
+// ab dem Aufhören bzw. Aufwachen. Läuft etwas: „läuft · 24 Min“, rechts
+// „seit 11:30“. Kategorien ohne Eintrag in den letzten 14 Tagen fehlen.
+const HEUTE_LAST_DAYS = 14;
+const HT_SEP = ' <span class="ht-sep">·</span> ';
+const HT_WARN = '<span class="ht-warn" title="auffällige Farbe"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 14.5H3.5z"/><line x1="12" y1="10.5" x2="12" y2="14"/></svg></span>';
+
+// Brust: Minuten je Seite wie im Zeitverlauf, nur kürzer: „L 10 · R 8“.
+function heuteBreastSides(f) {
+  if (f.leftMinutes == null || f.rightMinutes == null) return '';
+  const l = Number(f.leftMinutes) || 0, r = Number(f.rightMinutes) || 0;
+  if (l > 0 && r > 0) return HT_SEP + 'L ' + l + HT_SEP + 'R ' + r;
+  if (l > 0) return HT_SEP + 'nur L';
+  if (r > 0) return HT_SEP + 'nur R';
+  return '';
+}
+
+// { label, text, t (Zeitpunkt für Sortierung und „vor x“), since (läuft seit) }
+function heuteLastRow(e) {
+  return '<div class="ht-ev"><span class="ht-l">' + e.label + '</span><span class="ht-t">' + e.text + '</span>' +
+    '<span class="ht-when">' + (e.since ? 'seit ' + formatTime(e.since) : timeAgo(e.t)) + '</span><span></span></div>';
+}
+function heuteLastRunning(label, since, now) {
+  return { label, since, t: now, text: '<span class="ht-run">läuft</span>' + HT_SEP + formatDuration(Math.max(0, Math.floor((now - since) / 60000))) };
+}
+function putHeuteLast(id, list) {
+  putHeuteZone(id, 'Zuletzt', list.filter(Boolean).sort((a, b) => b.t - a.t).map(heuteLastRow));
+}
+
+let heuteLastSeq = 0;
+async function renderHeuteLast(now) {
+  const seq = ++heuteLastSeq;
+  const since = todayStartDate();
+  since.setDate(since.getDate() - HEUTE_LAST_DAYS);
+  const q = (name, field, from) => entryQueryDocs(() => entryStoreSince(name, field, from), () => query(collection(db, name), where(field, '>=', from)));
+  const [feedings, diapers, naps, nights, openFeeding, openPumping, openNap] = await Promise.all([
+    q('feedings', 'createdAt', since), q('diaperChanges', 'createdAt', since),
+    q('naps', 'createdAt', since), q('nightWakeups', 'nightEnd', isoDate(since)),
+    findOpenFeeding(), findOpenPumping(), findOpenNap()
+  ]);
+  if (seq !== heuteLastSeq) return;
+  // Das jüngste Element einer Liste nach dem Zeitpunkt `at` (null = ohne).
+  const newest = (list, at) => list.reduce((best, x) => {
+    const t = at(x);
+    return t && (!best || t > best.t) ? { x, t } : best;
+  }, null);
+
+  // Füttern: Ende = fachlicher Beginn + Dauer; ein Fläschchen hat keine Dauer.
+  const endOf = (f) => {
+    const ts = entryBusinessTimestamp(f);
+    return ts ? new Date(ts.getTime() + (f.type === 'bottle' ? 0 : feedMinutes(f) * 60000)) : null;
+  };
+  const feedMinutes = (f) => Number(f.minutes) || Number(f.durationMinutes) || 0;
+  const done = feedings.filter(fuetternIsFinished);
+  const bottle = newest(done.filter((f) => f.type === 'bottle'), endOf);
+  const breast = newest(done.filter((f) => f.type === 'breast'), endOf);
+  const pump = newest(done.filter((f) => f.type === 'pump'), endOf);
+  putHeuteLast('fuettern-last', [
+    bottle && { label: 'Fläschchen', t: bottle.t, text: milkLabel(bottle.x) + HT_SEP + (bottle.x.amount || 0) + ' ml' },
+    openFeeding ? heuteLastRunning('Brust', new Date(openFeeding.startTime), now)
+      : breast && { label: 'Brust', t: breast.t, text: feedMinutes(breast.x) + ' Min' + heuteBreastSides(breast.x) },
+    openPumping ? heuteLastRunning('Abpumpen', new Date(openPumping.startTime), now)
+      : pump && { label: 'Abpumpen', t: pump.t, text: pump.x.pendingAmount ? 'Menge fehlt' : Number(pump.x.amount) > 0 ? pump.x.amount + ' ml' : feedMinutes(pump.x) + ' Min' }
+  ]);
+
+  // Windeln: ein Wechsel mit klein und groß zählt als groß (wie in der Analyse).
+  // Die Farbe steht nur da, wenn sie auffällig ist.
+  const small = newest(diapers.filter((d) => d.small && !d.big), entryBusinessTimestamp);
+  const big = newest(diapers.filter((d) => d.big), entryBusinessTimestamp);
+  const warnColor = (d) => (WARN_COLOR_IDS.includes(d.color) && COLOR_BY_ID[d.color]
+    ? '<span class="ht-cdot" style="background:' + COLOR_BY_ID[d.color].hex + '"></span>' + COLOR_BY_ID[d.color].label + HT_WARN : '');
+  putHeuteLast('windeln-last', [
+    small && { label: 'Klein', t: small.t, text: '' },
+    big && { label: 'Groß', t: big.t, text: warnColor(big.x) }
+  ]);
+
+  // Schlafen: der zuletzt beendete Schlaf mit seiner Dauer, „vor x“ ab dem
+  // Aufwachen — oder der laufende.
+  const spans = naps.map(sleepInterval).concat(nights.map((n) => sleepInterval({ ...n, _type: 'night' }))).filter(Boolean);
+  const sleep = newest(spans.filter((iv) => iv.end <= now), (iv) => iv.end);
+  putHeuteLast('schlafen-last', [
+    openNap && openNap.startTime ? heuteLastRunning('Schlaf', new Date(openNap.startTime), now)
+      : sleep && { label: 'Schlaf', t: sleep.t, text: heuteHm((sleep.x.end - sleep.x.start) / 60000) + ' h' }
+  ]);
 }
 
 // Stand heute und an den Vergleichstagen für eine Reihen-Auswahl — genau
@@ -5855,31 +5958,18 @@ async function loadOverview() {
   // Alle drei Bereiche gleichzeitig anstoßen, gezeichnet wird weiter der Reihe
   // nach. Fehler landen erst beim await im jeweiligen try.
   const fuetternCountsAsMeal = (f) => fuetternIsMeal(f) && fuetternIsFinished(f);
-  const feedData = Promise.all([findOpenFeeding(), getMostRecentByBusinessTime('feedings', fuetternCountsAsMeal), getTodayDocs('feedings')]);
-  const diaperData = Promise.all([getMostRecentByBusinessTime('diaperChanges'), getTodayDocs('diaperChanges')]);
-  const sleepData = Promise.all([findOpenNap(), getRecentSleepDocs('naps'), getRecentSleepDocs('nightWakeups'), getTodayDocs('naps')]);
+  const feedData = Promise.all([findOpenFeeding(), findOpenPumping(), getTodayDocs('feedings')]);
+  const diaperData = Promise.all([getTodayDocs('diaperChanges')]);
+  const sleepData = Promise.all([findOpenNap(), getTodayDocs('naps')]);
   [feedData, diaperData, sleepData].forEach((p) => p.catch(() => {}));
 
   // Füttern
   try {
-    const [openFeeding, lastFeeding, todayFeedingsRaw] = await feedData;
+    const [openFeeding, openPumping, todayFeedingsRaw] = await feedData;
     const todayFeedings = todayFeedingsRaw.filter((f) => entryIsToday(f, now) && fuetternCountsAsMeal(f));
-    // Läuft gerade ein Brust-Timer, ist "vor x Stunden" die falsche Auskunft:
-    // sie bezöge sich auf die vorletzte, abgeschlossene Mahlzeit. Stattdessen
-    // dasselbe "läuft"-Abzeichen wie in der Schlafen-Kachel, und darunter die
-    // laufende Mahlzeit statt der zuletzt beendeten.
-    const fuetternBadge = document.getElementById('fuettern-running-badge');
-    const fuetternAgoEl = document.getElementById('fuettern-ago');
-    if (openFeeding) {
-      fuetternBadge.style.display = 'flex';
-      fuetternAgoEl.textContent = '';
-    } else if (lastFeeding && entryBusinessTimestamp(lastFeeding)) {
-      fuetternBadge.style.display = 'none';
-      fuetternAgoEl.textContent = 'zuletzt ' + timeAgo(entryBusinessTimestamp(lastFeeding));
-    } else {
-      fuetternBadge.style.display = 'none';
-      fuetternAgoEl.textContent = '';
-    }
+    // Läuft ein Brust- oder Abpump-Timer, trägt die Kopfzeile dasselbe
+    // "läuft"-Abzeichen wie die Schlafen-Kachel.
+    document.getElementById('fuettern-running-badge').style.display = openFeeding || openPumping ? 'flex' : 'none';
     todayFeedings.forEach((f) => {
       const ts = entryBusinessTimestamp(f);
       if (!ts) return;
@@ -5928,12 +6018,12 @@ async function loadOverview() {
         });
       });
   } catch (error) {
-    document.getElementById('fuettern-ago').textContent = 'Fehler beim Laden';
+    document.getElementById('fuettern-running-badge').style.display = 'none';
   }
 
   // Windeln
   try {
-    const [lastDiaper, todayDiapersRaw] = await diaperData;
+    const [todayDiapersRaw] = await diaperData;
     const todayDiapers = todayDiapersRaw.filter((d) => entryIsToday(d, now));
     function diaperLabel(d) {
       const sizes = [];
@@ -5948,38 +6038,20 @@ async function loadOverview() {
       }
       return label;
     }
-    document.getElementById('windeln-ago').textContent = lastDiaper && entryBusinessTimestamp(lastDiaper)
-      ? 'zuletzt ' + timeAgo(entryBusinessTimestamp(lastDiaper)) : '';
     todayDiapers.forEach((d) => {
       const ts = entryBusinessTimestamp(d);
       if (!ts) return;
       timelineEvents.push({ ts, color: 'var(--windeln)', label: 'Windel', detail: ' ' + diaperLabel(d), entry: { ...d, _cat: 'windeln' } });
     });
   } catch (error) {
-    document.getElementById('windeln-ago').textContent = 'Fehler beim Laden';
+    // Ohne Daten bleibt der Zeitverlauf ohne Windeln.
   }
 
   // Schlafen
   try {
-    // Die Schlafspannen seit gestern früh (dazu alte Nacht-Einträge, die heute
-    // oder gestern endeten) — genug für die Nacht, die heute endet, samt Schlaf,
-    // der schon am Vorabend begann.
-    const [openNap, recentNaps, recentNights, todayNapsRaw] = await sleepData;
+    const [openNap, todayNapsRaw] = await sleepData;
     const todayNaps = todayNapsRaw.filter((n) => entryIsToday(n, now));
-    const sleeps = recentNaps.map(sleepInterval)
-      .concat(recentNights.map((n) => sleepInterval({ ...n, _type: 'night' })))
-      .filter(Boolean);
-
-    const badge = document.getElementById('schlafen-running-badge');
-    const schlafenAgoEl = document.getElementById('schlafen-ago');
-    badge.style.display = openNap ? 'flex' : 'none';
-    if (openNap) {
-      schlafenAgoEl.textContent = '';
-    } else {
-      // Der zuletzt beendete Schlaf — auch einer, der gestern Abend begann.
-      const last = sleeps.filter((iv) => iv.end <= now).sort((a, b) => b.end - a.end)[0] || null;
-      schlafenAgoEl.textContent = last ? 'zuletzt ' + timeAgo(last.end) : '';
-    }
+    document.getElementById('schlafen-running-badge').style.display = openNap ? 'flex' : 'none';
 
     todayNaps.forEach((n) => {
       const ts = n.source === 'timer' ? new Date(n.startTime) : timeOnDate(now, n.startTime);
@@ -5993,11 +6065,14 @@ async function loadOverview() {
       });
     });
   } catch (error) {
-    document.getElementById('schlafen-ago').textContent = 'Fehler beim Laden';
+    document.getElementById('schlafen-running-badge').style.display = 'none';
   }
 
-  // Trendzeilen der drei Kacheln — eigenes 7-Tage-Fenster wie die Analyse; sie laufen
-  // nebenher, damit der Zeitverlauf nicht auf sie wartet.
+  // „Zuletzt“ und die Trendzeilen der drei Kacheln — eigene Abfragen; sie
+  // laufen nebenher, damit der Zeitverlauf nicht auf sie wartet.
+  renderHeuteLast(now).catch(() => {
+    ['fuettern', 'windeln', 'schlafen'].forEach((k) => { document.getElementById(k + '-last').hidden = true; });
+  });
   renderHeuteTrend(now).catch(() => {
     ['fuettern', 'windeln', 'schlafen'].forEach((k) => { document.getElementById(k + '-trend').hidden = true; });
   });
@@ -6069,8 +6144,12 @@ setInterval(() => {
   document.querySelectorAll('#timeline-container [data-run-since]').forEach((el) => {
     el.textContent = runningMinutesLabel(Number(el.dataset.runSince));
   });
+  // Nur aus dem lokalen Bestand — sonst kostete jeder Takt Firestore-Lesungen.
+  if (!currentUser || !entryStore.isLoaded || entryStore.failed) return;
+  // "vor x" und laufende Dauern unter "Zuletzt" aktuell halten.
+  renderHeuteLast(new Date()).catch(() => {});
   // Ein laufender Schlaf zählt in den Trendzeilen bis jetzt — mitwachsen lassen.
-  if (currentUser && document.getElementById('schlafen-running-badge').style.display === 'flex') renderHeuteTrend(new Date()).catch(() => {});
+  if (document.getElementById('schlafen-running-badge').style.display === 'flex') renderHeuteTrend(new Date()).catch(() => {});
 }, 30000);
 
 // Ein Zeitverlauf-Eintrag öffnet seine Bearbeiten-Maske (laufende: ihren

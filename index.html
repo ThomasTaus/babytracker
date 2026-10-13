@@ -5994,7 +5994,7 @@ async function renderHeuteTrend(now) {
   ]);
   if (seq !== heuteTrendSeq) return;
 
-  const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(feedings, days));
+  const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(fuetternWithRunning(feedings, now), days));
   const ml = heuteTrendValues(fuettern, FUETTERN_CHARTS['fu-menge'].series);
   const brust = heuteTrendValues(fuettern, FUETTERN_CHARTS['fu-still'].series);
   putHeuteTrend('fuettern-trend', [heuteTrendRow('ml', ml.val, ml.ref), heuteTrendRow('brust', brust.val, brust.ref)]);
@@ -6591,9 +6591,25 @@ function outlierDayLabel(day) { return day.isToday ? analyseProseTodayLabel : da
 
 // Ein noch laufender Brust-Timer (endTime === null) zählt erst als Eintrag,
 // sobald er gestoppt wurde — sonst würde ein offener Timer die Anzahl/Summe
-// verfälschen, obwohl seine Dauer noch gar nicht feststeht.
+// verfälschen, obwohl seine Dauer noch gar nicht feststeht. Analyse und
+// Heute-Trend geben ihm vorher über fuetternWithRunning den Stand bis jetzt.
 function fuetternIsFinished(f) {
   return !((f.type === 'breast' || f.type === 'pump') && f.endTime === null);
+}
+
+// Für Analyse und Heute-Trend zählt ein laufender Brust-Timer bis jetzt mit —
+// wie ein laufender Schlaf: als Fütterung, mit der Dauer und den Seitenzeiten,
+// die der Timer gerade zeigt. Alle anderen Einträge bleiben unverändert.
+function fuetternWithRunning(docs, now) {
+  return docs.map((f) => {
+    if (f.type !== 'breast' || f.endTime !== null || !f.startTime) return f;
+    const start = new Date(f.startTime);
+    if (Number.isNaN(start.getTime()) || start >= now) return f;
+    const minutes = Math.floor((now - start) / 60000);
+    const since = f.sideSince ? new Date(f.sideSince).getTime() : start.getTime();
+    const live = (side) => (Number(f[side + 'Seconds']) || 0) + (f.side === side ? Math.max(0, (now - since) / 1000) : 0);
+    return { ...f, endTime: now.toISOString(), minutes, durationMinutes: minutes, ...breastSideMinutesFromSeconds(live('left'), live('right'), minutes) };
+  });
 }
 
 // Abgepumpte Milch ist keine Mahlzeit: Abpump-Einträge teilen sich zwar die
@@ -6817,8 +6833,11 @@ function computeWindelnAnalysis(days, diaperMap) {
 
   const avgIntervalH = analyseIntervalH(allDocs);
 
+  // Auffällig: Anteil an den großen Wechseln — nur sie tragen eine Farbe.
+  // Ohne großen Wechsel gibt es keinen Anteil (null).
   const warnCount = allDocs.filter((x) => x.big && WARN_COLOR_IDS.includes(x.color)).length;
-  const warnPct = totalCount > 0 ? analyseRound(warnCount / totalCount * 100) : 0;
+  const bigCount = perDay.reduce((s, d) => s + d.big, 0);
+  const warnPct = bigCount > 0 ? analyseRound(warnCount / bigCount * 100) : null;
 
   const outlier = findAnalyseOutlierDay(perDay.filter((d) => d.daysComplete), (d) => analysePerDay(d, 'big'));
   const colorStats = analyseColorStats(allDocs);
@@ -7728,8 +7747,8 @@ function fuetternStatValues(a, b) {
 }
 
 function windelnStatValues(a, b) {
-  const pct = b ? (b.total > 0 ? analyseRound(b.warnCount / b.total * 100) : 0) : a.warnPct;
-  const warn = { v: pct + ' %', c: pct > 0 ? 'var(--warn)' : null };
+  const pct = b ? (b.big > 0 ? analyseRound(b.warnCount / b.big * 100) : null) : a.warnPct;
+  const warn = pct === null ? '–' : { v: pct + ' %', c: pct > 0 ? 'var(--warn)' : null };
   if (!b) return {
     count: analyseDe1(a.avgPerDayExact),
     interval: a.avgIntervalH === null ? '–' : analyseDe1(a.avgIntervalH) + ' h',
@@ -9480,7 +9499,7 @@ async function loadAnalyse() {
       getAnalyseRangeDocs('naps', sleepSince)
     ]);
 
-    const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(feedings, days));
+    const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(fuetternWithRunning(feedings, new Date()), days));
     const windeln = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days));
     const sleeps = analyseSleepSpans(naps, nights, new Date());
     const schlafen = computeSchlafenAnalysis(days, sleeps);

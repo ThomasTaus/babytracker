@@ -6801,17 +6801,19 @@ function nightOnLabel(key) {
 // Fensterlänge als wach, in allen Mittelwerten aber nicht mit.
 function computeSchlafenAnalysis(days, sleepSpans) {
   const now = new Date();
-  // Je Schlaf einmal vorab: Dauer, Nachtanteil und ob er als Schläfchen zählt.
-  const sleeps = sleepSpans.map((iv) => {
-    const total = (iv.end - iv.start) / 60000;
-    const nightMin = sleepNightMinutes(iv);
-    return { start: iv.start, end: iv.end, dayMin: total - nightMin, isNight: sleepIsNight(iv) };
-  });
+  const sleeps = sleepSpans;
   const dataStart = analyseSleepDataStart(sleeps);
   const p = readProfil();
   const clock = (base, offsetMin) => minutesToHHMM(parseMinutes(base) + offsetMin);
   const allNights = [];
   const merged = mergeSleepSpans(sleeps);
+  // Dieselben zusammengelegten Spannen als Schlaf, für Tagschlaf und
+  // Schläfchen: doppelt oder überlappend erfasster Schlaf zählt einmal — wie
+  // Nacht, Tagesverlauf und Heute-Trend.
+  const mergedSleeps = merged.map(([a, b]) => {
+    const iv = { start: new Date(a), end: new Date(b) };
+    return Object.assign(iv, { dayMin: (b - a) / 60000 - sleepNightMinutes(iv), isNight: sleepIsNight(iv) });
+  });
   let mergedIdx = 0;
   const slotMs = SLEEP_SLOT_MIN * 60000;
   const allSlotSum = new Array(SLEEP_SLOTS).fill(0), allSlotCount = new Array(SLEEP_SLOTS).fill(0);
@@ -6837,7 +6839,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
       // Uhrzeit des Schlafs: das 24-Stunden-Band dieses Tages.
       const band = nightWindowEnding(day).start.getTime();
       const napEvents = [];
-      sleeps.forEach((iv) => {
+      mergedSleeps.forEach((iv) => {
         const ov = spanOverlapMinutes(iv, dw);
         dayMin += ov;
         if (done) doneMin += ov;

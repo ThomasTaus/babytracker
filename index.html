@@ -8162,15 +8162,10 @@ function secHoursInner(chartId, cfg, analysis) {
   const live = nowT < 1440;
   const incOf = (e) => series.reduce((s, se) => s + se.inc(e), 0);
 
-  // Ø-Verlauf der Vergleichstage, im 5-Minuten-Raster vorberechnet und über
-  // ±45 Min. geglättet — der Mittelwert weniger Treppen sähe sonst selbst
-  // wie eine Treppe aus.
+  // Ø-Verlauf der Vergleichstage im 5-Minuten-Raster; gezeichnet geglättet
+  // (verlaufSmooth, randtreu), Zahlen exakt.
   const refArr = refAt ? Array.from({ length: 289 }, (_, k) => refAt(k * 5)) : null;
-  const refSmooth = (k) => {
-    let s = 0, n = 0;
-    for (let j = k - 9; j <= k + 9; j++) { s += refArr[Math.max(0, Math.min(288, j))]; n++; }
-    return k === 0 ? 0 : s / n;
-  };
+  const refLine = refArr ? verlaufSmooth(refArr, gA, gB) : null;
 
   const total = cum(day, end);
   const refEnd = refArr ? refArr[gB] : 0;
@@ -8235,7 +8230,7 @@ function secHoursInner(chartId, cfg, analysis) {
   if (refArr) {
     const kStep = gB - gA > 150 ? 2 : 1;
     let ref = '';
-    for (let k = gA; k <= gB; k += kStep) ref += (k > gA ? 'L' : 'M') + X(k * 5).toFixed(1) + ',' + y(refSmooth(k)).toFixed(1);
+    for (let k = gA; k <= gB; k += kStep) ref += (k > gA ? 'L' : 'M') + X(k * 5).toFixed(1) + ',' + y(refLine[k]).toFixed(1);
     // Wie im Tagesverlauf: der weiße Unterstrich hält den Ø auch über der
     // dunklen Fläche lesbar.
     out += '<path d="' + ref + '" fill="none" stroke="white" stroke-width="3" stroke-opacity="0.85"/>' +
@@ -8352,17 +8347,27 @@ function verlaufCum(d, series) {
   }
   return a;
 }
-// Ø mehrerer Tage, über ±45 Min. geglättet — der Mittelwert weniger Treppen
-// sähe sonst selbst wie eine Treppe aus.
+// Ø mehrerer Tage, exakt — alle Zahlen (Endwert, Label) rechnen damit.
 function verlaufAvg(days, series) {
   const a = new Float32Array(289);
   if (!days.length) return a;
   days.forEach((d) => { const c = verlaufCum(d, series); for (let g = 0; g < 289; g++) a[g] += c[g]; });
-  const out = new Float32Array(289);
-  for (let g = 1; g < 289; g++) {
+  for (let g = 0; g < 289; g++) a[g] /= days.length;
+  return a;
+}
+
+// Nur fürs Zeichnen eines Ø: über ±45 Min. (9 Rasterpunkte) geglättet — der
+// Mittelwert weniger Treppen sähe sonst selbst wie eine Treppe aus. Zu den
+// Rändern des gezeigten Ausschnitts (gA–gB) wird das Fenster symmetrisch
+// schmaler, damit Anfang und Ende exakt bleiben; ein einseitig aufgefülltes
+// Fenster zog den Endwert nach unten, solange die Kurve dort noch stieg.
+function verlaufSmooth(a, gA, gB) {
+  const out = new Float32Array(a.length);
+  for (let g = 0; g < a.length; g++) {
+    const r = Math.max(0, Math.min(9, g - gA, gB - g));
     let v = 0;
-    for (let k = g - 9; k <= g + 9; k++) v += a[Math.max(0, Math.min(288, k))];
-    out[g] = v / 19 / days.length;
+    for (let k = g - r; k <= g + r; k++) v += a[k];
+    out[g] = v / (2 * r + 1);
   }
   return out;
 }
@@ -8410,6 +8415,10 @@ function secVerlaufInner(chartId, cfg, analysis) {
   if (day) dayCum = series.map((se) => verlaufCum(day, se));
   else fill = b ? series.map((se) => avgDays(b.dayEvents, se)) : ref;
   const valAt = (t) => (dayCum || fill).reduce((sum, c) => sum + c[g0(t)], 0);
+  // Gezeichnet wird der Ø geglättet, gerechnet und beschriftet exakt.
+  const refDraw = ref.map((c) => verlaufSmooth(c, gA, gB));
+  const fillDraw = fill && (fill === ref ? refDraw : fill.map((c) => verlaufSmooth(c, gA, gB)));
+  const drawAt = (t) => (dayCum || fillDraw).reduce((sum, c) => sum + c[g0(t)], 0);
   const endVal = valAt(end);
   const maxVal = Math.max(1, endVal, refTot(gB)) * 1.12;
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - 82]);
@@ -8438,8 +8447,8 @@ function secVerlaufInner(chartId, cfg, analysis) {
   } else {
     lowPts = []; totPts = [];
     for (let g = gA; g <= gB; g += gStep) {
-      lowPts.push([X(g * 5), y(fill[0][g])]);
-      totPts.push([X(g * 5), y(fill.reduce((sum, c) => sum + c[g], 0))]);
+      lowPts.push([X(g * 5), y(fillDraw[0][g])]);
+      totPts.push([X(g * 5), y(fillDraw.reduce((sum, c) => sum + c[g], 0))]);
     }
   }
   const pl = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(2) + ',' + p[1].toFixed(2)).join('');
@@ -8475,11 +8484,11 @@ function secVerlaufInner(chartId, cfg, analysis) {
   // hält ihn auch über der dunklen Fläche lesbar.
   if (b) {
     let rp = '';
-    for (let g = gA; g <= gB; g += gStep) rp += (g > gA ? 'L' : 'M') + X(g * 5).toFixed(1) + ',' + y(refTot(g)).toFixed(1);
+    for (let g = gA; g <= gB; g += gStep) rp += (g > gA ? 'L' : 'M') + X(g * 5).toFixed(1) + ',' + y(refDraw.reduce((sum, c) => sum + c[g], 0)).toFixed(1);
     out += '<path d="' + rp + '" fill="none" stroke="white" stroke-width="3" stroke-opacity="0.85"/>' +
       '<path d="' + rp + '" fill="none" stroke="' + ink + '" stroke-width="1.6" stroke-dasharray="3,3"/>';
   }
-  out += '<circle cx="' + X(end).toFixed(2) + '" cy="' + y(endVal).toFixed(2) + '" r="3.4" fill="' + ink + '" stroke="white" stroke-width="1.5"/>';
+  out += '<circle cx="' + X(end).toFixed(2) + '" cy="' + y(drawAt(end)).toFixed(2) + '" r="3.4" fill="' + ink + '" stroke="white" stroke-width="1.5"/>';
   const endText = (day ? '' : 'Ø ') + num(endVal);
   out += end < t1
     ? txt((X(end) + 7).toFixed(2), (y(endVal) + 4.5).toFixed(2), endText, { cls: 'endval', w: 700, fill: ink, anchor: 'start' })
@@ -8494,7 +8503,7 @@ function secVerlaufInner(chartId, cfg, analysis) {
 
   analyseRender[chartId] = {
     cfg, series, verlauf: true, builtFor: idx, end, t0, single: !!day, marked: !!b, num,
-    cxOf: X, yOf: (v) => y(v), valAt, refAt: (t) => refTot(Math.floor(t / 5)),
+    cxOf: X, yOf: (v) => y(v), valAt, drawAt, refAt: (t) => refTot(Math.floor(t / 5)),
     clockAt: (t) => analyseClockText(axis.from ? (axis.from + t) % 1440 : t),
     tAt: (vx) => Math.max(t0, Math.min(end, t0 + Math.round((vx - 4) / (x1 - 4) * (t1 - t0) / 5) * 5))
   };
@@ -8528,7 +8537,7 @@ function applyVerlaufSelection(view) {
     const clip = svgEl.querySelector('.ar-clip-v');
     if (clip && t !== null) clip.setAttribute('width', r.cxOf(t));
     if (!active) { sc.style.display = 'none'; tip.hidden = true; return; }
-    const cx = r.cxOf(t), v = r.valAt(t), cy = r.yOf(v);
+    const cx = r.cxOf(t), v = r.valAt(t), cy = r.yOf(r.drawAt(t));
     sc.style.display = '';
     sc.querySelector('.sc-line').setAttribute('x1', cx);
     sc.querySelector('.sc-line').setAttribute('x2', cx);

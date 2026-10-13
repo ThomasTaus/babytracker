@@ -45,12 +45,14 @@
   /* Aus dem Heute-Zeitverlauf bearbeitet: das Datum steht fest. */
   input[type="date"]:disabled { color: var(--text-muted); opacity: 1; -webkit-text-fill-color: var(--text-muted); }
 
-  /* Heute-Kacheln: Kopfzeile und „+" führen zur Eintragen-Seite, die
-     Trendzeilen darunter in die Analyse. Beim Antippen kurz die helle Farbe
-     des Bereichs — auf der ganzen Kachel nur, wenn es keine Trendzeile war. */
-  .heute-card { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.12s; }
-  .heute-card:active:not(:has(.ht-row:active)) { background: var(--card-soft) !important; }
-  .quick-btn { width: 44px; height: 44px; border-radius: 12px; background: transparent; border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  /* Heute-Kacheln: nur das „+" führt zur Eintragen-Seite, die Trendzeilen in
+     die Analyse; der Rest der Kachel reagiert nicht. Beim Antippen kurz die
+     helle Farbe des Bereichs hinter dem Getippten. */
+  .heute-card { -webkit-tap-highlight-color: transparent; }
+  .quick-btn { width: 44px; height: 44px; border-radius: 12px; background: transparent; border: none; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.12s; }
+  @media (hover: hover) { .quick-btn:hover { background: color-mix(in srgb, var(--card-soft) 55%, transparent); } }
+  .quick-btn:active { background: var(--card-soft); }
+  .quick-btn:focus-visible { outline: 2px solid var(--ht-strong); outline-offset: 2px; }
   /* Unter der Kopfzeile zwei Zonen, je mit Linie und kleiner Überschrift (Stil
      wie „ZEITVERLAUF“): „Zuletzt“ — das letzte Ereignis je Kategorie — und
      „Heute bis jetzt“ — der Trend gegen den Ø der Analyse „Stunden“. Beide
@@ -2237,13 +2239,14 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
   });
 });
 
-// Die Kachel (samt „+") öffnet die Eintragen-Seite, eine Trendzeile darin
-// den Bereich in der Analyse.
+// Nur das „+" öffnet die Eintragen-Seite, eine Trendzeile den Bereich in der
+// Analyse. Ein Tipp auf den Rest der Kachel (Kopfzeile, „Zuletzt“) bewirkt
+// nichts — sonst wäre unklar, was wohin führt.
 document.querySelectorAll('.heute-card').forEach((card) => {
   card.addEventListener('click', (e) => {
     const row = e.target.closest('.ht-row');
     if (row) openAnalyseFromHeute(row.dataset.trend);
-    else showScreen(card.dataset.target);
+    else if (e.target.closest('.quick-btn')) showScreen(card.dataset.target);
   });
 });
 document.getElementById('heute-all-entries').addEventListener('click', () => showScreen('historie'));

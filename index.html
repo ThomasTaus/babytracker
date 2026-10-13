@@ -1156,6 +1156,7 @@
             </div>
           </div>
           <div id="nap-time-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);">Zeitpunkt liegt in der Zukunft.</div>
+          <div id="nap-overlap-error" style="display: none; padding: 0 4px; font-size: 12px; color: var(--warn);"></div>
           <div style="height: 1px; background: var(--border);"></div>
           <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">Dauer</div>
           <div style="display: flex; align-items: center; justify-content: center; gap: 22px; padding: 2px 0; margin-top: -8px;">
@@ -1196,6 +1197,7 @@
             <button id="nap-bd-clear" class="bd-x" type="button" aria-label="Beginn zurück auf jetzt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
           <div id="nap-bd-error" class="bd-err"></div>
+          <div id="nap-bd-overlap" class="bd-err"></div>
           <button id="timer-toggle-btn" style="display:flex; align-items:center; gap:8px; padding:13px 30px; border-radius:999px; border:none; font-size:16px; font-weight:700; cursor:pointer; color:white; background:var(--accent-strong);">Start</button>
         </div>
       </div>
@@ -2625,7 +2627,7 @@ feedBottleBtn.addEventListener('click', () => setFeedType('bottle'));
 feedBreastBtn.addEventListener('click', () => setFeedType('breast'));
 feedPumpBtn.addEventListener('click', () => setFeedType('pump'));
 // Vor dem ersten setPumpMode: das rendert schon den Abpump-Timer (TDZ).
-const napBackdate = wireBackdate('nap', () => renderTimerDisplay());
+const napBackdate = wireBackdate('nap', () => { renderTimerDisplay(); checkNapBackdateOverlap(); });
 const breastBackdate = wireBackdate('breast', () => renderBreastTimerDisplay());
 const pumpBackdate = wireBackdate('pump', () => renderPumpTimerDisplay());
 setFeedType('bottle');
@@ -4591,6 +4593,9 @@ const napDateInput = document.getElementById('nap-date');
 const napStartInput = document.getElementById('nap-start');
 const napEndInput = document.getElementById('nap-end');
 const napTimeError = document.getElementById('nap-time-error');
+const napOverlapError = document.getElementById('nap-overlap-error');
+const napBdOverlapEl = document.getElementById('nap-bd-overlap');
+let napOverlapSeq = 0, napBdOverlapSeq = 0;
 const napDurDisplay = document.getElementById('nap-dur-display');
 const napDurDecBtn = document.getElementById('nap-dur-dec');
 const napDurIncBtn = document.getElementById('nap-dur-inc');
@@ -4633,6 +4638,7 @@ function renderNapDuration() {
   napDurDisplay.textContent = minutes > 0 ? Math.floor(minutes / 60) + ':' + String(minutes % 60).padStart(2, '0') : '–';
   napSaveBtn.style.background = minutes > 0 ? 'var(--accent-strong)' : 'oklch(70% 0.01 70)';
   napEndNextDayEl.style.display = minutes > 0 && parseMinutes(napEndInput.value) < parseMinutes(napStartInput.value) ? 'inline' : 'none';
+  checkNapOverlap();
   return minutes;
 }
 // Dauer-Stepper verstellt das Ende (Start bleibt stehen), in 15-Minuten-Schritten.
@@ -4674,6 +4680,8 @@ napStartInput.value = formatTime(new Date(Math.max(napTodayMidnight.getTime(), n
 napEndInput.value = formatTime(napDefaultNow);
 napStartInput.addEventListener('input', renderNapDuration);
 napEndInput.addEventListener('input', renderNapDuration);
+// Die Uhrzeit-Auswahl und die Zukunftsprüfung des Datums melden sich per change.
+[napDateInput, napStartInput, napEndInput].forEach((el) => el.addEventListener('change', () => checkNapOverlap()));
 renderNapDuration();
 setupPastOnlyDateTimeRange(napDateInput, napStartInput, napEndInput, napTimeError);
 // Die Prüfung aus setupPastOnlyDateTimeRange legt beide Uhrzeiten auf das eine
@@ -4692,6 +4700,69 @@ function napTimeIsValid() {
   return !future;
 }
 
+// --- Schlaf-Überschneidung: zwei Schlaf-Einträge dürfen sich zeitlich nicht
+// überschneiden. Geprüft wird gegen den Bestand — Schläfchen, alte
+// Nacht-Einträge und einen laufenden Timer (bis jetzt); der bearbeitete
+// Eintrag selbst zählt nicht. Nur echte Überlappung zählt: endet ein Schlaf
+// genau, wenn der nächste beginnt, ist das in Ordnung. Das Stoppen eines
+// Timers wird nie blockiert; entsteht doch eine Überschneidung (zwei Handys,
+// eins offline), rechnet die Analyse den Schlaf trotzdem nur einmal.
+// Ergebnis: der Meldungstext oder null.
+async function findSleepOverlap(start, end, excludeId) {
+  // Ein Schlaf, der in [start, end] hineinreicht, wurde frühestens einen Tag
+  // vor start angelegt (Timer: bei Beginn, manuell: nach dem Ende).
+  const since = new Date(start.getTime() - 36 * 3600000);
+  const sinceKey = isoDate(since);
+  const [naps, nights] = await Promise.all([
+    entryQueryDocs(() => entryStoreSince('naps', 'createdAt', since), () => query(collection(db, 'naps'), where('createdAt', '>=', since))),
+    entryQueryDocs(() => entryStoreSince('nightWakeups', 'nightEnd', sinceKey), () => query(collection(db, 'nightWakeups'), where('nightEnd', '>=', sinceKey)))
+  ]);
+  const now = new Date();
+  const hits = naps.filter((n) => n.id !== excludeId).map((n) => (n.endTime == null && n.startTime
+    ? { start: new Date(n.startTime), end: now, running: true } : sleepInterval(n)))
+    .concat(nights.filter((n) => n.id !== excludeId).map((n) => sleepInterval({ ...n, _type: 'night' })))
+    .filter((iv) => iv && iv.start < end && iv.end > start)
+    .sort((a, b) => a.start - b.start);
+  if (!hits.length) return null;
+  const iv = hits[0];
+  return iv.running ? 'Überschneidet sich mit dem laufenden Schlaf seit ' + formatTime(iv.start) + '.'
+    : 'Überschneidet sich mit Schlaf ' + formatTime(iv.start) + '–' + formatTime(iv.end) + '.';
+}
+
+// Manuelle Maske: Meldung unter Start/Ende, Speichern bzw. Aktualisieren
+// blass, bis die Zeiten passen. Liefert den Meldungstext (oder null).
+async function checkNapOverlap() {
+  const seq = ++napOverlapSeq;
+  const iv = editingNightId ? null : napManualInterval();
+  let text = null;
+  if (iv && iv.end > iv.start && currentUser) {
+    try { text = await findSleepOverlap(iv.start, iv.end, editingNapId); } catch (error) { text = null; }
+  }
+  if (seq === napOverlapSeq) {
+    napOverlapError.textContent = text || '';
+    napOverlapError.style.display = text ? 'block' : 'none';
+    napSaveBtn.style.opacity = text ? '0.4' : '';
+    napUpdateBtn.style.opacity = text ? '0.4' : '';
+  }
+  return text;
+}
+
+// Timer mit nachgetragenem Beginn: dieselbe Prüfung für Beginn bis jetzt,
+// Meldung unter dem Beginn, Start blass.
+async function checkNapBackdateOverlap() {
+  const seq = ++napBdOverlapSeq;
+  let text = null;
+  if (napBackdate.active() && !openNapDocId && currentUser) {
+    try { text = await findSleepOverlap(napBackdate.startedAt(), new Date(), null); } catch (error) { text = null; }
+  }
+  if (seq === napBdOverlapSeq) {
+    napBdOverlapEl.textContent = text || '';
+    napBdOverlapEl.style.display = text ? 'block' : 'none';
+    timerToggleBtn.style.opacity = text ? '0.4' : '';
+  }
+  return text;
+}
+
 // Für exitSchlafenEdit (siehe Schlafen-Historie weiter unten) — dieselben
 // Default-Werte wie oben, aber als wiederverwendbare Funktion.
 function resetNapManualForm() {
@@ -4707,7 +4778,7 @@ function resetNapManualForm() {
 napSaveBtn.addEventListener('click', async () => {
   if (!currentUser || !napTimeIsValid()) return;
   const minutes = renderNapDuration();
-  if (minutes <= 0) return;
+  if (minutes <= 0 || await checkNapOverlap()) return;
   napSaveBtn.disabled = true;
   try {
     const entry = {
@@ -4751,6 +4822,9 @@ function renderTimerDisplay() {
     return;
   }
   timerDisplay.style.color = '';
+  // Läuft der Timer, gibt es nichts mehr zu prüfen.
+  timerToggleBtn.style.opacity = '';
+  napBdOverlapEl.style.display = 'none';
   const elapsed = Math.floor((Date.now() - openNapStartedAt) / 1000);
   const hh = String(Math.floor(elapsed / 3600)).padStart(2, '0');
   const mm = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
@@ -4795,7 +4869,7 @@ timerToggleBtn.addEventListener('click', async () => {
   timerToggleBtn.disabled = true;
   try {
     if (!openNapDocId) {
-      if (napBackdate.hasError()) { timerToggleBtn.disabled = false; return; }
+      if (napBackdate.hasError() || await checkNapBackdateOverlap()) { timerToggleBtn.disabled = false; return; }
       const startedAt = napBackdate.startedAt();
       const entry = {
         startTime: startedAt.toISOString(),
@@ -5028,7 +5102,7 @@ function analyseNightWindow(day, sleeps, now) {
 napUpdateBtn.addEventListener('click', async () => {
   if (!currentUser || !editingNapId || !napTimeIsValid()) return;
   const minutes = renderNapDuration();
-  if (minutes <= 0) return;
+  if (minutes <= 0 || await checkNapOverlap()) return;
   const updatedId = editingNapId;
   const entry = {
     date: napDateInput.value,

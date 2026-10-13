@@ -5909,6 +5909,7 @@ function heuteTrendValues(analysis, series) {
 let heuteTrendSeq = 0;
 async function renderHeuteTrend(now) {
   const seq = ++heuteTrendSeq;
+  await refreshAnalyseStart();
   // Dasselbe 7-Tage-Fenster und dieselben Abfragen wie loadAnalyse in „Stunden".
   const { days, start } = buildAnalyseDayBuckets(null);
   const sleepSince = new Date(start);
@@ -5942,7 +5943,7 @@ async function renderHeuteTrend(now) {
   // Nachts: die Nacht, die heute endete. Läuft ihr Fenster noch, fehlt die
   // Zeile; ohne einen Schlaf darin steht „keine Einträge".
   const night = analyseNightWindow(today, spans, now);
-  const dataStart = spans.length ? Math.min(...spans.map((iv) => iv.start.getTime())) : null;
+  const dataStart = analyseSleepDataStart(spans);
   if (!night.pending && dataStart !== null && night.win.end.getTime() > dataStart) {
     const nacht = heuteTrendValues(schlafen, [nightSe]);
     rows.push(night.missing ? heuteTrendRow('nacht', 0, nacht.ref, true) : heuteTrendRow('nacht', nacht.val, nacht.ref));
@@ -6228,18 +6229,90 @@ const ANALYSE_ZOOM_UI = {
 
 function analyseAvg(arr) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0; }
 function analyseRound(n) { return Math.round(n); }
-// Tage, die in einen Tagesschnitt eingehen: nur zwischen Geburt und heute.
-// Tage vor der Geburt oder in der Zukunft haben keine Einträge und würden
-// jeden Schnitt nach unten ziehen. Ohne Geburtsdatum gilt nur die Obergrenze.
+// Beginn der Aufzeichnung, für alle Bereiche gemeinsam: der Tag nach dem
+// allerersten Eintrag (Füttern, Windeln oder Schlaf) im ganzen Bestand. Der
+// erste Tag selbst ist fast immer nur halb erfasst; ab dem Folgetag sind Tag
+// und Nacht vollständig — dessen Nacht beginnt am Abend des ersten Tages.
+// Davor zählt nichts, danach ist ein Tag ohne Einträge 0 und eine Nacht ohne
+// Einträge fehlt. null = noch kein Eintrag (dann gilt das Geburtsdatum).
+let analyseStartKey = null;
+
+// Der Tag, an dem ein Eintrag beginnt — bei alten Nacht-Einträgen der Abend.
+function analyseEntryStartKey(doc) {
+  return doc.nightStart || analyseBusinessDateKey(doc);
+}
+
+async function refreshAnalyseStart() {
+  let first = null;
+  const take = (doc) => {
+    const k = analyseEntryStartKey(doc);
+    if (k && (!first || k < first)) first = k;
+  };
+  if (await entryStoreLoaded()) {
+    SYNCED_COLLECTIONS.forEach((c) => { if (entryStore.docs[c]) entryStore.docs[c].forEach(take); });
+  } else try {
+    // Ohne Bestand: je Collection der zuerst gespeicherte Eintrag. Nachgetragene
+    // Einträge können älter sein — das kostet höchstens den genauen Starttag.
+    const snaps = await Promise.all(SYNCED_COLLECTIONS.map((c) => getDocs(query(collection(db, c), orderBy('createdAt'), limit(1)))));
+    snaps.forEach((snap) => snap.docs.forEach((d) => take(d.data())));
+  } catch (error) {
+    return; // ohne Antwort bleibt der bisherige Startpunkt
+  }
+  if (!first) { analyseStartKey = null; return; }
+  const d = new Date(first + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  analyseStartKey = isoDate(d);
+}
+
+// Tage, die in einen Tagesschnitt eingehen: ab Beginn der Aufzeichnung (ohne
+// Eintrag: ab Geburt) bis heute. Tage davor oder in der Zukunft haben keine
+// Einträge und würden jeden Schnitt nach unten ziehen.
 function analyseCountedDays(dayKeys) {
   const todayKey = isoDate(todayStartDate());
-  const birth = readProfil().birth || '';
-  return dayKeys.filter((k) => k <= todayKey && (!birth || k >= birth)).length;
+  const from = analyseStartKey || readProfil().birth || '';
+  return dayKeys.filter((k) => k <= todayKey && (!from || k >= from)).length;
 }
-// Ein Ausschnitt ohne zählenden Tag zeigt 0 statt NaN: x / Infinity = 0.
-function analyseDayDivisor(d) { return d.daysCounted || Infinity; }
-// Mindestens 1, damit ein Ausschnitt ganz vor der Geburt 0 statt NaN ergibt.
-function analyseTotalDays(days) { return days.reduce((s, d) => s + d.daysCounted, 0) || 1; }
+
+// Ab wann Schlaf zählt: der Beginn des Bandes am Starttag, also der Abend des
+// ersten Eintragstages — die Nacht auf den Starttag gehört dazu, die davor
+// nicht. Ohne Eintrag der früheste Schlaf.
+function analyseSleepDataStart(sleeps) {
+  if (analyseStartKey) return nightWindowEnding(new Date(analyseStartKey + 'T00:00:00')).start.getTime();
+  return sleeps.length ? Math.min(...sleeps.map((iv) => iv.start.getTime())) : null;
+}
+// Davon die abgeschlossenen — nur sie gehen in einen Tagesschnitt ein. Der
+// laufende Tag ist erst halb vorbei und zöge jeden Schnitt nach unten.
+function analyseCompleteDays(dayKeys) {
+  const todayKey = isoDate(todayStartDate());
+  return analyseCountedDays(dayKeys.filter((k) => k < todayKey));
+}
+
+// Tagesschnitt eines Buckets: die Summe seiner abgeschlossenen Tage durch
+// deren Anzahl (b.avg / b.avgDays, gebaut von analyseAvgBasis). Ein Bucket nur
+// aus dem heutigen Tag zeigt dessen Stand bis jetzt. Ohne zählenden Tag 0
+// statt NaN: x / Infinity = 0.
+function analysePerDay(b, key) { return b.avg[key] / (b.avgDays || Infinity); }
+
+// Grundlage der Tagesschnitte: b.avg sind die Felder aus den Einträgen der
+// abgeschlossenen Tage — gibt es im Bucket keinen, die des heutigen Tages.
+// Einträge von Tagen vor Beginn der Aufzeichnung fallen in beiden Fällen
+// heraus. `fields` rechnet die Felder aus einer Liste.
+function analyseAvgBasis(d, docs, fields) {
+  const keep = d.daysComplete ? analyseCompleteDays : analyseCountedDays;
+  return { avg: fields(docs.filter((x) => keep([analyseBusinessDateKey(x)]) === 1)), avgDays: d.daysComplete || d.daysCounted };
+}
+
+// Ø über den ganzen Ausschnitt: Summe über die abgeschlossenen Tage durch
+// deren Anzahl. Nur wenn es noch gar keinen gibt, zählt der laufende Tag.
+// sum(key) summiert b.avg; days ist mindestens 1, damit ein Ausschnitt ganz
+// vor Beginn der Aufzeichnung 0 statt NaN ergibt.
+function analyseAvgTotals(perDay) {
+  const list = perDay.some((b) => b.daysComplete) ? perDay.filter((b) => b.daysComplete) : perDay;
+  return {
+    days: list.reduce((s, b) => s + b.avgDays, 0) || 1,
+    sum: (key) => list.reduce((s, b) => s + (typeof key === 'function' ? key(b.avg) : b.avg[key]), 0)
+  };
+}
 
 function minutesToHHMM(totalMin) {
   const m = ((Math.round(totalMin) % 1440) + 1440) % 1440;
@@ -6273,7 +6346,8 @@ function buildAnalyseDayBuckets(endDate) {
       dayStart: d,
       isToday: isoDate(d) === todayKey,
       daysElapsed: 1,
-      daysCounted: analyseCountedDays([isoDate(d)])
+      daysCounted: analyseCountedDays([isoDate(d)]),
+      daysComplete: analyseCompleteDays([isoDate(d)])
     });
   }
   return { days, start };
@@ -6300,7 +6374,7 @@ function mondayOf(d) {
 // laufende auf heute gekürzt; steckt der Ausschnitt in einem Monat, sind es
 // dessen Wochen, an den Monatsrändern gekürzt. daysElapsed hält fest, wie
 // viele Tage zu einer Woche gehören, daysCounted, wie viele davon in die
-// Tagesmittel eingehen (ab Geburt) — dadurch bleiben die Tagesmittel über
+// Tagesmittel eingehen (ab Beginn der Aufzeichnung) — dadurch bleiben die Tagesmittel über
 // volle und angeschnittene Wochen hinweg vergleichbar.
 function buildAnalyseWeekBuckets(range) {
   const today = todayStartDate();
@@ -6331,7 +6405,8 @@ function buildAnalyseWeekBuckets(range) {
       contextLabel: 'Kalenderwoche ' + weekNum,
       isToday: dayKeys.indexOf(todayKey) !== -1,
       daysElapsed: dayKeys.length,
-      daysCounted: analyseCountedDays(dayKeys)
+      daysCounted: analyseCountedDays(dayKeys),
+      daysComplete: analyseCompleteDays(dayKeys)
     });
   }
   return { days, start: days.length ? new Date(days[0].weekStart) : first };
@@ -6361,7 +6436,8 @@ function buildAnalyseMonthBuckets() {
       contextLabel: ANALYSE_MONTH_FULL[mStart.getMonth()] + ' ' + mStart.getFullYear(),
       isToday: dayKeys.indexOf(todayKey) !== -1,
       daysElapsed: dayKeys.length,
-      daysCounted: analyseCountedDays(dayKeys)
+      daysCounted: analyseCountedDays(dayKeys),
+      daysComplete: analyseCompleteDays(dayKeys)
     });
   }
   return { days, start };
@@ -6425,7 +6501,7 @@ function analyseBucketByDay(docs, days) {
 // "insight" callouts) — returns null when there's no meaningful outlier, so the
 // insight box can be hidden instead of showing a misleading/trivial callout.
 function findAnalyseOutlierDay(perDay, valueFn) {
-  // Tage vor der Geburt bzw. in der Zukunft drücken sonst den Vergleichsschnitt.
+  // Tage vor Beginn der Aufzeichnung bzw. in der Zukunft drücken sonst den Vergleichsschnitt.
   perDay = perDay.filter((d) => d.daysCounted > 0);
   const values = perDay.map(valueFn);
   const max = Math.max(...values);
@@ -6483,7 +6559,7 @@ function fuetternDayEvents(dayKey, docs) {
 }
 
 // Die Tage eines Buckets, je mit ihren Einträgen. `complete` = ganz vorbei
-// und nach der Geburt — nur solche Tage gehen in einen Ø-Tagesverlauf ein;
+// und ab Beginn der Aufzeichnung — nur solche Tage gehen in einen Ø-Tagesverlauf ein;
 // der laufende Tag bliebe ab jetzt flach und zöge den Abend nach unten.
 function fuetternBucketDayEvents(dayKeys, docs) {
   const todayKey = isoDate(todayStartDate());
@@ -6497,31 +6573,43 @@ function fuetternBucketDayEvents(dayKeys, docs) {
   }));
 }
 
+// Die Summen eines Bündels Füttern-Einträge, die pro Tag gemittelt werden.
+function fuetternDayFields(list) {
+  const docs = list.filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f));
+  const bottle = docs.filter((f) => f.type === 'bottle');
+  const breast = docs.filter((f) => f.type === 'breast');
+  // Abpumpen läuft neben den Mahlzeiten her: eigene Reihe, die weder in die
+  // Anzahl noch in den Abstand eingeht. Einträge ohne Menge (noch
+  // unvollständig oder von vor der Mengenpflicht) tragen nichts bei.
+  const pumped = list.filter((f) => f.type === 'pump' && !f.pendingAmount && Number(f.amount) > 0);
+  return {
+    bottleCount: bottle.length, breastCount: breast.length,
+    bottleMl: bottle.reduce((s, f) => s + (f.amount || 0), 0),
+    // Nach Milchart getrennt; ohne Angabe zählt ein Fläschchen als Pre.
+    bottleMmMl: bottle.filter((f) => entryMilk(f) === 'breastmilk').reduce((s, f) => s + (f.amount || 0), 0),
+    bottlePreMl: bottle.filter((f) => entryMilk(f) === 'formula').reduce((s, f) => s + (f.amount || 0), 0),
+    breastMin: breast.reduce((s, f) => s + (f.minutes || 0), 0),
+    // Seitenzeiten getrennt: Einträge ohne Seitenangabe zählen hier nicht
+    // mit, deshalb ist links + rechts nicht zwangsläufig breastMin. Die
+    // Seitenbalance rechnet nur mit dem, was tatsächlich zugeordnet ist.
+    breastLeftMin: breast.reduce((s, f) => s + (Number(f.leftMinutes) || 0), 0),
+    breastRightMin: breast.reduce((s, f) => s + (Number(f.rightMinutes) || 0), 0),
+    pumpMl: pumped.reduce((s, f) => s + (Number(f.amount) || 0), 0),
+    pumpCount: pumped.length
+  };
+}
+
 function computeFuetternAnalysis(days, feedMap) {
   const perDay = days.map((d, i) => {
     const docs = feedMap[i].filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f));
     const bottle = docs.filter((f) => f.type === 'bottle');
     const breast = docs.filter((f) => f.type === 'breast');
-    // Abpumpen läuft neben den Mahlzeiten her: eigene Reihe, die weder in die
-    // Anzahl noch in den Abstand eingeht. Einträge ohne Menge (noch
-    // unvollständig oder von vor der Mengenpflicht) tragen nichts bei.
-    const pumped = feedMap[i].filter((f) => f.type === 'pump' && !f.pendingAmount && Number(f.amount) > 0);
-    return {
+    const sums = fuetternDayFields(feedMap[i]);
+    return Object.assign({
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
-      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed, daysCounted: d.daysCounted,
-      bottleCount: bottle.length, breastCount: breast.length,
-      bottleMl: bottle.reduce((s, f) => s + (f.amount || 0), 0),
-      // Nach Milchart getrennt; ohne Angabe zählt ein Fläschchen als Pre.
-      bottleMmMl: bottle.filter((f) => entryMilk(f) === 'breastmilk').reduce((s, f) => s + (f.amount || 0), 0),
-      bottlePreMl: bottle.filter((f) => entryMilk(f) === 'formula').reduce((s, f) => s + (f.amount || 0), 0),
-      breastMin: breast.reduce((s, f) => s + (f.minutes || 0), 0),
-      // Seitenzeiten getrennt: Einträge ohne Seitenangabe zählen hier nicht
-      // mit, deshalb ist links + rechts nicht zwangsläufig breastMin. Die
-      // Seitenbalance rechnet nur mit dem, was tatsächlich zugeordnet ist.
-      breastLeftMin: breast.reduce((s, f) => s + (Number(f.leftMinutes) || 0), 0),
-      breastRightMin: breast.reduce((s, f) => s + (Number(f.rightMinutes) || 0), 0),
-      pumpMl: pumped.reduce((s, f) => s + (Number(f.amount) || 0), 0),
-      pumpCount: pumped.length,
+      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
+      daysCounted: d.daysCounted, daysComplete: d.daysComplete
+    }, sums, analyseAvgBasis(d, feedMap[i], fuetternDayFields), {
       intervalH: analyseIntervalH(docs),
       // Für die Kacheln, wenn die Legende von „Fütterungen pro Tag“ eine Art isoliert
       intervalBottleH: analyseIntervalH(bottle),
@@ -6530,54 +6618,53 @@ function computeFuetternAnalysis(days, feedMap) {
       // (Minuten seit Mitternacht) — für „Stunden" und die
       // Tagesverlauf-Karten. `events` ist der Tag selbst bei Tages-Buckets.
       dayEvents: fuetternBucketDayEvents(d.dayKeys, feedMap[i])
-    };
+    });
   });
   perDay.forEach((b) => { b.events = b.dayEvents.length === 1 ? b.dayEvents[0].events : []; });
-  const totalDays = analyseTotalDays(days);
-  const totalCount = perDay.reduce((s, d) => s + d.bottleCount + d.breastCount, 0);
-  const totalBottle = perDay.reduce((s, d) => s + d.bottleCount, 0);
-  const totalBreast = perDay.reduce((s, d) => s + d.breastCount, 0);
-  const totalMl = perDay.reduce((s, d) => s + d.bottleMl, 0);
-  const totalMmMl = perDay.reduce((s, d) => s + d.bottleMmMl, 0);
-  const totalPreMl = perDay.reduce((s, d) => s + d.bottlePreMl, 0);
-  const totalBreastMin = perDay.reduce((s, d) => s + d.breastMin, 0);
-  const totalLeftMin = perDay.reduce((s, d) => s + d.breastLeftMin, 0);
-  const totalRightMin = perDay.reduce((s, d) => s + d.breastRightMin, 0);
-  const totalSideMin = totalLeftMin + totalRightMin;
-  const totalPumpMl = perDay.reduce((s, d) => s + d.pumpMl, 0);
+  // Tagesschnitte nur über abgeschlossene Tage (analyseAvgTotals) …
+  const { days: totalDays, sum } = analyseAvgTotals(perDay);
+  const avgOf = (key) => sum(key) / totalDays;
+  // … Anteile dagegen über alle Einträge des Ausschnitts, heute eingeschlossen.
+  const all = (key) => perDay.reduce((s, d) => s + d[key], 0);
+  const totalCount = all('bottleCount') + all('breastCount');
+  const totalMl = all('bottleMl');
+  const totalLeftMin = all('breastLeftMin');
+  const totalSideMin = totalLeftMin + all('breastRightMin');
+  const totalPumpMl = all('pumpMl');
 
   const allMeals = feedMap.flat().filter((f) => fuetternIsMeal(f) && fuetternIsFinished(f));
   const avgIntervalH = analyseIntervalH(allMeals);
   const avgIntervalBottleH = analyseIntervalH(allMeals.filter((f) => f.type === 'bottle'));
   const avgIntervalBreastH = analyseIntervalH(allMeals.filter((f) => f.type === 'breast'));
 
-  const bottlePct = totalCount > 0 ? analyseRound(totalBottle / totalCount * 100) : 0;
+  const bottlePct = totalCount > 0 ? analyseRound(all('bottleCount') / totalCount * 100) : 0;
   const breastPct = totalCount > 0 ? 100 - bottlePct : 0;
 
-  const outlier = findAnalyseOutlierDay(perDay, (d) => d.bottleMl / analyseDayDivisor(d));
+  const outlier = findAnalyseOutlierDay(perDay.filter((d) => d.daysComplete), (d) => analysePerDay(d, 'bottleMl'));
+  const avgPerDayExact = (sum('bottleCount') + sum('breastCount')) / totalDays;
 
   return {
     perDay,
-    avgPerDay: analyseRound(totalCount / totalDays),
+    avgPerDay: analyseRound(avgPerDayExact),
     avgIntervalH, avgIntervalBottleH, avgIntervalBreastH,
     bottlePct, breastPct,
-    avgBottleMl: analyseRound(totalMl / totalDays),
-    avgBreastMin: analyseRound(totalBreastMin / totalDays),
+    avgBottleMl: analyseRound(avgOf('bottleMl')),
+    avgBreastMin: analyseRound(avgOf('breastMin')),
     // Ungerundet für Ø-Linie, Kartenwert und Kacheln — die gerundeten Felder
     // oben bleiben für die Übersichtskarte.
-    avgPerDayExact: totalCount / totalDays,
-    avgBottleCountExact: totalBottle / totalDays,
-    avgBreastCountExact: totalBreast / totalDays,
-    avgBottleMlExact: totalMl / totalDays,
-    avgBottleMmMlExact: totalMmMl / totalDays,
-    avgBottlePreMlExact: totalPreMl / totalDays,
+    avgPerDayExact,
+    avgBottleCountExact: avgOf('bottleCount'),
+    avgBreastCountExact: avgOf('breastCount'),
+    avgBottleMlExact: avgOf('bottleMl'),
+    avgBottleMmMlExact: avgOf('bottleMmMl'),
+    avgBottlePreMlExact: avgOf('bottlePreMl'),
     // Anteil der Muttermilch an der Fläschchen-Menge; ohne Fläschchen null.
-    mmPctExact: totalMl > 0 ? totalMmMl / totalMl * 100 : null,
-    avgBreastMinExact: totalBreastMin / totalDays,
-    avgBreastLeftMinExact: totalLeftMin / totalDays,
-    avgBreastRightMinExact: totalRightMin / totalDays,
-    avgPumpMl: analyseRound(totalPumpMl / totalDays),
-    avgPumpMlExact: totalPumpMl / totalDays,
+    mmPctExact: totalMl > 0 ? all('bottleMmMl') / totalMl * 100 : null,
+    avgBreastMinExact: avgOf('breastMin'),
+    avgBreastLeftMinExact: avgOf('breastLeftMin'),
+    avgBreastRightMinExact: avgOf('breastRightMin'),
+    avgPumpMl: analyseRound(avgOf('pumpMl')),
+    avgPumpMlExact: avgOf('pumpMl'),
     totalPumpMl,
     // Anteil der linken Seite am Ausschnitt. Ein Anteil ist ein Verhältnis und
     // wird deshalb nicht über daysElapsed normiert. Ohne eine einzige
@@ -6612,12 +6699,6 @@ function colorBucketCount(stats, id) {
     : (stats.counts[id] || 0);
 }
 
-function analyseColorAvgExact(stats, totalDays) {
-  const out = {};
-  COLOR_BUCKETS.forEach((b) => { out[b.id] = colorBucketCount(stats, b.id) / totalDays; });
-  return out;
-}
-
 // Wechsel eines Tages in Minuten ab Mitternacht, getrennt wie die Balken:
 // ein Wechsel mit klein und groß zählt als groß.
 function windelnDayEvents(dayKey, docs) {
@@ -6628,27 +6709,35 @@ function windelnDayEvents(dayKey, docs) {
   }).filter((e) => e && e.t >= 0 && e.t <= 1440).sort((p, q) => p.t - q.t);
 }
 
+// Die Summen eines Bündels Wechsel, die pro Tag gemittelt werden. Klein und
+// groß schließen sich aus, damit der gestapelte Balken die echte Zahl der
+// Wechsel zeigt: ein Wechsel mit beidem zählt einmal, als groß (die
+// medizinisch wichtigere Art — auch die Farbe hängt nur an großen).
+function windelnDayFields(docs) {
+  return {
+    colorStats: analyseColorStats(docs),
+    small: docs.filter((x) => x.small && !x.big).length,
+    big: docs.filter((x) => x.big).length,
+    total: docs.length
+  };
+}
+
 function computeWindelnAnalysis(days, diaperMap) {
   const perDay = days.map((d, i) => {
     const docs = diaperMap[i];
-    return {
+    const sums = windelnDayFields(docs);
+    return Object.assign({
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
-      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed, daysCounted: d.daysCounted,
+      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
+      daysCounted: d.daysCounted, daysComplete: d.daysComplete,
       intervalH: analyseIntervalH(docs),
       warnCount: docs.filter((x) => x.big && WARN_COLOR_IDS.includes(x.color)).length,
-      colorStats: analyseColorStats(docs),
-      // Mutually exclusive so the stacked bar's total height matches the
-      // real wechsel count: a diaper with both small and big set counts
-      // once, under "big" (the medically-relevant category — the warn-color
-      // tracking below already only cares about big regardless of small).
-      small: docs.filter((x) => x.small && !x.big).length,
-      big: docs.filter((x) => x.big).length,
-      total: docs.length,
       // „Stunden": die Wechsel des einen Tages auf der Uhrzeit-Achse.
       events: d.dayKeys.length === 1 ? windelnDayEvents(d.dayKeys[0], docs) : []
-    };
+    }, sums, analyseAvgBasis(d, docs, windelnDayFields));
   });
-  const totalDays = analyseTotalDays(days);
+  // Tagesschnitte nur über abgeschlossene Tage, Anteile über alle Einträge.
+  const { days: totalDays, sum } = analyseAvgTotals(perDay);
   const totalCount = perDay.reduce((s, d) => s + d.total, 0);
   const allDocs = diaperMap.flat();
 
@@ -6657,19 +6746,21 @@ function computeWindelnAnalysis(days, diaperMap) {
   const warnCount = allDocs.filter((x) => x.big && WARN_COLOR_IDS.includes(x.color)).length;
   const warnPct = totalCount > 0 ? analyseRound(warnCount / totalCount * 100) : 0;
 
-  const outlier = findAnalyseOutlierDay(perDay, (d) => d.big / analyseDayDivisor(d));
+  const outlier = findAnalyseOutlierDay(perDay.filter((d) => d.daysComplete), (d) => analysePerDay(d, 'big'));
   const colorStats = analyseColorStats(allDocs);
+  const colorAvgExact = {};
+  COLOR_BUCKETS.forEach((c) => { colorAvgExact[c.id] = sum((a) => colorBucketCount(a.colorStats, c.id)) / totalDays; });
 
   return {
     perDay,
-    avgPerDay: analyseRound(totalCount / totalDays),
+    avgPerDay: analyseRound(sum('total') / totalDays),
     avgIntervalH,
     warnCount, warnPct,
     colorStats,
-    colorAvgExact: analyseColorAvgExact(colorStats, totalDays),
-    avgPerDayExact: totalCount / totalDays,
-    avgSmallExact: perDay.reduce((s, d) => s + d.small, 0) / totalDays,
-    avgBigExact: perDay.reduce((s, d) => s + d.big, 0) / totalDays,
+    colorAvgExact,
+    avgPerDayExact: sum('total') / totalDays,
+    avgSmallExact: sum('small') / totalDays,
+    avgBigExact: sum('big') / totalDays,
     insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + outlier.day.big + ' großen Wechseln — der meiste ' + analyseBucketUnitPhrase + ' ' + analyseRangePhrase + '.') : null
   };
 }
@@ -6716,7 +6807,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
     const nightMin = sleepNightMinutes(iv);
     return { start: iv.start, end: iv.end, dayMin: total - nightMin, isNight: sleepIsNight(iv) };
   });
-  const dataStart = sleeps.length ? Math.min(...sleeps.map((iv) => iv.start.getTime())) : null;
+  const dataStart = analyseSleepDataStart(sleeps);
   const p = readProfil();
   const clock = (base, offsetMin) => minutesToHHMM(parseMinutes(base) + offsetMin);
   const allNights = [];
@@ -6730,9 +6821,11 @@ function computeSchlafenAnalysis(days, sleepSpans) {
     const nights = [];
     const slotSum = new Array(SLEEP_SLOTS).fill(0), slotCount = new Array(SLEEP_SLOTS).fill(0);
     let spans = null;
-    let dayMin = 0, napCount = 0;
+    let dayMin = 0, napCount = 0, doneMin = 0, doneCount = 0, cntMin = 0, cntCount = 0;
     const dayEvents = [];
     d.dayKeys.forEach((key) => {
+      // Für die Tagesschnitte zählen nur abgeschlossene Tage ab Beginn der Aufzeichnung.
+      const done = analyseCompleteDays([key]) === 1, counted = analyseCountedDays([key]) === 1;
       const day = new Date(key + 'T00:00:00');
       const n = analyseNightWindow(day, sleeps, now);
       if (!n.pending && dataStart !== null && n.win.end.getTime() > dataStart) {
@@ -6747,10 +6840,14 @@ function computeSchlafenAnalysis(days, sleepSpans) {
       sleeps.forEach((iv) => {
         const ov = spanOverlapMinutes(iv, dw);
         dayMin += ov;
+        if (done) doneMin += ov;
+        if (counted) cntMin += ov;
         // Ein Schläfchen zählt an dem Tag, auf den der größte Teil seines
         // Tagesanteils fällt — in „Stunden" zu seiner Einschlafzeit im Band.
         if (ov > 0 && !iv.isNight && ov * 2 >= iv.dayMin) {
           napCount++;
+          if (done) doneCount++;
+          if (counted) cntCount++;
           napEvents.push({ t: Math.max(0, (iv.start.getTime() - band) / 60000), nap: true });
         }
       });
@@ -6773,7 +6870,9 @@ function computeSchlafenAnalysis(days, sleepSpans) {
       // Gesamtschlaf im Tagesverlauf: Schlafminuten über dasselbe Band
       // aufsummiert (5-Minuten-Raster), getrennt nach Nachtfenster und Tag —
       // gestapelt wie die Balken. Für den Ø zählen nur abgeschlossene Tage nach
-      // der Geburt mit einer Nacht mit Einträgen.
+      // Beginn der Aufzeichnung — Tagsüber zählt damit dieselben Tage wie die Balken. Die
+      // Reihe Nachts zählt jede vergangene Nacht mit Einträgen ab Beginn
+      // (nightDone), auch die von heute früh — wie die Balken.
       const bandEnd = band + 1440 * 60000;
       if (dataStart !== null && bandEnd > dataStart) {
         const winEnd = nightWindowEnding(day).end.getTime();
@@ -6793,7 +6892,8 @@ function computeSchlafenAnalysis(days, sleepSpans) {
         const nightOk = !n.pending && n.win.end.getTime() > dataStart && !n.missing;
         dayEvents.push({
           key, isToday: stop < bandEnd, nowT: (stop - band) / 60000,
-          complete: stop === bandEnd && nightOk && analyseCountedDays([key]) === 1,
+          complete: stop === bandEnd && done,
+          nightDone: nightOk && analyseCountedDays([key]) === 1,
           cum: { night, nap },
           events: napEvents
         });
@@ -6810,9 +6910,13 @@ function computeSchlafenAnalysis(days, sleepSpans) {
     const wakeOff = valid.length ? analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000)) : null;
     return {
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
-      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed, daysCounted: d.daysCounted,
-      // Nachtschlaf je Nacht (gemittelt), Tagschlaf als Summe — die Diagramme
-      // teilen ihn durch die zählenden Tage (daysCounted).
+      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
+      daysCounted: d.daysCounted, daysComplete: d.daysComplete,
+      // Tagschlaf und Schläfchen als Summe; der Tagesschnitt (analysePerDay)
+      // nimmt nur die abgeschlossenen Tage, ein Bucket nur aus heute dessen Stand.
+      avg: d.daysComplete ? { napMinutes: doneMin, napCount: doneCount } : { napMinutes: cntMin, napCount: cntCount },
+      avgDays: d.daysComplete || d.daysCounted,
+      // Nachtschlaf je Nacht (gemittelt).
       nightMinutes: valid.length ? analyseAvg(valid.map((n) => n.sleepMin)) : 0,
       napMinutes: dayMin,
       napCount,
@@ -6841,15 +6945,15 @@ function computeSchlafenAnalysis(days, sleepSpans) {
     };
   });
 
-  const totalDays = analyseTotalDays(days);
+  const { days: totalDays, sum } = analyseAvgTotals(perDay);
   const valid = allNights.filter((n) => !n.missing);
   const missing = allNights.filter((n) => n.missing);
   // Ungerundet: Ø-Linie, Kartenwert und Kacheln rechnen damit.
   const avgNightHExact = valid.length ? analyseAvg(valid.map((n) => n.sleepMin)) / 60 : 0;
-  const avgNapHExact = perDay.reduce((s, d) => s + d.napMinutes, 0) / totalDays / 60;
+  const avgNapHExact = sum('napMinutes') / totalDays / 60;
   const avgWakeExact = valid.length ? analyseAvg(valid.map((n) => n.wakeMin)) / 60 : null;
   const avgWakeCountExact = valid.length ? analyseAvg(valid.map((n) => n.wakeCount)) : null;
-  const avgNapCountExact = perDay.reduce((s, d) => s + d.napCount, 0) / totalDays;
+  const avgNapCountExact = sum('napCount') / totalDays;
   const avgBedOff = valid.length ? analyseAvg(valid.map((n) => (n.bed - n.win.start) / 60000)) : null;
   const avgWakeOff = valid.length ? analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000)) : null;
   const avgBedtime = avgBedOff === null ? '–' : clock(p.nightFrom, avgBedOff);
@@ -7171,12 +7275,12 @@ function renderAnalyseOverview() {
   const perDay = single ? '' : ' / Tag';
 
   const fb = i >= 0 ? fuettern.perDay[i] : null;
-  const fCount = fb ? (fb.bottleCount + fb.breastCount) / analyseDayDivisor(fb) : fuettern.avgPerDayExact;
-  const fMl = fb ? fb.bottleMl / analyseDayDivisor(fb) : fuettern.avgBottleMlExact;
-  const fMin = fb ? fb.breastMin / analyseDayDivisor(fb) : fuettern.avgBreastMinExact;
+  const fCount = fb ? (analysePerDay(fb, 'bottleCount') + analysePerDay(fb, 'breastCount')) : fuettern.avgPerDayExact;
+  const fMl = fb ? analysePerDay(fb, 'bottleMl') : fuettern.avgBottleMlExact;
+  const fMin = fb ? analysePerDay(fb, 'breastMin') : fuettern.avgBreastMinExact;
   // Abgepumpt steht nur in der Zeile, wenn im Ausschnitt überhaupt abgepumpt
   // wurde — sonst trüge die Übersicht eine Zahl, die niemanden betrifft.
-  const fPump = fb ? fb.pumpMl / analyseDayDivisor(fb) : fuettern.avgPumpMlExact;
+  const fPump = fb ? analysePerDay(fb, 'pumpMl') : fuettern.avgPumpMlExact;
   // Eigene Zeile statt Mittelpunkt: Abgepumptes gehört nicht zu dem, was das
   // Baby getrunken hat. flex-basis:100% erzwingt den Umbruch im Flex-Kasten.
   const fPumpText = fuettern.totalPumpMl > 0
@@ -7184,7 +7288,7 @@ function renderAnalyseOverview() {
     : '';
 
   const wb = i >= 0 ? windeln.perDay[i] : null;
-  const wCount = wb ? wb.total / analyseDayDivisor(wb) : windeln.avgPerDayExact;
+  const wCount = wb ? analysePerDay(wb, 'total') : windeln.avgPerDayExact;
   const wWarn = wb ? wb.warnCount : windeln.warnCount;
   const wSecond = wb && single
     ? wb.small + ' klein · ' + wb.big + ' groß'
@@ -7192,20 +7296,20 @@ function renderAnalyseOverview() {
 
   const sb = i >= 0 ? schlafen.perDay[i] : null;
   const sNight = sb ? sb.nightMinutes / 60 : schlafen.avgNightHExact;
-  const sNap = sb ? sb.napMinutes / analyseDayDivisor(sb) / 60 : schlafen.avgNapHExact;
+  const sNap = sb ? analysePerDay(sb, 'napMinutes') / 60 : schlafen.avgNapHExact;
   const sWake = sb ? (sb.wakeMin === null ? null : sb.wakeMin / 60) : schlafen.avgWakeExact;
 
   return analyseOvCard('fuettern', 'Füttern',
       '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
       { bar: 'var(--fuettern)', soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)' },
-      svgSparkline(fuettern.perDay, (d) => (d.bottleCount + d.breastCount) / analyseDayDivisor(d), 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)', i),
+      svgSparkline(fuettern.perDay, (d) => (analysePerDay(d, 'bottleCount') + analysePerDay(d, 'breastCount')), 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)', i),
       pre + analyseCount(fCount, single), 'Fütterungen' + perDay,
       analyseRound(fMl) + ' ml ' + pre + 'Trinkmenge · ' + analyseRound(fMin) + ' Min. ' + pre + 'Stillzeit' + fPumpText) +
 
     analyseOvCard('windeln', 'Windeln',
       '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
       { bar: 'var(--windeln)', soft: 'var(--windeln-soft)', strong: 'var(--windeln)' },
-      svgSparkline(windeln.perDay, (d) => d.total / analyseDayDivisor(d), '#8FD4D4', '#39ABAB', i),
+      svgSparkline(windeln.perDay, (d) => analysePerDay(d, 'total'), '#8FD4D4', '#39ABAB', i),
       pre + analyseCount(wCount, single), 'Wechsel' + perDay,
       '<span>' + wSecond + '</span>' + (wWarn > 0
         ? '<span style="display:inline-flex; align-items:center; gap:3px; color:var(--warn); font-weight:700;">' +
@@ -7214,7 +7318,7 @@ function renderAnalyseOverview() {
     analyseOvCard('schlafen', 'Schlafen',
       '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
       { bar: 'var(--schlafen)', soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)' },
-      svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + d.napMinutes / analyseDayDivisor(d)) / 60, '#B7ADEB', '#4B3F9E', i),
+      svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + analysePerDay(d, 'napMinutes')) / 60, '#B7ADEB', '#4B3F9E', i),
       pre + analyseHhmm(sNight + sNap), 'Std. Schlaf gesamt' + perDay,
       analyseHhmm(sNight) + ' nachts · ' + (sWake === null ? '–' : analyseHhmm(sWake)) +
         ' wach · ' + analyseHhmm(sNap) + ' tagsüber');
@@ -7300,7 +7404,7 @@ function fuetternSideSeries() {
   return {
     key: 'min', label: left ? 'Links' : 'Rechts',
     color: left ? FUETTERN_COLOR : FUETTERN_BREAST_COLOR,
-    value: (d) => (left ? d.breastLeftMin : d.breastRightMin) / analyseDayDivisor(d),
+    value: (d) => analysePerDay(d, left ? 'breastLeftMin' : 'breastRightMin'),
     mean: (a) => (left ? a.avgBreastLeftMinExact : a.avgBreastRightMinExact),
     inc: (e) => (e.meal && e.f.type === 'breast' ? Number(left ? e.f.leftMinutes : e.f.rightMinutes) || 0 : 0)
   };
@@ -7310,9 +7414,9 @@ const FUETTERN_CHARTS = {
   'fu-anzahl': {
     title: 'Fütterungen pro Tag',
     series: [
-      { key: 'bottle', label: 'Fläschchen', color: FUETTERN_COLOR, value: (d) => d.bottleCount / analyseDayDivisor(d), mean: (a) => a.avgBottleCountExact,
+      { key: 'bottle', label: 'Fläschchen', color: FUETTERN_COLOR, value: (d) => analysePerDay(d, 'bottleCount'), mean: (a) => a.avgBottleCountExact,
         inc: (e) => (e.meal && e.f.type === 'bottle' ? 1 : 0) },
-      { key: 'breast', label: 'Brust', color: FUETTERN_BREAST_COLOR, value: (d) => d.breastCount / analyseDayDivisor(d), mean: (a) => a.avgBreastCountExact,
+      { key: 'breast', label: 'Brust', color: FUETTERN_BREAST_COLOR, value: (d) => analysePerDay(d, 'breastCount'), mean: (a) => a.avgBreastCountExact,
         inc: (e) => (e.meal && e.f.type === 'breast' ? 1 : 0) }
     ],
     // Zoomstufe „Stunden": Titel, Kopfzahl und Ø-Wert der aufsummierten Kurve.
@@ -7328,9 +7432,9 @@ const FUETTERN_CHARTS = {
     // entfällt, sonst bricht der Titel neben der Legende um — ml gibt es nur dort.
     title: 'Trinkmenge',
     series: [
-      { key: 'mm', label: 'Muttermilch', color: FUETTERN_COLOR, value: (d) => d.bottleMmMl / analyseDayDivisor(d), mean: (a) => a.avgBottleMmMlExact,
+      { key: 'mm', label: 'Muttermilch', color: FUETTERN_COLOR, value: (d) => analysePerDay(d, 'bottleMmMl'), mean: (a) => a.avgBottleMmMlExact,
         inc: (e) => (e.meal && e.f.type === 'bottle' && entryMilk(e.f) === 'breastmilk' ? (e.f.amount || 0) : 0) },
-      { key: 'pre', label: 'Pre', color: FUETTERN_BREAST_COLOR, value: (d) => d.bottlePreMl / analyseDayDivisor(d), mean: (a) => a.avgBottlePreMlExact,
+      { key: 'pre', label: 'Pre', color: FUETTERN_BREAST_COLOR, value: (d) => analysePerDay(d, 'bottlePreMl'), mean: (a) => a.avgBottlePreMlExact,
         inc: (e) => (e.meal && e.f.type === 'bottle' && entryMilk(e.f) === 'formula' ? (e.f.amount || 0) : 0) }
     ],
     hours: { title: 'Trinkmenge', head: (v) => analyseRound(v) + ' ml', ref: (v) => analyseRound(v) + ' ml' },
@@ -7342,7 +7446,7 @@ const FUETTERN_CHARTS = {
   'fu-pump': {
     type: 'area',
     title: 'Abgepumpte Menge',
-    series: [{ key: 'ml', label: 'Abgepumpt', color: FUETTERN_COLOR, value: (d) => d.pumpMl / analyseDayDivisor(d), mean: (a) => a.avgPumpMlExact,
+    series: [{ key: 'ml', label: 'Abgepumpt', color: FUETTERN_COLOR, value: (d) => analysePerDay(d, 'pumpMl'), mean: (a) => a.avgPumpMlExact,
       inc: (e) => (e.pump ? Number(e.f.amount) : 0) }],
     hours: { title: 'Abgepumpte Menge', head: (v) => analyseRound(v) + ' ml', ref: (v) => analyseRound(v) + ' ml' },
     headline: (v) => 'Ø ' + analyseRound(v) + ' ml / Tag',
@@ -7352,7 +7456,7 @@ const FUETTERN_CHARTS = {
   'fu-still': {
     type: 'area',
     title: 'Stilldauer',
-    series: [{ key: 'min', label: 'Stilldauer', color: FUETTERN_COLOR, value: (d) => d.breastMin / analyseDayDivisor(d), mean: (a) => a.avgBreastMinExact,
+    series: [{ key: 'min', label: 'Stilldauer', color: FUETTERN_COLOR, value: (d) => analysePerDay(d, 'breastMin'), mean: (a) => a.avgBreastMinExact,
       inc: (e) => (e.meal && e.f.type === 'breast' ? (e.f.minutes || 0) : 0) }],
     hours: { title: 'Stilldauer', head: (v) => analyseRound(v) + ' Min.', ref: (v) => analyseRound(v) + ' Min.' },
     headline: (v) => 'Ø ' + analyseRound(v) + ' Min. / Tag',
@@ -7407,9 +7511,9 @@ const WINDELN_CHARTS = {
   'wi-wechsel': {
     title: 'Wechsel pro Tag',
     series: [
-      { key: 'small', label: 'Klein', color: '#39ABAB', value: (d) => d.small / analyseDayDivisor(d), mean: (a) => a.avgSmallExact,
+      { key: 'small', label: 'Klein', color: '#39ABAB', value: (d) => analysePerDay(d, 'small'), mean: (a) => a.avgSmallExact,
         inc: (e) => (e.small ? 1 : 0) },
-      { key: 'big', label: 'Groß', color: '#8FD4D4', value: (d) => d.big / analyseDayDivisor(d), mean: (a) => a.avgBigExact,
+      { key: 'big', label: 'Groß', color: '#8FD4D4', value: (d) => analysePerDay(d, 'big'), mean: (a) => a.avgBigExact,
         inc: (e) => (e.big ? 1 : 0) }
     ],
     // „Stunden": eine Stufe je Wechsel, 0–24 Uhr. Die Farbe bleibt dort außen vor.
@@ -7426,8 +7530,10 @@ const SCHLAFEN_CHARTS = {
     title: 'Gesamtschlaf pro Tag',
     // cum: die aufsummierte Schlafkurve eines Tages in Minuten (Tagesverlauf, „Stunden").
     series: [
-      { key: 'night', label: 'Nachts', color: '#4B3F9E', value: (d) => d.nightMinutes / 60, mean: (a) => a.avgNightHExact, cum: (d) => d.cum.night },
-      { key: 'nap', label: 'Tagsüber', color: '#B7ADEB', value: (d) => d.napMinutes / analyseDayDivisor(d) / 60, mean: (a) => a.avgNapHExact, cum: (d) => d.cum.nap }
+      // needNight: in Ø-Verläufe gehen die vergangenen Nächte mit Einträgen ein,
+      // nicht die abgeschlossenen Tage.
+      { key: 'night', label: 'Nachts', color: '#4B3F9E', value: (d) => d.nightMinutes / 60, mean: (a) => a.avgNightHExact, cum: (d) => d.cum.night, needNight: true },
+      { key: 'nap', label: 'Tagsüber', color: '#B7ADEB', value: (d) => analysePerDay(d, 'napMinutes') / 60, mean: (a) => a.avgNapHExact, cum: (d) => d.cum.nap }
     ],
     // „Stunden": derselbe Tag als Schlafkurve über das Band ab dem Nachtfenster,
     // im Ausschnitt der Legende (Nachts/Tagsüber) wie der Tagesverlauf.
@@ -7494,7 +7600,7 @@ const SCHLAFEN_CHARTS = {
   },
   'schlaf-naps': {
     title: 'Schläfchen tagsüber',
-    series: [{ key: 'napc', label: 'Schläfchen', color: '#4B3F9E', value: (d) => d.napCount / analyseDayDivisor(d), mean: (a) => a.avgNapCountExact,
+    series: [{ key: 'napc', label: 'Schläfchen', color: '#4B3F9E', value: (d) => analysePerDay(d, 'napCount'), mean: (a) => a.avgNapCountExact,
       inc: (e) => (e.nap ? 1 : 0) }],
     // „Stunden": eine Stufe je Schläfchen zu seiner Einschlafzeit.
     hours: {
@@ -7536,9 +7642,10 @@ function fuetternStatValues(a, b) {
     interval: hours(only === 'bottle' ? a.avgIntervalBottleH : only === 'breast' ? a.avgIntervalBreastH : a.avgIntervalH),
     mm: a.mmPctExact === null ? '–' : analyseRound(a.mmPctExact) + ' %'
   };
-  const total = only === 'bottle' ? b.bottleCount : only === 'breast' ? b.breastCount : b.bottleCount + b.breastCount;
+  const perDay = (k) => analysePerDay(b, k);
+  const count = only === 'bottle' ? perDay('bottleCount') : only === 'breast' ? perDay('breastCount') : perDay('bottleCount') + perDay('breastCount');
   return {
-    count: analyseCount(total / analyseDayDivisor(b), b.daysElapsed === 1),
+    count: analyseCount(count, b.daysElapsed === 1),
     interval: hours(only === 'bottle' ? b.intervalBottleH : only === 'breast' ? b.intervalBreastH : b.intervalH),
     mm: b.bottleMl > 0 ? analyseRound(b.bottleMmMl / b.bottleMl * 100) + ' %' : '–'
   };
@@ -7553,7 +7660,7 @@ function windelnStatValues(a, b) {
     warn
   };
   return {
-    count: analyseCount(b.total / analyseDayDivisor(b), b.daysElapsed === 1),
+    count: analyseCount(analysePerDay(b, 'total'), b.daysElapsed === 1),
     interval: b.intervalH === null ? '–' : analyseDe1(b.intervalH) + ' h',
     warn
   };
@@ -7569,7 +7676,7 @@ function schlafenStatValues(a, b) {
   // Ein markierter Tag ohne Schlafeinträge zeigt die volle Fensterlänge in
   // Warnfarbe, wie sein Balken.
   return {
-    total: analyseHhmm(b.nightMinutes / 60 + b.napMinutes / analyseDayDivisor(b) / 60),
+    total: analyseHhmm(b.nightMinutes / 60 + analysePerDay(b, 'napMinutes') / 60),
     wake: b.wakeMin !== null ? analyseHhmm(b.wakeMin / 60)
       : b.missingCount ? { v: analyseHhmm(b.wakeBarMin / 60), c: 'var(--warn)' } : '–',
     waketime: b.waketime || '–',
@@ -7731,7 +7838,7 @@ function windelnColorSeries() {
   if (!b) return null;
   return {
     key: 'color', label: b.label, color: b.hex,
-    value: (d) => colorBucketCount(d.colorStats, b.id) / analyseDayDivisor(d),
+    value: (d) => colorBucketCount(d.avg.colorStats, b.id) / (d.avgDays || Infinity),
     mean: (a) => (a.colorAvgExact && a.colorAvgExact[b.id]) || 0
   };
 }
@@ -7908,8 +8015,10 @@ function analyseHoursEnd(day) {
 }
 
 // Stand des gezeigten Tages und die Vergleichstage dazu: die übrigen
-// abgeschlossenen Tage des Fensters (nach der Geburt, in Schlafen nur mit
-// Nachteinträgen). Gemeinsam für die Diagramme hier und die Trendzeilen auf
+// abgeschlossenen Tage des Fensters (ab Beginn der Aufzeichnung; für die Reihe Nachts die
+// vergangenen Nächte mit Einträgen, needNight). Jede Reihe mittelt über ihre eigenen Tage,
+// refAt summiert diese Mittel — wie die Ø-Linien der Balken. refDays sind die
+// Tage, die für alle Reihen zählen (die Trendzeilen haben je nur eine). Gemeinsam für die Diagramme hier und die Trendzeilen auf
 // Heute — beide zeigen damit dieselben Zahlen. Schlafen bringt seine Kurve
 // fertig mit (cum) und rechnet „jetzt" ab Beginn seines Bandes; Füttern und
 // die Schläfchen summieren Einträge zu Stufen.
@@ -7928,17 +8037,22 @@ function analyseHoursBasis(analysis, series) {
     }
     return d.events.reduce((s, e) => (e.t <= t ? s + list.reduce((a, se) => a + se.inc(e), 0) : s), 0);
   };
-  const refDays = analysis.perDay.slice(0, -1).filter((d) => {
+  const refOk = (d, se) => {
     const x = deOf(d);
-    return x ? x.complete : d.daysCounted > 0;
-  });
-  return { day, nowT, continuous, cumOf, cum: (d, t) => cumOf(d, series, t), refDays };
+    return x ? (se.needNight ? x.nightDone : x.complete) : d.daysComplete > 0;
+  };
+  const prior = analysis.perDay.slice(0, -1);
+  const refDays = prior.filter((d) => series.every((se) => refOk(d, se)));
+  const refFor = series.map((se) => prior.filter((d) => refOk(d, se)));
+  const refAt = refFor.some((l) => l.length) ? (t) => series.reduce((s, se, i) => (refFor[i].length
+    ? s + refFor[i].reduce((a, d) => a + cumOf(d, [se], t), 0) / refFor[i].length : s), 0) : null;
+  return { day, nowT, continuous, cumOf, cum: (d, t) => cumOf(d, series, t), refDays, refAt };
 }
 
 function secHoursInner(chartId, cfg, analysis) {
   const baseline = 95;
   const series = secVisibleSeries(chartId, cfg);
-  const { day, nowT, continuous, cumOf, cum, refDays } = analyseHoursBasis(analysis, series);
+  const { day, nowT, continuous, cumOf, cum, refAt } = analyseHoursBasis(analysis, series);
   const ink = cfg.series[0].color;
   const hc = cfg.hours;
   const num = hc.num || ((v) => String(analyseRound(v)));
@@ -7956,7 +8070,6 @@ function secHoursInner(chartId, cfg, analysis) {
   // Ø-Verlauf der Vergleichstage, im 5-Minuten-Raster vorberechnet und über
   // ±45 Min. geglättet — der Mittelwert weniger Treppen sähe sonst selbst
   // wie eine Treppe aus.
-  const refAt = refDays.length ? (t) => refDays.reduce((s, d) => s + cum(d, t), 0) / refDays.length : null;
   const refArr = refAt ? Array.from({ length: 289 }, (_, k) => refAt(k * 5)) : null;
   const refSmooth = (k) => {
     let s = 0, n = 0;
@@ -8071,8 +8184,10 @@ function fuetternHoursBucket(a) {
   const meals = evs.filter((e) => e.meal).map((e) => e.f);
   const bottle = meals.filter((f) => f.type === 'bottle');
   const breast = meals.filter((f) => f.type === 'breast');
-  return Object.assign({}, b, {
-    bottleCount: bottle.length, breastCount: breast.length,
+  const counts = { bottleCount: bottle.length, breastCount: breast.length };
+  return Object.assign({}, b, counts, {
+    // Der Tag bis zur markierten Uhrzeit ist hier selbst der „Tagesschnitt".
+    avg: counts, avgDays: b.daysCounted,
     bottleMl: bottle.reduce((s, f) => s + (f.amount || 0), 0),
     bottleMmMl: bottle.filter((f) => entryMilk(f) === 'breastmilk').reduce((s, f) => s + (f.amount || 0), 0),
     intervalH: analyseIntervalH(meals),
@@ -8173,6 +8288,8 @@ function secVerlaufInner(chartId, cfg, analysis) {
   const series = secVisibleSeries(chartId, cfg);
   const ink = cfg.series[0].color;
   const allDays = analysis.perDay.flatMap((b) => b.dayEvents);
+  // Ø je Reihe über ihre Tage: abgeschlossen, für Nachts jede vergangene Nacht mit Einträgen.
+  const avgDays = (list, se) => verlaufAvg(list.filter((d) => (se.needNight ? d.nightDone : d.complete)), se);
   // Der Ø des Ausschnitts ändert sich nur mit Daten und Filter — gemerkt am
   // Analyse-Objekt, sonst rechnete jedes Wischen über die Balken ihn neu.
   // Die Reihen gehören in den Schlüssel: die Seitenwahl ersetzt die Reihe der
@@ -8180,7 +8297,7 @@ function secVerlaufInner(chartId, cfg, analysis) {
   const cacheKey = chartId + ':' + series.map((se) => se.label).join('|');
   analysis.verlaufRef = analysis.verlaufRef || {};
   const ref = analysis.verlaufRef[cacheKey] = analysis.verlaufRef[cacheKey] ||
-    series.map((se) => verlaufAvg(allDays.filter((d) => d.complete), se));
+    series.map((se) => avgDays(allDays, se));
   const refTot = (g) => ref.reduce((sum, c) => sum + c[g], 0);
 
   const idx = analyseSel ? Math.min(analyseSel.index, analysis.perDay.length - 1) : -1;
@@ -8196,7 +8313,7 @@ function secVerlaufInner(chartId, cfg, analysis) {
   // Schlafkurve), sonst der Ø (des markierten Ausschnitts bzw. des ganzen Zeitraums).
   let fill = null, dayCum = null;
   if (day) dayCum = series.map((se) => verlaufCum(day, se));
-  else fill = b ? series.map((se) => verlaufAvg(b.dayEvents.filter((d) => d.complete), se)) : ref;
+  else fill = b ? series.map((se) => avgDays(b.dayEvents, se)) : ref;
   const valAt = (t) => (dayCum || fill).reduce((sum, c) => sum + c[g0(t)], 0);
   const endVal = valAt(end);
   const maxVal = Math.max(1, endVal, refTot(gB)) * 1.12;
@@ -9271,6 +9388,7 @@ async function loadAnalyse() {
     // Einträge haben ein createdAt nach ihrem fachlichen Datum und würden aus
     // einem zurückliegenden Ausschnitt herausfallen. Gefiltert wird über
     // analyseBucketByDay(), das kostet nur ein paar überflüssige Dokumente.
+    await refreshAnalyseStart();
     const { days, start } = analyseScope.mode === 'months' ? buildAnalyseMonthBuckets()
       : analyseScope.mode === 'weeks' ? buildAnalyseWeekBuckets(analyseScope.parent)
       : buildAnalyseDayBuckets(analyseScope.parent ? analyseScope.parent.end : null);
@@ -9364,7 +9482,7 @@ function formatProfilNumber(n) {
 function applyProfil(p) {
   const prevBirth = profilCache.birth;
   profilCache = normalizeProfil(p);
-  // Die Tagesmittel der Analyse zählen erst ab Geburt.
+  // Ohne Einträge zählen die Tagesmittel der Analyse ab Geburt.
   if (profilCache.birth !== prevBirth && currentScreen === 'analyse') loadAnalyse();
   try { localStorage.setItem(PROFIL_STORAGE_KEY, JSON.stringify(profilCache)); } catch (error) { /* nur Zwischenspeicher */ }
   renderHeuteDate(new Date());

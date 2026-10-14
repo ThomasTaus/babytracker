@@ -9903,6 +9903,9 @@ function entWeeks(dateStr, origin) { return (new Date(dateStr + 'T00:00:00') - n
 function entLatest(k) { return entState.measurements.filter((m) => m[k] != null).sort((a, b) => b.date.localeCompare(a.date))[0]; }
 function entPrevious(k, id, date) { return entState.measurements.filter((m) => m[k] != null && m.id !== id && m.date < date).sort((a, b) => b.date.localeCompare(a.date))[0]; }
 function entMessungDirty(md) { return md.date !== md.orig.date || ['w', 'l', 'h'].some((k) => String(md[k]).trim() !== md.orig[k]); }
+// Speichern geht erst mit mindestens einem Wert, beim Bearbeiten zusätzlich
+// erst nach einer Änderung.
+function entMessungReady(md) { return ['w', 'l', 'h'].some((k) => String(md[k]).trim() !== '') && (!md.editId || entMessungDirty(md)); }
 // Ohne Geschlecht im Profil wäre jede Kurve geraten – dann lieber keine.
 function entWho(k) {
   const sex = readProfil().sex;
@@ -10095,7 +10098,7 @@ function renderEntwicklung() {
         '<div><div class="e-lbl">Datum</div><input type="date" max="' + isoDate(new Date()) + '" data-ent-bind="date" value="' + entEsc(md.date) + '" style="' + ENT_DATE_INPUT_STYLE + '"></div>' +
         ENT_DIVIDER + row('w') + row('l') + row('h') + ENT_DIVIDER +
         '<div style="font-size:12px; color:var(--text-muted);">Leere Felder bleiben leer – eine Messung braucht nicht alle drei Werte.</div>' +
-        entDialogFooter(md, 'saveMessung', 'closeDialog', md.editId ? 'Eintrag aktualisieren' : null, md.editId ? !entMessungDirty(md) : undefined) +
+        entDialogFooter(md, 'saveMessung', 'closeDialog', md.editId ? 'Eintrag aktualisieren' : null, !entMessungReady(md)) +
       '</div>' +
       (md.editId ? '<button class="e-del"' + (st.saving ? ' disabled' : '') + ' data-ent-act="deleteMessung">' + ENT_ICON(ENT_PATHS.trash, 17) + 'Messung löschen</button>' : '');
     return;
@@ -10225,7 +10228,7 @@ function entFinishSave() {
 
 async function saveEntMessung() {
   const md = entState.messung;
-  if (!md || entState.saving || (md.editId && !entMessungDirty(md))) return;
+  if (!md || entState.saving || !entMessungReady(md)) return;
   const vals = {};
   for (const k of ['w', 'l', 'h']) {
     const v = parseProfilNumber(md[k]);
@@ -10363,9 +10366,9 @@ entBodyEl.addEventListener('input', (e) => {
   const key = e.target.dataset && e.target.dataset.entBind;
   const form = entState.messung || entState.meilenstein;
   if (key && form) form[key] = e.target.value;
-  if (key && form && form === entState.messung && form.editId) {
+  if (key && form && form === entState.messung) {
     const btn = entBodyEl.querySelector('[data-ent-act="saveMessung"]');
-    if (btn && !entState.saving) btn.disabled = !entMessungDirty(form);
+    if (btn && !entState.saving) btn.disabled = !entMessungReady(form);
   }
 });
 

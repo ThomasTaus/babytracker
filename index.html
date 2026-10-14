@@ -61,6 +61,8 @@
   .ht-zone[hidden] { display: none; }
   .ht-cap { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 2px; }
   .ht-ev { display: grid; grid-template-columns: 72px 1fr auto 10px; align-items: center; column-gap: 8px; min-height: 28px; }
+  /* „Klein & Groß" ist knapp breiter als die Spalte (72,7 px) — einzeilig, der Rest liegt im Spaltenabstand. */
+  .ht-ev .ht-l { white-space: nowrap; }
   .ht-ev .ht-t { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .ht-ev .ht-t .ht-sep, .ht-ev .ht-when { color: var(--text-muted); }
   .ht-ev .ht-when { font-size: 11.5px; font-weight: 600; white-space: nowrap; text-align: right; }
@@ -412,6 +414,10 @@
   #screen-analyse .a-legend button.solo { background: var(--sec-soft); color: var(--sec-strong); }
   #screen-analyse .a-legend button.muted { opacity: 0.38; }
   #screen-analyse .a-legend button.muted i { background: transparent !important; box-shadow: inset 0 0 0 1.5px currentColor; }
+  /* Windeln: „beides" ist kein Filter, nur die Erklärung der Streifen. Ihre
+     Wechsel zählen unter Klein und unter Groß mit. */
+  #screen-analyse .a-legend .lg-hint { display: inline-flex; align-items: center; gap: 4px; padding: 4px 0; white-space: nowrap; }
+  #screen-analyse .a-legend .lg-both { width: 8px; height: 8px; border-radius: 2px; margin: 0; background: repeating-linear-gradient(135deg, #39ABAB 0 2px, #8FD4D4 2px 4px); }
 
   /* Dieselbe Sprache eine Karte tiefer: die Farblegende filtert die Verteilung
      und damit auch das Diagramm darüber. Runde Punkte statt Quadrate — das
@@ -445,6 +451,16 @@
 </style>
 </head>
 <body>
+
+<!-- Gemeinsame SVG-Muster der Diagramme. Nicht display:none — sonst zeichnet
+     Chrome Muster daraus nicht. wi-both: Windeln „beides", in Klein- und Groß-Farbe. -->
+<svg width="0" height="0" style="position: absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="wi-both" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#8FD4D4"/><rect width="3" height="6" fill="#39ABAB"/>
+    </pattern>
+  </defs>
+</svg>
 
 <div id="login-screen" style="min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center;">
   <img src="icon.svg" alt="" width="72" height="72" style="border-radius: 22%; box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 20px -8px rgba(0,0,0,0.25);">
@@ -5952,16 +5968,20 @@ async function renderHeuteLast(now) {
       : pump && { label: 'Abpumpen', t: pump.t, text: pump.x.pendingAmount ? 'Menge fehlt' : Number(pump.x.amount) > 0 ? pump.x.amount + ' ml' : feedMinutes(pump.x) + ' Min' }
   ]);
 
-  // Windeln: ein Wechsel mit klein und groß zählt als groß (wie in der Analyse).
-  // Die Farbe steht nur da, wenn sie auffällig ist.
-  const small = newest(diapers.filter((d) => d.small && !d.big), entryBusinessTimestamp);
+  // Windeln: die letzte feuchte (mit klein) und die letzte große Windel (mit
+  // groß) — ein Wechsel mit beidem gilt für beide. Ist es derselbe Wechsel,
+  // steht er einmal da („Klein & Groß"), damit es nicht nach zwei Windeln
+  // aussieht. Die Farbe steht nur da, wenn sie auffällig ist.
+  const small = newest(diapers.filter((d) => d.small), entryBusinessTimestamp);
   const big = newest(diapers.filter((d) => d.big), entryBusinessTimestamp);
   const warnColor = (d) => (WARN_COLOR_IDS.includes(d.color) && COLOR_BY_ID[d.color]
     ? '<span class="ht-cdot" style="background:' + COLOR_BY_ID[d.color].hex + '"></span>' + COLOR_BY_ID[d.color].label + HT_WARN : '');
-  putHeuteLast('windeln-last', [
-    small && { label: 'Klein', t: small.t, text: '' },
-    big && { label: 'Groß', t: big.t, text: warnColor(big.x) }
-  ]);
+  putHeuteLast('windeln-last', small && big && small.x === big.x
+    ? [{ label: 'Klein & Groß', t: big.t, text: warnColor(big.x) }]
+    : [
+      small && { label: 'Klein', t: small.t, text: '' },
+      big && { label: 'Groß', t: big.t, text: warnColor(big.x) }
+    ]);
 
   // Schlafen: der zuletzt beendete Schlaf mit seiner Dauer, „vor x“ ab dem
   // Aufwachen — oder der laufende.
@@ -6790,25 +6810,33 @@ function colorBucketCount(stats, id) {
     : (stats.counts[id] || 0);
 }
 
-// Wechsel eines Tages in Minuten ab Mitternacht, getrennt wie die Balken:
-// ein Wechsel mit klein und groß zählt als groß.
+// Die Art eines Wechsels, ausschließend: nur klein, beides, nur groß. So
+// ergeben die drei Abschnitte eines Balkens genau die Zahl der Wechsel — ein
+// Wechsel mit beidem zählt einmal. Ohne „groß" zählt als klein (die Erfassung
+// verlangt eins von beiden).
+function windelnKind(x) { return !x.big ? 'smallOnly' : x.small ? 'both' : 'bigOnly'; }
+
+// Wechsel eines Tages in Minuten ab Mitternacht, getrennt wie die Balken.
 function windelnDayEvents(dayKey, docs) {
   const dayStart = new Date(dayKey + 'T00:00:00').getTime();
   return docs.map((x) => {
     const ts = entryBusinessTimestamp(x);
-    return ts ? { t: (ts - dayStart) / 60000, small: !!x.small && !x.big, big: !!x.big } : null;
+    return ts ? { t: (ts - dayStart) / 60000, kind: windelnKind(x) } : null;
   }).filter((e) => e && e.t >= 0 && e.t <= 1440).sort((p, q) => p.t - q.t);
 }
 
-// Die Summen eines Bündels Wechsel, die pro Tag gemittelt werden. Klein und
-// groß schließen sich aus, damit der gestapelte Balken die echte Zahl der
-// Wechsel zeigt: ein Wechsel mit beidem zählt einmal, als groß (die
-// medizinisch wichtigere Art — auch die Farbe hängt nur an großen).
+// Die Summen eines Bündels Wechsel, die pro Tag gemittelt werden. Die drei
+// Arten schließen sich aus (Balken, Ø-Wechsel); `small`/`big` zählen dagegen
+// jeden Wechsel mit klein bzw. groß, beides also in beiden — das sind die
+// feuchten bzw. großen Windeln, wie sie der Legendenfilter zeigt.
 function windelnDayFields(docs) {
+  const n = (k) => docs.filter((x) => windelnKind(x) === k).length;
+  const smallOnly = n('smallOnly'), both = n('both'), bigOnly = n('bigOnly');
   return {
     colorStats: analyseColorStats(docs),
-    small: docs.filter((x) => x.small && !x.big).length,
-    big: docs.filter((x) => x.big).length,
+    smallOnly, both, bigOnly,
+    small: smallOnly + both,
+    big: bigOnly + both,
     total: docs.length
   };
 }
@@ -6822,6 +6850,8 @@ function computeWindelnAnalysis(days, diaperMap) {
       weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
       daysCounted: d.daysCounted, daysComplete: d.daysComplete,
       intervalH: analyseIntervalH(docs),
+      intervalSmallH: analyseIntervalH(docs.filter((x) => windelnKind(x) !== 'bigOnly')),
+      intervalBigH: analyseIntervalH(docs.filter((x) => x.big)),
       warnCount: docs.filter((x) => x.big && WARN_COLOR_IDS.includes(x.color)).length,
       // „Stunden": die Wechsel des einen Tages auf der Uhrzeit-Achse.
       events: d.dayKeys.length === 1 ? windelnDayEvents(d.dayKeys[0], docs) : []
@@ -6833,6 +6863,8 @@ function computeWindelnAnalysis(days, diaperMap) {
   const allDocs = diaperMap.flat();
 
   const avgIntervalH = analyseIntervalH(allDocs);
+  const avgIntervalSmallH = analyseIntervalH(allDocs.filter((x) => windelnKind(x) !== 'bigOnly'));
+  const avgIntervalBigH = analyseIntervalH(allDocs.filter((x) => x.big));
 
   // Auffällig: Anteil an den großen Wechseln — nur sie tragen eine Farbe.
   // Ohne großen Wechsel gibt es keinen Anteil (null).
@@ -6848,13 +6880,16 @@ function computeWindelnAnalysis(days, diaperMap) {
   return {
     perDay,
     avgPerDay: analyseRound(sum('total') / totalDays),
-    avgIntervalH,
+    avgIntervalH, avgIntervalSmallH, avgIntervalBigH,
     warnCount, warnPct,
     colorStats,
     colorAvgExact,
     avgPerDayExact: sum('total') / totalDays,
     avgSmallExact: sum('small') / totalDays,
     avgBigExact: sum('big') / totalDays,
+    avgSmallOnlyExact: sum('smallOnly') / totalDays,
+    avgBothExact: sum('both') / totalDays,
+    avgBigOnlyExact: sum('bigOnly') / totalDays,
     insight: outlier ? (outlierDayLabel(outlier.day) + ' mit ' + outlier.day.big + ' großen Wechseln — der meiste ' + analyseBucketUnitPhrase + ' ' + analyseRangePhrase + '.') : null
   };
 }
@@ -7387,7 +7422,7 @@ function renderAnalyseOverview() {
   const wCount = wb ? analysePerDay(wb, 'total') : windeln.avgPerDayExact;
   const wWarn = wb ? wb.warnCount : windeln.warnCount;
   const wSecond = wb && single
-    ? wb.small + ' klein · ' + wb.big + ' groß'
+    ? wb.smallOnly + ' klein · ' + wb.both + ' beides · ' + wb.bigOnly + ' groß'
     : (wb ? wb.total : windeln.perDay.reduce((s, d) => s + d.total, 0)) + ' Wechsel gesamt';
 
   const sb = i >= 0 ? schlafen.perDay[i] : null;
@@ -7603,20 +7638,39 @@ Object.assign(FUETTERN_CHARTS, {
   'fu-v-still': { type: 'verlauf', title: 'Stilldauer im Tagesverlauf', sub: 'Dauer in Min.', unit: 'Min.', series: FUETTERN_CHARTS['fu-still'].series }
 });
 
+// Was die Windeln-Zahlen zählen, solange die Legende filtert: „Klein" zeigt
+// alle feuchten Windeln (nur klein + beides), „Groß" alle großen (beides +
+// nur groß). Ohne Filter jeden Wechsel einmal. Die gefilterten Zahlen heißen
+// nie „Wechsel", damit sie niemand als Gesamtzahl liest.
+function windelnNoun() {
+  const f = analyseFilter['wi-wechsel'];
+  return f === 'small' ? 'feuchte' : f === 'big' ? 'große' : 'Wechsel';
+}
+
 const WINDELN_CHARTS = {
   'wi-wechsel': {
     title: 'Wechsel pro Tag',
+    // Drei Abschnitte, die sich nicht überschneiden: ihre Summe ist die Zahl
+    // der Wechsel. „Beides" liegt zwischen Klein und Groß, gestreift in beiden
+    // Farben (Muster #wi-both), und hat keinen eigenen Legenden-Eintrag:
+    // filter sagt, unter welchem Legenden-Eintrag eine Reihe mit erscheint.
+    // ink: Volltonfarbe für Text und Linien, wo color ein Muster ist.
     series: [
-      { key: 'small', label: 'Klein', color: '#39ABAB', value: (d) => analysePerDay(d, 'small'), mean: (a) => a.avgSmallExact,
-        inc: (e) => (e.small ? 1 : 0) },
-      { key: 'big', label: 'Groß', color: '#8FD4D4', value: (d) => analysePerDay(d, 'big'), mean: (a) => a.avgBigExact,
-        inc: (e) => (e.big ? 1 : 0) }
+      { key: 'small', label: 'Klein', color: '#39ABAB', value: (d) => analysePerDay(d, 'smallOnly'), mean: (a) => a.avgSmallOnlyExact,
+        inc: (e) => (e.kind === 'smallOnly' ? 1 : 0) },
+      { key: 'both', label: 'Beides', color: 'url(#wi-both)', ink: '#39ABAB', filter: ['small', 'big'], legend: false,
+        value: (d) => analysePerDay(d, 'both'), mean: (a) => a.avgBothExact, inc: (e) => (e.kind === 'both' ? 1 : 0) },
+      { key: 'big', label: 'Groß', color: '#8FD4D4', value: (d) => analysePerDay(d, 'bigOnly'), mean: (a) => a.avgBigOnlyExact,
+        inc: (e) => (e.kind === 'bigOnly' ? 1 : 0) }
     ],
+    legendHint: '<span class="lg-hint"><i class="lg-both"></i>beides</span>',
     // „Stunden": eine Stufe je Wechsel, 0–24 Uhr. Die Farbe bleibt dort außen vor.
-    hours: { title: 'Wechsel', head: (v) => String(analyseRound(v)), ref: (v) => analyseDe1(v), tip: (v) => analyseRound(v) + ' Wechsel' },
+    hours: { title: 'Wechsel', head: (v) => String(analyseRound(v)) + (windelnNoun() === 'Wechsel' ? '' : ' ' + windelnNoun()),
+      ref: (v) => analyseDe1(v), tip: (v) => analyseRound(v) + ' ' + windelnNoun() },
     barLabel: (v) => String(analyseRound(v)),
-    headline: (v) => 'Ø ' + analyseDe1(v) + ' / Tag',
-    tipValue: (v, b) => analyseCount(v, b.daysElapsed === 1) + ' Wechsel',
+    // Gefiltert ohne „/ Tag" — sonst bricht die Zeile neben der Legende um.
+    headline: (v) => 'Ø ' + analyseDe1(v) + (windelnNoun() === 'Wechsel' ? ' / Tag' : ' ' + windelnNoun()),
+    tipValue: (v, b) => analyseCount(v, b.daysElapsed === 1) + ' ' + windelnNoun(),
     detail: (v, b) => analyseCount(v, b.daysElapsed === 1)
   }
 };
@@ -7750,14 +7804,19 @@ function fuetternStatValues(a, b) {
 function windelnStatValues(a, b) {
   const pct = b ? (b.big > 0 ? analyseRound(b.warnCount / b.big * 100) : null) : a.warnPct;
   const warn = pct === null ? '–' : { v: pct + ' %', c: pct > 0 ? 'var(--warn)' : null };
+  // Anzahl und Abstand folgen der Legende von „Wechsel pro Tag" (wie bei
+  // Füttern): „Klein" = alle feuchten, „Groß" = alle großen Windeln.
+  const only = analyseFilter['wi-wechsel'];
+  const field = only === 'small' ? 'small' : only === 'big' ? 'big' : 'total';
+  const hours = (h) => (h === null ? '–' : analyseDe1(h) + ' h');
   if (!b) return {
-    count: analyseDe1(a.avgPerDayExact),
-    interval: a.avgIntervalH === null ? '–' : analyseDe1(a.avgIntervalH) + ' h',
+    count: analyseDe1(only === 'small' ? a.avgSmallExact : only === 'big' ? a.avgBigExact : a.avgPerDayExact),
+    interval: hours(only === 'small' ? a.avgIntervalSmallH : only === 'big' ? a.avgIntervalBigH : a.avgIntervalH),
     warn
   };
   return {
-    count: analyseCount(analysePerDay(b, 'total'), b.daysElapsed === 1),
-    interval: b.intervalH === null ? '–' : analyseDe1(b.intervalH) + ' h',
+    count: analyseCount(analysePerDay(b, field), b.daysElapsed === 1),
+    interval: hours(only === 'small' ? b.intervalSmallH : only === 'big' ? b.intervalBigH : b.intervalH),
     warn
   };
 }
@@ -7833,7 +7892,9 @@ const ANALYSE_SECTION_UI = {
     tileClass: 'a-stat-row',
     tileColor: 'var(--windeln)',
     tiles: [
-      { key: 'count', cap: 'WECHSEL', capAvg: 'Ø / TAG' },
+      // Mit Klein/Groß-Filter zählen Anzahl und Abstand nur feuchte bzw. große.
+      { key: 'count', cap: () => ({ feuchte: 'FEUCHTE', große: 'GROSSE' })[windelnNoun()] || 'WECHSEL',
+        capAvg: () => ({ feuchte: 'Ø FEUCHTE', große: 'Ø GROSSE' })[windelnNoun()] || 'Ø / TAG' },
       { key: 'interval', cap: 'ABSTAND', capAvg: 'Ø ABSTAND' },
       { key: 'warn', cap: 'AUFFÄLLIG' }
     ],
@@ -7956,8 +8017,11 @@ function secVisibleSeries(chartId, cfg) {
   const forced = analyseScope.mode === 'hours' ? null : secForcedSeries(chartId);
   if (forced) return [forced];
   const iso = analyseFilter[chartId];
-  return iso ? cfg.series.filter((s) => s.key === iso) : cfg.series;
+  return iso ? cfg.series.filter((s) => (s.filter ? s.filter.includes(iso) : s.key === iso)) : cfg.series;
 }
+
+// Volltonfarbe einer Reihe für Text, Linien und Punkte (color kann ein Muster sein).
+function seInk(se) { return se.ink || se.color; }
 
 // Achsenbeschriftung und Punkt/Balken eines Tages liegen in derselben Gruppe
 // `.bk` — dadurch greift dieselbe CSS-Regel fürs Hervorheben und Verblassen
@@ -8000,7 +8064,7 @@ function secBarInner(chartId, cfg, analysis) {
   };
 
   let out = '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
-    svgMeanLine(mean, maxVal, baseline, maxPx, series[0].color);
+    svgMeanLine(mean, maxVal, baseline, maxPx, seInk(series[0]));
 
   bs.forEach((b, i) => {
     const x = startX + i * (barW + gap);
@@ -8016,9 +8080,9 @@ function secBarInner(chartId, cfg, analysis) {
     // Beim markierten Balken ausgeblendet (per CSS): dort steht die
     // Markierungslinie, und die Zahl steht ohnehin groß im Label.
     rects += '<text class="val" x="' + cxOf(i) + '" y="' + Math.max(12, baseline - stack - 4) +
-      '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + colorOf(series[0]) +
+      '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + ((series[0].barColor && series[0].barColor(b)) || seInk(series[0])) +
       '" text-anchor="middle">' + (cfg.barText ? cfg.barText(b) : cfg.barLabel(totals[i])) + '</text>';
-    out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cxOf(i), series[0].color) + '</g>';
+    out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cxOf(i), seInk(series[0])) + '</g>';
   });
 
   return out + SEC_MARKER + secHitRects(bs, cxOf, barW + gap);
@@ -8173,37 +8237,36 @@ function secHoursInner(chartId, cfg, analysis) {
   const maxVal = Math.max(1, total, refEnd) * 1.1;
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - 82]);
 
-  // Stufen: die untere Reihe und die Summe, jeweils mit senkrechtem Sprung
-  // an der Uhrzeit des Eintrags. Schlaf steigt dagegen, solange geschlafen wird.
-  let lowPts, totPts;
+  // Stufen: je Reihe die Summe bis einschließlich dieser Reihe (layers[k]),
+  // jeweils mit senkrechtem Sprung an der Uhrzeit des Eintrags; die letzte
+  // Schicht ist die Summe. Schlaf steigt dagegen, solange geschlafen wird.
+  const layers = series.map(() => []);
   const dots = [];
   if (continuous) {
-    lowPts = []; totPts = [];
-    for (let g = gA; g * 5 < end; g++) {
-      lowPts.push([X(g * 5), y(cumOf(day, [series[0]], g * 5))]);
-      totPts.push([X(g * 5), y(cum(day, g * 5))]);
-    }
-    lowPts.push([X(end), y(cumOf(day, [series[0]], end))]);
-    totPts.push([X(end), y(total)]);
+    const at = (t) => series.forEach((_, k) => layers[k].push([X(t), y(cumOf(day, series.slice(0, k + 1), t))]));
+    for (let g = gA; g * 5 < end; g++) at(g * 5);
+    at(end);
   } else {
     const evs = day.events.filter((e) => e.t <= end && incOf(e) > 0);
-    let low = 0, tot = 0;
-    lowPts = [[X(t0), y(0)]]; totPts = [[X(t0), y(0)]];
+    const acc = series.map(() => 0);
+    const push = (t) => { let s = 0; acc.forEach((v, k) => { s += v; layers[k].push([X(t), y(s)]); }); };
+    push(t0);
     evs.forEach((e) => {
-      lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
-      low += series[0].inc(e); tot += incOf(e);
-      lowPts.push([X(e.t), y(low)]); totPts.push([X(e.t), y(tot)]);
-      dots.push([X(e.t), y(tot), series[0].inc(e) > 0 ? series[0].color : series[series.length - 1].color]);
+      push(e.t);
+      series.forEach((se, k) => { acc[k] += se.inc(e); });
+      push(e.t);
+      const own = series.find((se) => se.inc(e) > 0);
+      dots.push([X(e.t), layers[series.length - 1][layers[series.length - 1].length - 1][1], own.color]);
     });
-    lowPts.push([X(end), y(low)]); totPts.push([X(end), y(tot)]);
+    push(end);
   }
+  const totPts = layers[series.length - 1];
   const pl = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(2) + ',' + p[1].toFixed(2)).join('');
   const floor = 'L' + X(end).toFixed(2) + ',' + baseline + 'L' + X(t0) + ',' + baseline + 'Z';
   // Voll deckend wie die Tagesverlauf-Karten in „Tage" — dieselbe Art Diagramm.
-  let curve = series.length > 1
-    ? '<path d="' + pl(totPts) + pl(lowPts.slice().reverse()).replace('M', 'L') + 'Z" fill="' + series[1].color + '"/>' +
-      '<path d="' + pl(lowPts) + floor + '" fill="' + series[0].color + '"/>'
-    : '<path d="' + pl(totPts) + floor + '" fill="' + series[0].color + '"/>';
+  // Von oben nach unten übereinander gemalt: jede Schicht deckt die darüber ab.
+  let curve = '';
+  for (let k = series.length - 1; k >= 0; k--) curve += '<path d="' + pl(layers[k]) + floor + '" fill="' + series[k].color + '"/>';
   curve += '<path d="' + pl(totPts) + '" fill="none" stroke="' + ink + '" stroke-width="2.2" stroke-linejoin="round"/>';
   dots.forEach((p) => {
     curve += '<circle cx="' + p[0].toFixed(2) + '" cy="' + p[1].toFixed(2) + '" r="3.2" fill="' + p[2] + '" stroke="' + ink + '" stroke-width="1.3"/>';
@@ -8733,9 +8796,9 @@ function secCardShell(view, chartId, part) {
   // Eine einzelne Reihe hat keine Filter-Legende, kann aber eine erklärende
   // Notiz tragen (legendNote). legendFrom: die Legende darüber gilt mit.
   const legend = cfg.legendFrom ? '' : cfg.series.length < 2 ? (cfg.legendNote || '') :
-    '<div class="a-legend">' + cfg.series.map((s) =>
+    '<div class="a-legend">' + cfg.series.filter((s) => s.legend !== false).map((s) =>
       '<button type="button" class="lg" data-chart="' + chartId + '" data-series="' + s.key + '">' +
-      '<i style="background:' + s.color + ';"></i>' + s.label + '</button>').join('') + '</div>';
+      '<i style="background:' + s.color + ';"></i>' + s.label + '</button>').join('') + (cfg.legendHint || '') + '</div>';
   // Tagesverlauf: der lange Titel steht für sich, die Legende rückt in die
   // Zeile darunter neben den kurzen Untertitel — sonst bräche der Titel um.
   const head = cfg.type === 'verlauf'
@@ -8827,7 +8890,9 @@ function updateSecStats(view) {
     const value = raw && typeof raw === 'object' ? raw : { v: raw, c: null };
     numEl.textContent = value.v;
     numEl.style.color = value.c || sec.tileColor;
-    capEl.textContent = isAvg ? (t.capAvg || t.cap) : t.cap;
+    // Eine Überschrift kann vom Legendenfilter abhängen (Windeln: FEUCHTE).
+    const cap = isAvg ? (t.capAvg || t.cap) : t.cap;
+    capEl.textContent = typeof cap === 'function' ? cap() : cap;
   });
 
   updateAnalyseContext();

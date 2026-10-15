@@ -1564,7 +1564,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, deleteField, doc, getDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp, writeBatch,
-  getCountFromServer, Timestamp
+  getCountFromServer, Timestamp, waitForPendingWrites
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { scaleBand, scaleLinear, scalePoint } from "./vendor/d3/d3-scale.js";
 import { line as d3Line, area as d3Area, curveLinear } from "./vendor/d3/d3-shape.js";
@@ -1626,6 +1626,72 @@ async function guardWrite(promise) {
     throw error;
   }
 }
+
+// --- Veraltete App-Instanz erkennen ---
+// Eine App, die tagelang im Hintergrund offen war, läuft beim Zurückholen mit
+// dem Code von damals weiter — Updates kommen erst beim Neuladen an. Am 14.10.
+// hing so eine Instanz von vor dem 5.10. in einer Schleife aus Lesen und
+// abgelehntem Schreiben und verbrauchte in zwei Minuten Zehntausende Reads.
+// Deshalb fragt die App beim Start und bei jedem Zurückholen version.json
+// (liegt neben index.html, kostet keine Firestore-Reads). Steht dort ein
+// höheres release, lädt sie neu — mitten in einer Eingabe aber erst, sobald
+// keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
+// Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
+// (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
+const APP_RELEASE = 1;
+const RELEASE_RELOAD_KEY = 'bt-release-reload';
+let releaseReloadPending = 0;
+let releaseCheckRunning = false;
+
+// Eintragen-Seiten, Editoren und Dialoge können ungespeicherte Eingaben
+// enthalten; Heute, Analyse, Historie und die Übersichten nicht.
+function appBusyWithInput() {
+  if (['fuettern', 'windeln', 'schlafen'].includes(currentScreen)) return true;
+  if (currentScreen === 'profil') return !!profilEdit;
+  if (currentScreen === 'gesundheit') return medState.stack.length > 0;
+  if (currentScreen === 'entwicklung') return entDialogOpen();
+  return false;
+}
+
+async function checkAppRelease() {
+  if (releaseCheckRunning || releaseReloadPending) return;
+  releaseCheckRunning = true;
+  try {
+    const res = await fetch('version.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const release = Number((await res.json()).release);
+    if (!(release > APP_RELEASE)) return;
+    // Je Release höchstens ein Neuladen in RULES_RELOAD_PAUSE_MS: liefert der
+    // Server index.html noch kurz in der alten Fassung aus, entsteht so keine
+    // Schleife.
+    let last = null;
+    try { last = JSON.parse(localStorage.getItem(RELEASE_RELOAD_KEY) || 'null'); } catch (e) {}
+    if (last && last.release === release && Date.now() - last.at < RULES_RELOAD_PAUSE_MS) return;
+    releaseReloadPending = release;
+    reloadForReleaseWhenIdle();
+  } catch (e) {
+    // offline oder keine gültige Datei — beim nächsten Zurückholen wieder
+  } finally {
+    releaseCheckRunning = false;
+  }
+}
+
+function reloadForReleaseWhenIdle() {
+  if (document.visibilityState !== 'visible' || appBusyWithInput()) {
+    setTimeout(reloadForReleaseWhenIdle, 2000);
+    return;
+  }
+  try { localStorage.setItem(RELEASE_RELOAD_KEY, JSON.stringify({ release: releaseReloadPending, at: Date.now() })); } catch (e) {}
+  // Was gerade gespeichert wurde, erst beim Server ankommen lassen.
+  Promise.race([waitForPendingWrites(db), new Promise((r) => setTimeout(r, 5000))])
+    .catch(() => {})
+    .then(() => location.reload());
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkAppRelease();
+});
+checkAppRelease();
 
 // Der eigene Schreibvorgang steht sofort im lokalen Bestand (siehe
 // entryApplyLocal); scheitert er, wird das zurückgenommen.

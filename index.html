@@ -355,18 +355,40 @@
   #screen-analyse .a-insight[hidden] { display: none; }
   #screen-analyse .a-color-legend { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 8px; }
   #screen-analyse .a-color-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
-  #screen-analyse .a-ov-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; cursor: pointer; transition: box-shadow .15s ease, transform .15s ease; }
+  /* Übersicht: fester Zeitraum statt Zoomstufen — Chips und Kontextzeile
+     gehören nur zu den Bereichen, die Übersicht trägt ihre eigene Zeile. */
+  #screen-analyse:not(.a-detail) .a-chip-row, #screen-analyse:not(.a-detail) .a-context { display: none; }
+  #screen-analyse .a-ov-context { display: none; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text-muted); margin-top: 14px; min-height: 26px; }
+  #screen-analyse:not(.a-detail) .a-ov-context { display: flex; }
+  #screen-analyse .a-ov-context small { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  #screen-analyse .a-ov-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; cursor: pointer; transition: box-shadow .15s ease, transform .15s ease; }
   #screen-analyse .a-ov-card:last-child { margin-bottom: 0; }
   #screen-analyse .a-ov-card:hover { box-shadow: 0 4px 16px oklch(0% 0 0 / 0.08); transform: translateY(-1px); }
   #screen-analyse .a-ov-card:active { transform: translateY(0); box-shadow: none; }
   #screen-analyse .a-ov-top { display: flex; align-items: center; justify-content: space-between; }
   #screen-analyse .a-ov-id { display: flex; align-items: center; gap: 10px; }
-  #screen-analyse .a-ov-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #screen-analyse .a-ov-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--ov-soft); color: var(--ov-strong); }
+  #screen-analyse .a-ov-name-wrap { display: flex; flex-direction: column; gap: 1px; }
   #screen-analyse .a-ov-name { font-weight: 700; font-size: 14px; }
-  #screen-analyse .a-ov-primary { font-family: 'Fredoka', sans-serif; font-size: 19px; font-weight: 600; }
-  #screen-analyse .a-ov-primary .unit { font-family: 'Work Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: var(--text-muted); margin-left: 5px; }
-  #screen-analyse .a-ov-secondary { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  #screen-analyse .a-ov-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 11.5px; font-weight: 600; margin-top: 2px; }
+  #screen-analyse .a-ov-sub { font-size: 11.5px; font-weight: 500; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  #screen-analyse .a-ov-sub b { font-weight: 700; color: var(--ov-strong); }
+  #screen-analyse .a-ov-details { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; color: var(--ov-strong); }
+  /* Drei Kennzahlen, alle gleich hoch. Oben und unten 16 px Luft, damit die
+     Etiketten „steigt“ (Oberkante) und „sinkt“ (Unterkante) nicht am Text
+     kleben; die Reihe hält dafür 8 px Abstand zur Umgebung. */
+  #screen-analyse .a-ov-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-block: 8px; }
+  #screen-analyse .a-ov-kpi { position: relative; min-width: 0; background: var(--surface-alt); border-radius: 14px; padding: 16px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; }
+  #screen-analyse .a-ov-kpi.lead { background: var(--ov-soft); }
+  #screen-analyse .a-ov-kpi.sig { box-shadow: inset 0 0 0 1.5px var(--ov-fill); }
+  #screen-analyse .a-ov-num { font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #screen-analyse .a-ov-kpi.lead .a-ov-num { color: var(--ov-strong); }
+  #screen-analyse .a-ov-num .u { font-family: 'Work Sans', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
+  #screen-analyse .a-ov-cap { font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+  #screen-analyse .a-ov-tag { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px 2px 6px; border-radius: 999px; background: var(--ov-fill); color: white; font-size: 10px; font-weight: 700; line-height: 1.3; white-space: nowrap; }
+  #screen-analyse .a-ov-tag.down { top: auto; bottom: -8px; }
+  #screen-analyse .a-ov-chart-label { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; }
+  #screen-analyse .a-ov-chart-label span:last-child { text-transform: none; letter-spacing: 0; font-weight: 600; }
+  #screen-analyse .a-ov-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 
   /* --- Interaktive Diagramme (Schlafen) --------------------------------- */
   /* Kontextzeile direkt unter den Einheiten-Chips: sagt, welcher Ausschnitt
@@ -1288,6 +1310,7 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
       </div>
+      <div class="a-ov-context"><span>Letzte 7 Tage · Ø pro Tag</span><small id="analyse-ov-range"></small></div>
     </div>
 
     <div id="analyse-body" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 16px 24px 16px; display: flex; flex-direction: column; gap: 14px;">
@@ -1639,7 +1662,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 2;
+const APP_RELEASE = 3;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -7531,24 +7554,6 @@ function hideSleepClockTip(svgEl) {
   });
 })();
 
-// selIdx >= 0: der markierte Tag trägt den kräftigen Ton statt „heute" —
-// solange etwas markiert ist, ist das der Tag, um den es geht.
-function svgSparkline(perDay, valueFn, colorLight, colorToday, selIdx) {
-  const n = perDay.length, baseline = 22, maxPx = 18, k = 0.3455;
-  const band = n < 2 ? null : scaleBand().domain(Array.from({ length: n }, (_, i) => i)).range([5, 55]).paddingInner(k / (1 + k)).paddingOuter(0);
-  const barW = band ? band.bandwidth() : 50;
-  const maxVal = Math.max(1, ...perDay.map(valueFn));
-  const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx]);
-  return perDay.map((d, i) => {
-    const x = band ? band(i) : 5;
-    const v = valueFn(d);
-    const h = v > 0 ? Math.max(2, baseline - y(v)) : 0;
-    const strong = selIdx >= 0 ? i === selIdx : d.isToday;
-    const color = strong ? colorToday : colorLight;
-    return '<rect x="' + x + '" y="' + (baseline - h) + '" width="' + barW + '" height="' + h + '" rx="1.5" fill="' + color + '"/>';
-  }).join('');
-}
-
 // sel = eine Farbe steht allein. Sie bleibt dann an ihrer Stelle und in ihrer
 // Breite stehen, der Rest wird zum Gleis — so bleibt der Anteil ablesbar,
 // statt auf die volle Breite gestreckt zu werden.
@@ -7568,96 +7573,329 @@ function svgColorDistribution(buckets, sel) {
 const ANALYSE_ICON_STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/></svg>';
 const ANALYSE_ICON_CHEVRON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 
-// Die Übersicht zieht mit der Markierung mit: ohne sie zeigt jede Karte den
-// ganzen Ausschnitt, mit ihr denselben Tag, den auch die Detailseiten zeigen.
-// Sie bleibt die einzige Ansicht ohne eigenes Wischen — hier wird die Karte
-// angetippt, um in den Bereich zu springen, und dafür ist sie zu klein.
+// ===== Übersicht ========================================================
+// Ein fester Zeitraum statt der Zoomstufen: die Kennzahlen sind der Tagesschnitt
+// der letzten 7 abgeschlossenen Tage, die Linie der Wochenschnitt der letzten 8
+// Kalenderwochen. Die Übersicht hängt damit weder an der gewählten Stufe noch
+// an einem markierten Tag — sie beantwortet nur „wo stehen wir, wohin geht es".
+const ANALYSE_OV_KPI_DAYS = 7;
+const ANALYSE_OV_TEST_DAYS = 14;
+// Trendtest: Mann-Kendall, zweiseitig, α = 0,05 je Kennzahl. Darunter zu
+// wenige Tage für die Normalnäherung — dann gibt es schlicht kein Etikett.
+const ANALYSE_TREND_MIN_N = 10;
+const ANALYSE_TREND_Z = 1.959964;
+// Mindestgröße: die Theil-Sen-Steigung muss über das Fenster mindestens 5 %
+// des Mittelwerts ausmachen. Sonst wird auch ein winziger, aber sehr
+// gleichmäßiger Anstieg signifikant, den niemand spürt.
+const ANALYSE_TREND_MIN_SHARE = 0.05;
+
 let analyseOverview = null;
+// Wovon die gezeigte Übersicht gerechnet ist; gleich = nicht neu rechnen.
+let analyseOverviewKey = null;
 
-const ANALYSE_OV_WARN_DOT = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>';
+// Richtung eines Trends in einer Tagesreihe (null = Tag zählt nicht): +1
+// steigt, -1 sinkt, 0 kein gesicherter Trend. Mann-Kendall vergleicht jeden
+// Tag mit jedem späteren — ohne Annahme über Verteilung oder Geradlinigkeit,
+// ein Ausreißertag ist nur ein Paar unter vielen. Gleiche Werte (bei Zählwerten
+// häufig) verkleinern die Varianz von S; ohne diese Korrektur würde der Test
+// zu oft anschlagen.
+function analyseTrendDirection(series) {
+  const pts = [];
+  series.forEach((v, i) => { if (v !== null && Number.isFinite(v)) pts.push([i, v]); });
+  const n = pts.length;
+  if (n < ANALYSE_TREND_MIN_N) return 0;
+  let s = 0;
+  const slopes = [];
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const d = pts[j][1] - pts[i][1];
+      s += Math.sign(d);
+      slopes.push(d / (pts[j][0] - pts[i][0]));
+    }
+  }
+  const groups = new Map();
+  pts.forEach(([, v]) => groups.set(v, (groups.get(v) || 0) + 1));
+  let ties = 0;
+  groups.forEach((t) => { ties += t * (t - 1) * (2 * t + 5); });
+  const varS = (n * (n - 1) * (2 * n + 5) - ties) / 18;
+  if (s === 0 || varS <= 0) return 0;
+  // Stetigkeitskorrektur: S springt in Zweierschritten.
+  const z = (s - Math.sign(s)) / Math.sqrt(varS);
+  if (Math.abs(z) < ANALYSE_TREND_Z) return 0;
+  slopes.sort((a, b) => a - b);
+  const mid = slopes.length >> 1;
+  const slope = slopes.length % 2 ? slopes[mid] : (slopes[mid - 1] + slopes[mid]) / 2;
+  const mean = analyseAvg(pts.map((p) => p[1]));
+  const span = pts[n - 1][0] - pts[0][0];
+  if (Math.sign(slope) !== Math.sign(s) || !(Math.abs(mean) > 0)) return 0;
+  if (Math.abs(slope * span) < ANALYSE_TREND_MIN_SHARE * Math.abs(mean)) return 0;
+  return Math.sign(s);
+}
 
-function analyseOvCard(target, name, iconPath, colors, spark, primary, unit, secondary) {
-  return '<div class="a-ov-card" data-target="' + target + '" style="border-left:4px solid ' + colors.bar + ';">' +
+// Je ein Tages-Bucket vom ersten Tag bis gestern — gleich gebaut wie die der
+// Zoomstufe „Tage", nur über einen längeren Zeitraum und ohne heute.
+function buildAnalyseDaysUntilYesterday(first) {
+  const end = todayStartDate();
+  end.setDate(end.getDate() - 1);
+  const days = [];
+  for (let d = new Date(first); d <= end; d.setDate(d.getDate() + 1)) {
+    const k = isoDate(d);
+    days.push({
+      dayKeys: [k], label: '', fullLabel: '', contextLabel: '',
+      dayStart: new Date(d), isToday: false, daysElapsed: 1,
+      daysCounted: analyseCountedDays([k]), daysComplete: analyseCompleteDays([k])
+    });
+  }
+  return days;
+}
+
+function analyseOvMean(list) {
+  const v = list.filter((x) => x !== null && Number.isFinite(x));
+  return v.length ? analyseAvg(v) : null;
+}
+
+// Kennzahlen, Trends und Wochenlinie aus denselben Regeln wie die Bereiche:
+// ein Tag zählt nur abgeschlossen und ab Beginn der Aufzeichnung, Schlaf in der
+// Nacht nur mit Einträgen (analysePerDay, hasNight, wakeMin).
+function computeAnalyseOverview(feedings, diapers, sleeps, weeks, diaperTotal) {
+  const days = buildAnalyseDaysUntilYesterday(weeks.length ? weeks[0].weekStart : todayStartDate());
+  const fD = computeFuetternAnalysis(days, analyseBucketByDay(feedings, days)).perDay;
+  const wD = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days)).perDay;
+  const sD = computeSchlafenAnalysis(days, sleeps).perDay;
+  const fW = computeFuetternAnalysis(weeks, analyseBucketByDay(feedings, weeks)).perDay;
+  const wW = computeWindelnAnalysis(weeks, analyseBucketByDay(diapers, weeks)).perDay;
+  const sW = computeSchlafenAnalysis(weeks, sleeps).perDay;
+
+  const done = (b) => b.daysComplete === 1;
+  const daily = (list, fn) => list.map((b) => (done(b) ? fn(b) : null));
+  const night = (b) => (b.hasNight ? b.nightMinutes / 60 : null);
+  const series = {
+    ml: daily(fD, (b) => analysePerDay(b, 'bottleMl')),
+    breast: daily(fD, (b) => analysePerDay(b, 'breastMin')),
+    pump: daily(fD, (b) => analysePerDay(b, 'pumpMl')),
+    total: daily(wD, (b) => analysePerDay(b, 'total')),
+    big: daily(wD, (b) => analysePerDay(b, 'big')),
+    small: daily(wD, (b) => analysePerDay(b, 'small')),
+    nap: daily(sD, (b) => analysePerDay(b, 'napMinutes') / 60),
+    night: daily(sD, night),
+    sleep: daily(sD, (b) => (b.hasNight ? b.nightMinutes / 60 + analysePerDay(b, 'napMinutes') / 60 : null)),
+    wake: daily(sD, (b) => (b.wakeMin === null ? null : b.wakeMin / 60))
+  };
+  const kpi = (key) => analyseOvMean(series[key].slice(-ANALYSE_OV_KPI_DAYS));
+  const trend = (key) => analyseTrendDirection(series[key].slice(-ANALYSE_OV_TEST_DAYS));
+  // Gesamtschlaf wie im Bereich: Ø Nacht über die Nächte mit Einträgen plus
+  // Ø Tagschlaf über die abgeschlossenen Tage.
+  const nightAvg = kpi('night'), napAvg = kpi('nap');
+  const sleepAvg = nightAvg === null && napAvg === null ? null : (nightAvg || 0) + (napAvg || 0);
+
+  // Wochenpunkte: Ø der abgeschlossenen Tage der Woche. Wochen vor Beginn der
+  // Aufzeichnung und die laufende Woche ohne abgeschlossenen Tag (montags)
+  // haben keinen Punkt.
+  const weekly = (list, fn) => list.map((b) => (b.daysComplete > 0 ? fn(b) : null));
+  // Die Skala zoomt nur auf, wenn der Verlauf über die ganzen 8 Wochen einen
+  // gesicherten Trend hat — sonst sähe normales Hin und Her wie ein Ausschlag aus.
+  const longTrend = (key) => analyseTrendDirection(series[key]) !== 0;
+
+  const recent = days.slice(-ANALYSE_OV_KPI_DAYS);
+  return {
+    rangeFrom: recent.length ? recent[0].dayStart : null,
+    rangeTo: recent.length ? recent[recent.length - 1].dayStart : null,
+    weekLabels: weeks.map((b) => (b.isToday ? analyseAxisWeekNow() : b.label)),
+    currentWeek: weeks.length > 0 && weeks[weeks.length - 1].isToday,
+    fuettern: {
+      kpis: [
+        { v: kpi('ml'), t: trend('ml') },
+        { v: kpi('breast'), t: trend('breast') },
+        { v: kpi('pump'), t: trend('pump') }
+      ],
+      line: weekly(fW, (b) => analysePerDay(b, 'bottleMl')),
+      zoom: longTrend('ml')
+    },
+    windeln: {
+      kpis: [
+        { v: kpi('total'), t: trend('total') },
+        { v: kpi('big'), t: trend('big') },
+        { v: kpi('small'), t: trend('small') }
+      ],
+      line: weekly(wW, (b) => analysePerDay(b, 'total')),
+      zoom: longTrend('total'),
+      allTime: diaperTotal
+    },
+    schlafen: {
+      kpis: [
+        { v: sleepAvg, t: trend('sleep') },
+        { v: nightAvg, t: trend('night') },
+        { v: kpi('wake'), t: trend('wake') }
+      ],
+      line: weekly(sW, (b) => (b.hasNight ? b.nightMinutes / 60 + analysePerDay(b, 'napMinutes') / 60 : null)),
+      zoom: longTrend('sleep')
+    }
+  };
+}
+
+// Die laufende Woche heißt an der Achse wie in der Zoomstufe „Wochen".
+function analyseAxisWeekNow() { return ANALYSE_ZOOM_UI.weeks.axisToday; }
+
+const ANALYSE_OV_UP = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>';
+const ANALYSE_OV_DOWN = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>';
+
+// Eine Kennzahl-Kachel. Ein gesicherter Trend rahmt sie in der Füllfarbe des
+// Bereichs und setzt ein Etikett auf die Kante — „steigt" oben, „sinkt" unten,
+// die Lage zeigt die Richtung mit. Bewusst ohne Betrag: der widerspräche dem
+// Wochenschnitt der Linie darunter.
+function analyseOvKpi(k, fmt, unit, cap, lead) {
+  const tag = k.t > 0 ? '<span class="a-ov-tag">' + ANALYSE_OV_UP + 'steigt</span>'
+    : k.t < 0 ? '<span class="a-ov-tag down">' + ANALYSE_OV_DOWN + 'sinkt</span>' : '';
+  const num = k.v === null ? '–' : fmt(k.v) + '<span class="u">' + unit + '</span>';
+  return '<div class="a-ov-kpi' + (lead ? ' lead' : '') + (k.t ? ' sig' : '') + '">' + tag +
+    '<div class="a-ov-num">' + num + '</div><div class="a-ov-cap">' + cap + '</div></div>';
+}
+
+// Wochenschnitte als Linie, die laufende Woche als hohler Punkt, gestrichelt
+// angebunden. Erster und letzter Wert stehen als Zahl daran, damit die
+// Größenordnung ablesbar bleibt, obwohl die Skala nicht bei 0 beginnt. Ohne
+// gesicherten Trend umfasst sie mindestens ±15 % um den Mittelwert.
+function svgOvWeekLine(vals, labels, current, color, strong, fmt, zoom) {
+  const W = 300, top = 18, base = 56, padX = 18, n = vals.length;
+  const x = (i) => (n < 2 ? W / 2 : padX + i * (W - 2 * padX) / (n - 1));
+  const txt = (tx, ty, s, bold) => '<text x="' + tx + '" y="' + ty + '" text-anchor="middle" font-size="' + (ty > base ? 10 : 10.5) +
+    '" font-weight="' + (bold ? 700 : 600) + '" fill="' + (bold ? 'var(--text)' : 'var(--text-muted)') + '" font-family="Work Sans, sans-serif">' + s + '</text>';
+  let svg = '<line x1="0" x2="' + W + '" y1="' + (base + 6) + '" y2="' + (base + 6) + '" stroke="var(--border)" stroke-width="1"/>';
+  labels.forEach((l, i) => { svg += txt(x(i), base + 20, l, i === n - 1); });
+  const idx = vals.map((v, i) => i).filter((i) => vals[i] !== null && Number.isFinite(vals[i]));
+  if (!idx.length) return '<svg viewBox="0 0 ' + W + ' 80">' + svg + '</svg>';
+  const got = idx.map((i) => vals[i]);
+  let lo = Math.min(...got), hi = Math.max(...got);
+  if (!zoom) {
+    const m = analyseAvg(got);
+    lo = Math.min(lo, m * 0.85);
+    hi = Math.max(hi, m * 1.15);
+  }
+  const span = (hi - lo) || 1;
+  const y = (v) => base - ((v - lo) / span) * (base - top);
+  const live = current && idx[idx.length - 1] === n - 1 ? n - 1 : -1;
+  const solid = idx.filter((i) => i !== live);
+  if (solid.length) {
+    const pts = solid.map((i) => x(i) + ',' + y(vals[i]));
+    svg += '<polygon points="' + x(solid[0]) + ',' + (base + 6) + ' ' + pts.join(' ') + ' ' + x(solid[solid.length - 1]) + ',' + (base + 6) + '" fill="' + color + '" fill-opacity="0.18"/>';
+    svg += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+    if (live >= 0) {
+      const p = solid[solid.length - 1];
+      svg += '<line x1="' + x(p) + '" y1="' + y(vals[p]) + '" x2="' + x(live) + '" y2="' + y(vals[live]) + '" stroke="' + color + '" stroke-width="2" stroke-dasharray="3 3"/>';
+    }
+  }
+  idx.forEach((i) => {
+    svg += i === live
+      ? '<circle cx="' + x(i) + '" cy="' + y(vals[i]) + '" r="4.2" fill="var(--surface)" stroke="' + strong + '" stroke-width="2"/>'
+      : '<circle cx="' + x(i) + '" cy="' + y(vals[i]) + '" r="2.6" fill="' + color + '" stroke="var(--surface)" stroke-width="1"/>';
+  });
+  const first = idx[0], last = idx[idx.length - 1];
+  svg += txt(x(last), y(vals[last]) - 9, fmt(vals[last]), true);
+  if (first !== last) svg += txt(x(first), y(vals[first]) - 9, fmt(vals[first]), false);
+  return '<svg viewBox="0 0 ' + W + ' 80">' + svg + '</svg>';
+}
+
+function analyseOvCard(target, name, iconPath, c, sub, kpis, chartTitle, chartUnit, chart) {
+  return '<div class="a-ov-card" data-target="' + target + '" style="--ov-soft:' + c.soft + '; --ov-strong:' + c.strong + '; --ov-fill:' + c.fill + ';">' +
     '<div class="a-ov-top"><div class="a-ov-id">' +
-      '<div class="a-ov-icon" style="background:' + colors.soft + '; color:' + colors.strong + ';">' +
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + iconPath + '</svg></div>' +
-      '<span class="a-ov-name">' + name + '</span></div>' +
-      '<svg viewBox="0 0 60 22" width="60" height="22">' + spark + '</svg>' +
+      '<div class="a-ov-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + iconPath + '</svg></div>' +
+      '<div class="a-ov-name-wrap"><span class="a-ov-name">' + name + '</span>' + (sub ? '<span class="a-ov-sub">' + sub + '</span>' : '') + '</div></div>' +
+      '<span class="a-ov-details">Details ' + ANALYSE_ICON_CHEVRON + '</span>' +
     '</div>' +
-    '<div class="a-ov-primary">' + primary + ' <span class="unit">' + unit + '</span></div>' +
-    '<div class="a-ov-secondary">' + secondary + '</div>' +
-    '<div class="a-ov-bottom" style="color:' + colors.strong + ';">Details ' + ANALYSE_ICON_CHEVRON + '</div>' +
+    '<div class="a-ov-kpis">' + kpis + '</div>' +
+    '<div class="a-ov-chart"><div class="a-ov-chart-label"><span>' + chartTitle + ' · ' + ANALYSE_WEEK_COUNT + ' Wochen</span><span>' + chartUnit + '</span></div>' +
+      chart + '<div class="a-axis-unit">Kalenderwoche</div></div>' +
   '</div>';
 }
 
 function renderAnalyseOverview() {
   const o = analyseOverview;
   if (!o) return '';
-  const { fuettern, windeln, schlafen } = o;
-  const n = fuettern.perDay.length;
-  const i = analyseSel && n ? Math.min(analyseSel.index, n - 1) : -1;
-  // Ein einzelner Tag ist exakt, alles andere ein Mittel — dieselbe Regel wie
-  // bei den Kennzahl-Kacheln der Detailseiten.
-  const single = i >= 0 && fuettern.perDay[i].daysElapsed === 1;
-  const pre = single ? '' : 'Ø ';
-  const perDay = single ? '' : ' / Tag';
-
-  const fb = i >= 0 ? fuettern.perDay[i] : null;
-  const fCount = fb ? (analysePerDay(fb, 'bottleCount') + analysePerDay(fb, 'breastCount')) : fuettern.avgPerDayExact;
-  const fMl = fb ? analysePerDay(fb, 'bottleMl') : fuettern.avgBottleMlExact;
-  const fMin = fb ? analysePerDay(fb, 'breastMin') : fuettern.avgBreastMinExact;
-  // Abgepumpt steht nur in der Zeile, wenn im Ausschnitt überhaupt abgepumpt
-  // wurde — sonst trüge die Übersicht eine Zahl, die niemanden betrifft.
-  const fPump = fb ? analysePerDay(fb, 'pumpMl') : fuettern.avgPumpMlExact;
-  // Eigene Zeile statt Mittelpunkt: Abgepumptes gehört nicht zu dem, was das
-  // Baby getrunken hat. flex-basis:100% erzwingt den Umbruch im Flex-Kasten.
-  const fPumpText = fuettern.totalPumpMl > 0
-    ? '<span style="flex-basis:100%;">' + analyseRound(fPump) + ' ml ' + pre + 'Abgepumpt</span>'
-    : '';
-
-  const wb = i >= 0 ? windeln.perDay[i] : null;
-  const wCount = wb ? analysePerDay(wb, 'total') : windeln.avgPerDayExact;
-  const wWarn = wb ? wb.warnCount : windeln.warnCount;
-  const wSecond = wb && single
-    ? wb.smallOnly + ' klein · ' + wb.both + ' beides · ' + wb.bigOnly + ' groß'
-    : (wb ? wb.total : windeln.perDay.reduce((s, d) => s + d.total, 0)) + ' Wechsel gesamt';
-
-  const sb = i >= 0 ? schlafen.perDay[i] : null;
-  const sNight = sb ? sb.nightMinutes / 60 : schlafen.avgNightHExact;
-  const sNap = sb ? analysePerDay(sb, 'napMinutes') / 60 : schlafen.avgNapHExact;
-  const sWake = sb ? (sb.wakeMin === null ? null : sb.wakeMin / 60) : schlafen.avgWakeExact;
+  const { fuettern: f, windeln: w, schlafen: s } = o;
+  const int = (v) => String(analyseRound(v));
+  const line = (part, color, strong, fmt) => svgOvWeekLine(part.line, o.weekLabels, o.currentWeek, color, strong, fmt, part.zoom);
+  const FU = { soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', fill: 'var(--fuettern-strong)' };
+  // Windeln: die Schrift im hellen Grund braucht den dunklen Ton, die Füllung
+  // unter weißer Schrift ist wie beim Speichern-Knopf die Grundfarbe.
+  const WI = { soft: 'var(--windeln-soft)', strong: 'var(--windeln-ink)', fill: 'var(--windeln)' };
+  const SL = { soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', fill: 'var(--schlafen-strong)' };
 
   return analyseOvCard('fuettern', 'Füttern',
       '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
-      { bar: 'var(--fuettern)', soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)' },
-      svgSparkline(fuettern.perDay, (d) => (analysePerDay(d, 'bottleCount') + analysePerDay(d, 'breastCount')), 'oklch(72% 0.11 250)', 'oklch(48% 0.13 250)', i),
-      pre + analyseCount(fCount, single), 'Fütterungen' + perDay,
-      analyseRound(fMl) + ' ml ' + pre + 'Trinkmenge · ' + analyseRound(fMin) + ' Min. ' + pre + 'Stillzeit' + fPumpText) +
+      FU, null,
+      analyseOvKpi(f.kpis[0], int, 'ml', 'Trinkmenge', true) +
+      analyseOvKpi(f.kpis[1], int, 'Min.', 'Stillen') +
+      analyseOvKpi(f.kpis[2], int, 'ml', 'Abgepumpt'),
+      'Trinkmenge', 'Ø ml / Tag', line(f, 'var(--fuettern)', 'var(--fuettern-strong)', int)) +
 
     analyseOvCard('windeln', 'Windeln',
       '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
-      { bar: 'var(--windeln)', soft: 'var(--windeln-soft)', strong: 'var(--windeln)' },
-      svgSparkline(windeln.perDay, (d) => analysePerDay(d, 'total'), '#8FD4D4', '#39ABAB', i),
-      pre + analyseCount(wCount, single), 'Wechsel' + perDay,
-      '<span>' + wSecond + '</span>' + (wWarn > 0
-        ? '<span style="display:inline-flex; align-items:center; gap:3px; color:var(--warn); font-weight:700;">' +
-          ANALYSE_OV_WARN_DOT + wWarn + '× auffällig</span>' : '')) +
+      WI, w.allTime === null ? null : '<b>' + w.allTime.toLocaleString('de-DE') + '</b> Windeln insgesamt',
+      analyseOvKpi(w.kpis[0], analyseDe1, '', 'Wechsel', true) +
+      analyseOvKpi(w.kpis[1], analyseDe1, '', 'Groß') +
+      analyseOvKpi(w.kpis[2], analyseDe1, '', 'Feucht'),
+      'Wechsel', 'Ø / Tag', line(w, 'var(--windeln)', 'var(--windeln-ink)', analyseDe1)) +
 
     analyseOvCard('schlafen', 'Schlafen',
       '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
-      { bar: 'var(--schlafen)', soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)' },
-      svgSparkline(schlafen.perDay, (d) => (d.nightMinutes + analysePerDay(d, 'napMinutes')) / 60, '#B7ADEB', '#4B3F9E', i),
-      pre + analyseHhmm(sNight + sNap), 'Std. Schlaf gesamt' + perDay,
-      analyseHhmm(sNight) + ' nachts · ' + (sWake === null ? '–' : analyseHhmm(sWake)) +
-        ' wach · ' + analyseHhmm(sNap) + ' tagsüber');
+      SL, null,
+      analyseOvKpi(s.kpis[0], analyseHhmm, 'Std.', 'Gesamt', true) +
+      analyseOvKpi(s.kpis[1], analyseHhmm, 'Std.', 'Nachts') +
+      analyseOvKpi(s.kpis[2], analyseHhmm, 'Std.', 'Nachts wach'),
+      'Schlaf gesamt', 'Ø Std. / Tag', line(s, 'var(--schlafen)', 'var(--schlafen-strong)', analyseHhmm));
 }
 
-// Neu gezeichnet wird nur, wenn die Übersicht auch zu sehen ist — beim Wischen
-// in einer Detailansicht wäre jede Fingerbewegung sonst drei überflüssige
-// innerHTML-Schreibvorgänge auf einer versteckten Ansicht.
+// „16.–22. Okt" — wie die Wochenzeile der Zoomstufe „Wochen".
+function analyseOvRangeText(from, to) {
+  if (!from || !to) return '';
+  let a = from.getDate() + '.';
+  if (from.getMonth() !== to.getMonth()) a += ' ' + ANALYSE_MONTH_SHORT[from.getMonth()];
+  return a + '–' + to.getDate() + '. ' + ANALYSE_MONTH_SHORT[to.getMonth()];
+}
+
 function updateAnalyseOverview() {
   const host = document.getElementById('analyse-view-overview');
-  if (host) host.innerHTML = renderAnalyseOverview();
+  if (host && analyseOverview) host.innerHTML = renderAnalyseOverview();
+  const range = document.getElementById('analyse-ov-range');
+  if (range) range.textContent = analyseOverview ? analyseOvRangeText(analyseOverview.rangeFrom, analyseOverview.rangeTo) : '';
+}
+
+// Rechnet die Übersicht nur neu, wenn sich ihre Grundlage geändert hat: der
+// Bestand, der Tag, der Beginn der Aufzeichnung oder das Nachtfenster. Ohne
+// lokalen Bestand wird direkt gelesen — dann höchstens alle 5 Minuten, damit
+// der Wechsel zwischen Übersicht und Bereich keine Abfragen kostet.
+// Laufen Übersicht und Nachladen gleichzeitig an (Rückkehr aus einem Bereich),
+// rechnet nur einer — der andere wartet auf dessen Ergebnis.
+let analyseOverviewLoading = null;
+function loadAnalyseOverview() {
+  if (!analyseOverviewLoading) {
+    analyseOverviewLoading = loadAnalyseOverviewNow().finally(() => { analyseOverviewLoading = null; });
+  }
+  return analyseOverviewLoading;
+}
+
+async function loadAnalyseOverviewNow() {
+  const store = await entryStoreLoaded();
+  const key = [store ? 'v' + entryStore.version : 'd' + Math.floor(Date.now() / 300000),
+    isoDate(todayStartDate()), analyseStartKey, nightWindowText()].join('|');
+  if (key === analyseOverviewKey && analyseOverview) { updateAnalyseOverview(); return; }
+  const weeks = buildAnalyseWeekBuckets(null).days;
+  const start = weeks.length ? new Date(weeks[0].weekStart) : todayStartDate();
+  const sleepSince = new Date(start);
+  sleepSince.setDate(sleepSince.getDate() - 1);
+  const [feedings, diapers, nights, naps] = await Promise.all([
+    getAnalyseRangeDocs('feedings', start),
+    getAnalyseRangeDocs('diaperChanges', start),
+    getAnalyseRangeDocs('nightWakeups', sleepSince),
+    getAnalyseRangeDocs('naps', sleepSince)
+  ]);
+  // Alle Windeln seit Beginn der Aufzeichnung — nur aus dem Bestand, eine
+  // Zählung direkt in Firestore wäre ein eigener Lesevorgang je Öffnen.
+  const diaperTotal = store && entryStore.docs.diaperChanges ? entryStore.docs.diaperChanges.size : null;
+  const sleeps = analyseSleepSpans(naps, nights, new Date());
+  analyseOverview = computeAnalyseOverview(feedings, diapers, sleeps, weeks, diaperTotal);
+  analyseOverviewKey = key;
+  updateAnalyseOverview();
 }
 
 // ===== Interaktive Diagramme ============================================
@@ -9553,7 +9791,12 @@ function showAnalyseView(view) {
   // im Rest der App nicht.
   screen.style.setProperty('--sec-deep', sec.deep);
 
-  if (view === 'overview') updateAnalyseOverview();
+  if (view === 'overview') {
+    loadAnalyseOverview().catch(() => {
+      if (analyseOverview) return; // die alte Übersicht bleibt stehen
+      document.getElementById('analyse-view-overview').innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Fehler beim Laden</div>';
+    });
+  }
   updateAnalyseContext();
   document.getElementById('analyse-body').scrollTop = 0;
   // Diagramme und Zusatzkarten vermessen sich beim Aufbau live — im
@@ -9739,7 +9982,7 @@ async function loadAnalyse() {
     // Ein bereits gebauter Bereich behält sein Gerüst und seine alten Werte,
     // bis die neuen da sind — ein "Lade…" würde ihn jedes Mal neu aufbauen
     // lassen und genau das Flackern erzeugen, das der Umbau beseitigt hat.
-    if (analyseBuilt[v]) return;
+    if (analyseBuilt[v] || (v === 'overview' && analyseOverview)) return;
     document.getElementById('analyse-view-' + v).innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">Lade…</div>';
   });
   try {
@@ -9776,12 +10019,13 @@ async function loadAnalyse() {
     const sleeps = analyseSleepSpans(naps, nights, new Date());
     const schlafen = computeSchlafenAnalysis(days, sleeps);
 
-    analyseOverview = { fuettern, windeln, schlafen };
-    updateAnalyseOverview();
     renderAnalyseSection('fuettern', fuettern);
     renderAnalyseSection('windeln', windeln);
     renderAnalyseSection('schlafen', schlafen);
     applyAnalysePendingScroll();
+    // Die Übersicht hat ihren eigenen, festen Zeitraum — gerechnet wird sie
+    // nur, wenn sie zu sehen ist (sonst beim Zurückkehren in showAnalyseView).
+    if (analyseView === 'overview') await loadAnalyseOverview();
 
   } catch (error) {
     ANALYSE_VIEWS.forEach((v) => {

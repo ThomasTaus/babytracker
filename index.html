@@ -361,10 +361,8 @@
   #screen-analyse .a-ov-context { display: none; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text-muted); margin-top: 14px; min-height: 26px; }
   #screen-analyse:not(.a-detail) .a-ov-context { display: flex; }
   #screen-analyse .a-ov-context small { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-  #screen-analyse .a-ov-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; cursor: pointer; transition: box-shadow .15s ease, transform .15s ease; }
+  #screen-analyse .a-ov-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
   #screen-analyse .a-ov-card:last-child { margin-bottom: 0; }
-  #screen-analyse .a-ov-card:hover { box-shadow: 0 4px 16px oklch(0% 0 0 / 0.08); transform: translateY(-1px); }
-  #screen-analyse .a-ov-card:active { transform: translateY(0); box-shadow: none; }
   #screen-analyse .a-ov-top { display: flex; align-items: center; justify-content: space-between; }
   #screen-analyse .a-ov-id { display: flex; align-items: center; gap: 10px; }
   #screen-analyse .a-ov-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--ov-soft); color: var(--ov-strong); }
@@ -372,16 +370,22 @@
   #screen-analyse .a-ov-name { font-weight: 700; font-size: 14px; }
   #screen-analyse .a-ov-sub { font-size: 11.5px; font-weight: 500; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   #screen-analyse .a-ov-sub b { font-weight: 700; color: var(--ov-strong); }
-  #screen-analyse .a-ov-details { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; color: var(--ov-strong); }
+  /* Der einzige Weg in den Bereich. Negativer Rand: die Tippfläche wächst,
+     die Schrift bleibt bündig. */
+  #screen-analyse .a-ov-details { display: inline-flex; align-items: center; gap: 3px; margin: -8px -8px -8px 0; padding: 8px; border: none; border-radius: 10px; background: none; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ov-strong); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #screen-analyse .a-ov-details:active { background: var(--ov-soft); }
   /* Drei Kennzahlen, alle gleich hoch. Oben und unten 16 px Luft, damit die
      Etiketten „steigt“ (Oberkante) und „sinkt“ (Unterkante) nicht am Text
      kleben; die Reihe hält dafür 8 px Abstand zur Umgebung. */
   #screen-analyse .a-ov-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-block: 8px; }
-  #screen-analyse .a-ov-kpi { position: relative; min-width: 0; background: var(--surface-alt); border-radius: 14px; padding: 16px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; }
-  #screen-analyse .a-ov-kpi.lead { background: var(--ov-soft); }
+  /* Die Kacheln sind zugleich die Auswahl der Linie: die gewählte trägt den
+     hellen Bereichston und die Zahl in der Bereichsfarbe. */
+  #screen-analyse .a-ov-kpi { position: relative; min-width: 0; border: none; font: inherit; color: var(--text); background: var(--surface-alt); border-radius: 14px; padding: 16px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .15s ease; }
+  #screen-analyse .a-ov-kpi.on { background: var(--ov-soft); }
   #screen-analyse .a-ov-kpi.sig { box-shadow: inset 0 0 0 1.5px var(--ov-fill); }
+  #screen-analyse .a-ov-kpi:focus-visible, #screen-analyse .a-ov-details:focus-visible { outline: 2px solid var(--ov-strong); outline-offset: 2px; }
   #screen-analyse .a-ov-num { font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  #screen-analyse .a-ov-kpi.lead .a-ov-num { color: var(--ov-strong); }
+  #screen-analyse .a-ov-kpi.on .a-ov-num { color: var(--ov-strong); }
   #screen-analyse .a-ov-num .u { font-family: 'Work Sans', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
   #screen-analyse .a-ov-cap { font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
   #screen-analyse .a-ov-tag { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px 2px 6px; border-radius: 999px; background: var(--ov-fill); color: white; font-size: 10px; font-weight: 700; line-height: 1.3; white-space: nowrap; }
@@ -1662,7 +1666,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 3;
+const APP_RELEASE = 4;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -7696,6 +7700,11 @@ function computeAnalyseOverview(feedings, diapers, sleeps, weeks, diaperTotal) {
   // gesicherten Trend hat — sonst sähe normales Hin und Her wie ein Ausschlag aus.
   const longTrend = (key) => analyseTrendDirection(series[key]) !== 0;
 
+  // Je Kachel ihr Tageswert, ihr Trend und ihre Wochenlinie — die Linie
+  // zeigt immer die gewählte Kachel.
+  const metric = (v, key, list, fn) => ({ v, t: trend(key), line: weekly(list, fn), zoom: longTrend(key) });
+  const weekNight = (b) => (b.hasNight ? b.nightMinutes / 60 : null);
+
   const recent = days.slice(-ANALYSE_OV_KPI_DAYS);
   return {
     rangeFrom: recent.length ? recent[0].dayStart : null,
@@ -7703,32 +7712,26 @@ function computeAnalyseOverview(feedings, diapers, sleeps, weeks, diaperTotal) {
     weekLabels: weeks.map((b) => (b.isToday ? analyseAxisWeekNow() : b.label)),
     currentWeek: weeks.length > 0 && weeks[weeks.length - 1].isToday,
     fuettern: {
-      kpis: [
-        { v: kpi('ml'), t: trend('ml') },
-        { v: kpi('breast'), t: trend('breast') },
-        { v: kpi('pump'), t: trend('pump') }
-      ],
-      line: weekly(fW, (b) => analysePerDay(b, 'bottleMl')),
-      zoom: longTrend('ml')
+      metrics: [
+        metric(kpi('ml'), 'ml', fW, (b) => analysePerDay(b, 'bottleMl')),
+        metric(kpi('breast'), 'breast', fW, (b) => analysePerDay(b, 'breastMin')),
+        metric(kpi('pump'), 'pump', fW, (b) => analysePerDay(b, 'pumpMl'))
+      ]
     },
     windeln: {
-      kpis: [
-        { v: kpi('total'), t: trend('total') },
-        { v: kpi('big'), t: trend('big') },
-        { v: kpi('small'), t: trend('small') }
+      metrics: [
+        metric(kpi('total'), 'total', wW, (b) => analysePerDay(b, 'total')),
+        metric(kpi('big'), 'big', wW, (b) => analysePerDay(b, 'big')),
+        metric(kpi('small'), 'small', wW, (b) => analysePerDay(b, 'small'))
       ],
-      line: weekly(wW, (b) => analysePerDay(b, 'total')),
-      zoom: longTrend('total'),
       allTime: diaperTotal
     },
     schlafen: {
-      kpis: [
-        { v: sleepAvg, t: trend('sleep') },
-        { v: nightAvg, t: trend('night') },
-        { v: kpi('wake'), t: trend('wake') }
-      ],
-      line: weekly(sW, (b) => (b.hasNight ? b.nightMinutes / 60 + analysePerDay(b, 'napMinutes') / 60 : null)),
-      zoom: longTrend('sleep')
+      metrics: [
+        metric(sleepAvg, 'sleep', sW, (b) => (b.hasNight ? weekNight(b) + analysePerDay(b, 'napMinutes') / 60 : null)),
+        metric(nightAvg, 'night', sW, weekNight),
+        metric(kpi('wake'), 'wake', sW, (b) => (b.wakeMin === null ? null : b.wakeMin / 60))
+      ]
     }
   };
 }
@@ -7739,16 +7742,17 @@ function analyseAxisWeekNow() { return ANALYSE_ZOOM_UI.weeks.axisToday; }
 const ANALYSE_OV_UP = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>';
 const ANALYSE_OV_DOWN = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>';
 
-// Eine Kennzahl-Kachel. Ein gesicherter Trend rahmt sie in der Füllfarbe des
-// Bereichs und setzt ein Etikett auf die Kante — „steigt" oben, „sinkt" unten,
-// die Lage zeigt die Richtung mit. Bewusst ohne Betrag: der widerspräche dem
-// Wochenschnitt der Linie darunter.
-function analyseOvKpi(k, fmt, unit, cap, lead) {
+// Eine Kennzahl-Kachel, zugleich der Schalter für die Linie darunter: die
+// gewählte trägt den hellen Bereichston. Ein gesicherter Trend rahmt sie in
+// der Füllfarbe des Bereichs und setzt ein Etikett auf die Kante — „steigt"
+// oben, „sinkt" unten, die Lage zeigt die Richtung mit. Bewusst ohne Betrag:
+// der widerspräche dem Wochenschnitt der Linie darunter.
+function analyseOvKpi(k, def, index, on) {
   const tag = k.t > 0 ? '<span class="a-ov-tag">' + ANALYSE_OV_UP + 'steigt</span>'
     : k.t < 0 ? '<span class="a-ov-tag down">' + ANALYSE_OV_DOWN + 'sinkt</span>' : '';
-  const num = k.v === null ? '–' : fmt(k.v) + '<span class="u">' + unit + '</span>';
-  return '<div class="a-ov-kpi' + (lead ? ' lead' : '') + (k.t ? ' sig' : '') + '">' + tag +
-    '<div class="a-ov-num">' + num + '</div><div class="a-ov-cap">' + cap + '</div></div>';
+  const num = k.v === null ? '–' : def.fmt(k.v) + (def.unit ? '<span class="u">' + def.unit + '</span>' : '');
+  return '<button type="button" class="a-ov-kpi' + (on ? ' on' : '') + (k.t ? ' sig' : '') + '" data-ov-kpi="' + index + '" aria-pressed="' + on + '">' + tag +
+    '<span class="a-ov-num">' + num + '</span><span class="a-ov-cap">' + def.cap + '</span></button>';
 }
 
 // Wochenschnitte als Linie, die laufende Woche als hohler Punkt, gestrichelt
@@ -7795,54 +7799,72 @@ function svgOvWeekLine(vals, labels, current, color, strong, fmt, zoom) {
   return '<svg viewBox="0 0 ' + W + ' 80">' + svg + '</svg>';
 }
 
-function analyseOvCard(target, name, iconPath, c, sub, kpis, chartTitle, chartUnit, chart) {
-  return '<div class="a-ov-card" data-target="' + target + '" style="--ov-soft:' + c.soft + '; --ov-strong:' + c.strong + '; --ov-fill:' + c.fill + ';">' +
+// Welche Kachel je Bereich die Linie bestimmt. Bleibt stehen, solange die App
+// läuft — auch über neue Daten und den Abstecher in einen Bereich hinweg.
+const analyseOvSel = { fuettern: 0, windeln: 0, schlafen: 0 };
+
+const analyseOvInt = (v) => String(analyseRound(v));
+// Je Bereich Aussehen und die drei Kennzahlen: Bezeichnung der Kachel,
+// Einheit, Zahlformat, Titel und Einheit der Linie.
+const ANALYSE_OV_DEFS = {
+  fuettern: {
+    name: 'Füttern',
+    icon: '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
+    c: { soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', fill: 'var(--fuettern-strong)', line: 'var(--fuettern)' },
+    metrics: [
+      { cap: 'Trinkmenge', unit: 'ml', fmt: analyseOvInt, title: 'Trinkmenge', per: 'Ø ml / Tag' },
+      { cap: 'Stillen', unit: 'Min.', fmt: analyseOvInt, title: 'Stillen', per: 'Ø Min. / Tag' },
+      { cap: 'Abgepumpt', unit: 'ml', fmt: analyseOvInt, title: 'Abgepumpt', per: 'Ø ml / Tag' }
+    ]
+  },
+  windeln: {
+    name: 'Windeln',
+    icon: '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
+    // Die Schrift im hellen Grund braucht den dunklen Ton, die Füllung unter
+    // weißer Schrift ist wie beim Speichern-Knopf die Grundfarbe.
+    c: { soft: 'var(--windeln-soft)', strong: 'var(--windeln-ink)', fill: 'var(--windeln)', line: 'var(--windeln)' },
+    metrics: [
+      { cap: 'Wechsel', unit: '', fmt: analyseDe1, title: 'Wechsel', per: 'Ø / Tag' },
+      { cap: 'Groß', unit: '', fmt: analyseDe1, title: 'Große', per: 'Ø / Tag' },
+      { cap: 'Feucht', unit: '', fmt: analyseDe1, title: 'Feuchte', per: 'Ø / Tag' }
+    ]
+  },
+  schlafen: {
+    name: 'Schlafen',
+    icon: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
+    c: { soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', fill: 'var(--schlafen-strong)', line: 'var(--schlafen)' },
+    metrics: [
+      { cap: 'Gesamt', unit: 'Std.', fmt: analyseHhmm, title: 'Schlaf gesamt', per: 'Ø Std. / Tag' },
+      { cap: 'Nachts', unit: 'Std.', fmt: analyseHhmm, title: 'Nachtschlaf', per: 'Ø Std. / Nacht' },
+      { cap: 'Nachts wach', unit: 'Std.', fmt: analyseHhmm, title: 'Nachts wach', per: 'Ø Std. / Nacht' }
+    ]
+  }
+};
+
+// Nur „Details" führt in den Bereich; ein Tipp auf eine Kachel wählt die Linie.
+function analyseOvCard(target, o) {
+  const def = ANALYSE_OV_DEFS[target], part = o[target], c = def.c;
+  const sel = Math.min(analyseOvSel[target], part.metrics.length - 1);
+  const m = part.metrics[sel], md = def.metrics[sel];
+  const sub = target === 'windeln' && part.allTime !== null && part.allTime !== undefined
+    ? '<span class="a-ov-sub"><b>' + part.allTime.toLocaleString('de-DE') + '</b> Windeln insgesamt</span>' : '';
+  return '<div class="a-ov-card" data-ov="' + target + '" style="--ov-soft:' + c.soft + '; --ov-strong:' + c.strong + '; --ov-fill:' + c.fill + ';">' +
     '<div class="a-ov-top"><div class="a-ov-id">' +
-      '<div class="a-ov-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + iconPath + '</svg></div>' +
-      '<div class="a-ov-name-wrap"><span class="a-ov-name">' + name + '</span>' + (sub ? '<span class="a-ov-sub">' + sub + '</span>' : '') + '</div></div>' +
-      '<span class="a-ov-details">Details ' + ANALYSE_ICON_CHEVRON + '</span>' +
+      '<div class="a-ov-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + def.icon + '</svg></div>' +
+      '<div class="a-ov-name-wrap"><span class="a-ov-name">' + def.name + '</span>' + sub + '</div></div>' +
+      '<button type="button" class="a-ov-details" data-target="' + target + '">Details ' + ANALYSE_ICON_CHEVRON + '</button>' +
     '</div>' +
-    '<div class="a-ov-kpis">' + kpis + '</div>' +
-    '<div class="a-ov-chart"><div class="a-ov-chart-label"><span>' + chartTitle + ' · ' + ANALYSE_WEEK_COUNT + ' Wochen</span><span>' + chartUnit + '</span></div>' +
-      chart + '<div class="a-axis-unit">Kalenderwoche</div></div>' +
+    '<div class="a-ov-kpis">' + part.metrics.map((k, i) => analyseOvKpi(k, def.metrics[i], i, i === sel)).join('') + '</div>' +
+    '<div class="a-ov-chart"><div class="a-ov-chart-label"><span>' + md.title + ' · ' + ANALYSE_WEEK_COUNT + ' Wochen</span><span>' + md.per + '</span></div>' +
+      svgOvWeekLine(m.line, o.weekLabels, o.currentWeek, c.line, c.strong, md.fmt, m.zoom) +
+      '<div class="a-axis-unit">Kalenderwoche</div></div>' +
   '</div>';
 }
 
 function renderAnalyseOverview() {
   const o = analyseOverview;
   if (!o) return '';
-  const { fuettern: f, windeln: w, schlafen: s } = o;
-  const int = (v) => String(analyseRound(v));
-  const line = (part, color, strong, fmt) => svgOvWeekLine(part.line, o.weekLabels, o.currentWeek, color, strong, fmt, part.zoom);
-  const FU = { soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', fill: 'var(--fuettern-strong)' };
-  // Windeln: die Schrift im hellen Grund braucht den dunklen Ton, die Füllung
-  // unter weißer Schrift ist wie beim Speichern-Knopf die Grundfarbe.
-  const WI = { soft: 'var(--windeln-soft)', strong: 'var(--windeln-ink)', fill: 'var(--windeln)' };
-  const SL = { soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', fill: 'var(--schlafen-strong)' };
-
-  return analyseOvCard('fuettern', 'Füttern',
-      '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
-      FU, null,
-      analyseOvKpi(f.kpis[0], int, 'ml', 'Trinkmenge', true) +
-      analyseOvKpi(f.kpis[1], int, 'Min.', 'Stillen') +
-      analyseOvKpi(f.kpis[2], int, 'ml', 'Abgepumpt'),
-      'Trinkmenge', 'Ø ml / Tag', line(f, 'var(--fuettern)', 'var(--fuettern-strong)', int)) +
-
-    analyseOvCard('windeln', 'Windeln',
-      '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
-      WI, w.allTime === null ? null : '<b>' + w.allTime.toLocaleString('de-DE') + '</b> Windeln insgesamt',
-      analyseOvKpi(w.kpis[0], analyseDe1, '', 'Wechsel', true) +
-      analyseOvKpi(w.kpis[1], analyseDe1, '', 'Groß') +
-      analyseOvKpi(w.kpis[2], analyseDe1, '', 'Feucht'),
-      'Wechsel', 'Ø / Tag', line(w, 'var(--windeln)', 'var(--windeln-ink)', analyseDe1)) +
-
-    analyseOvCard('schlafen', 'Schlafen',
-      '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
-      SL, null,
-      analyseOvKpi(s.kpis[0], analyseHhmm, 'Std.', 'Gesamt', true) +
-      analyseOvKpi(s.kpis[1], analyseHhmm, 'Std.', 'Nachts') +
-      analyseOvKpi(s.kpis[2], analyseHhmm, 'Std.', 'Nachts wach'),
-      'Schlaf gesamt', 'Ø Std. / Tag', line(s, 'var(--schlafen)', 'var(--schlafen-strong)', analyseHhmm));
+  return ['fuettern', 'windeln', 'schlafen'].map((t) => analyseOvCard(t, o)).join('');
 }
 
 // „16.–22. Okt" — wie die Wochenzeile der Zoomstufe „Wochen".
@@ -9668,9 +9690,18 @@ function analyseTimeSelNear(view, chartId, clientX) {
 
   host.addEventListener('click', (e) => {
     // Übersichtskarten hängen an der Delegation, nicht an eigenen Listenern —
-    // sie werden bei jeder Änderung der Markierung neu gezeichnet.
-    const card = e.target.closest && e.target.closest('.a-ov-card');
-    if (card) { showAnalyseView(card.dataset.target); return; }
+    // sie werden bei neuen Daten neu gezeichnet. In den Bereich führt nur
+    // „Details"; eine Kachel wählt, welche Kennzahl die Linie zeigt.
+    const details = e.target.closest && e.target.closest('.a-ov-details');
+    if (details) { showAnalyseView(details.dataset.target); return; }
+    const kpiBtn = e.target.closest && e.target.closest('.a-ov-kpi');
+    if (kpiBtn) {
+      const target = kpiBtn.closest('.a-ov-card').dataset.ov;
+      analyseOvSel[target] = Number(kpiBtn.dataset.ovKpi);
+      updateAnalyseOverview();
+      return;
+    }
+    if (e.target.closest && e.target.closest('.a-ov-card')) return;
 
     // Farbfilter der Verteilungskarte: er steuert auch das Diagramm darüber.
     const clg = e.target.closest && e.target.closest('.clg');

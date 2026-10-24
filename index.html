@@ -378,21 +378,18 @@
      Etiketten „steigt“ (Oberkante) und „sinkt“ (Unterkante) nicht am Text
      kleben; die Reihe hält dafür 8 px Abstand zur Umgebung. */
   #screen-analyse .a-ov-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-block: 8px; }
-  /* Die Kacheln sind zugleich die Auswahl der Linie: die gewählte trägt den
-     hellen Bereichston und die Zahl in der Bereichsfarbe. */
-  #screen-analyse .a-ov-kpi { position: relative; min-width: 0; border: none; font: inherit; color: var(--text); background: var(--surface-alt); border-radius: 14px; padding: 16px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .15s ease; }
-  #screen-analyse .a-ov-kpi.on { background: var(--ov-soft); }
+  /* Alle Kacheln im hellen Bereichston, die Zahl in der Bereichsfarbe. Jede
+     führt zu ihrem Diagramm im Bereich. */
+  #screen-analyse .a-ov-kpi { position: relative; min-width: 0; border: none; font: inherit; color: var(--text); background: var(--ov-soft); border-radius: 14px; padding: 16px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: filter .15s ease; }
+  #screen-analyse .a-ov-kpi:active { filter: brightness(0.96); }
   #screen-analyse .a-ov-kpi.sig { box-shadow: inset 0 0 0 1.5px var(--ov-fill); }
   #screen-analyse .a-ov-kpi:focus-visible, #screen-analyse .a-ov-details:focus-visible { outline: 2px solid var(--ov-strong); outline-offset: 2px; }
   #screen-analyse .a-ov-num { font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  #screen-analyse .a-ov-kpi.on .a-ov-num { color: var(--ov-strong); }
+  #screen-analyse .a-ov-num { color: var(--ov-strong); }
   #screen-analyse .a-ov-num .u { font-family: 'Work Sans', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
   #screen-analyse .a-ov-cap { font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
   #screen-analyse .a-ov-tag { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px 2px 6px; border-radius: 999px; background: var(--ov-fill); color: white; font-size: 10px; font-weight: 700; line-height: 1.3; white-space: nowrap; }
   #screen-analyse .a-ov-tag.down { top: auto; bottom: -8px; }
-  #screen-analyse .a-ov-chart-label { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; }
-  #screen-analyse .a-ov-chart-label span:last-child { text-transform: none; letter-spacing: 0; font-weight: 600; }
-  #screen-analyse .a-ov-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 
   /* --- Interaktive Diagramme (Schlafen) --------------------------------- */
   /* Kontextzeile direkt unter den Einheiten-Chips: sagt, welcher Ausschnitt
@@ -1666,7 +1663,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 4;
+const APP_RELEASE = 5;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -7578,11 +7575,11 @@ const ANALYSE_ICON_STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill=
 const ANALYSE_ICON_CHEVRON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 
 // ===== Übersicht ========================================================
-// Ein fester Zeitraum statt der Zoomstufen: die Kennzahlen sind der Tagesschnitt
-// der letzten 7 abgeschlossenen Tage, die Linie der Wochenschnitt der letzten 8
-// Kalenderwochen. Die Übersicht hängt damit weder an der gewählten Stufe noch
-// an einem markierten Tag — sie beantwortet nur „wo stehen wir, wohin geht es".
-const ANALYSE_OV_KPI_DAYS = 7;
+// Ein fester Zeitraum statt der Zoomstufen: dieselben letzten 7 Tage wie die
+// Zoomstufe „Tage" der Bereiche, gerechnet mit denselben Funktionen — die
+// Zahlen einer Kachel und die Ø-Zahl ihres Diagramms im Bereich stimmen damit
+// überein (Tagesschnitte über die abgeschlossenen Tage, Nächte einschließlich
+// der von heute früh). Dazu je Kennzahl ein Trendtest über 14 Tage.
 const ANALYSE_OV_TEST_DAYS = 14;
 // Trendtest: Mann-Kendall, zweiseitig, α = 0,05 je Kennzahl. Darunter zu
 // wenige Tage für die Normalnäherung — dann gibt es schlicht kein Etikett.
@@ -7636,185 +7633,81 @@ function analyseTrendDirection(series) {
   return Math.sign(s);
 }
 
-// Je ein Tages-Bucket vom ersten Tag bis gestern — gleich gebaut wie die der
-// Zoomstufe „Tage", nur über einen längeren Zeitraum und ohne heute.
-function buildAnalyseDaysUntilYesterday(first) {
-  const end = todayStartDate();
-  end.setDate(end.getDate() - 1);
+// Je ein Tages-Bucket für die letzten `count` Tage bis gestern — gleich gebaut
+// wie die der Zoomstufe „Tage", nur ohne heute. Grundlage der Trendtests.
+function buildAnalyseDaysUntilYesterday(count) {
+  const first = todayStartDate();
+  first.setDate(first.getDate() - count);
   const days = [];
-  for (let d = new Date(first); d <= end; d.setDate(d.getDate() + 1)) {
+  for (let i = 0; i < count; i++) {
+    const d = new Date(first);
+    d.setDate(d.getDate() + i);
     const k = isoDate(d);
     days.push({
       dayKeys: [k], label: '', fullLabel: '', contextLabel: '',
-      dayStart: new Date(d), isToday: false, daysElapsed: 1,
+      dayStart: d, isToday: false, daysElapsed: 1,
       daysCounted: analyseCountedDays([k]), daysComplete: analyseCompleteDays([k])
     });
   }
   return days;
 }
 
-function analyseOvMean(list) {
-  const v = list.filter((x) => x !== null && Number.isFinite(x));
-  return v.length ? analyseAvg(v) : null;
-}
+// Kennzahlen aus genau den Feldern, die auch die Bereiche anzeigen; Trends aus
+// den Tageswerten der letzten 14 abgeschlossenen Tage, nach denselben Regeln
+// (analysePerDay, Nacht nur mit Einträgen).
+function computeAnalyseOverview(feedings, diapers, sleeps, diaperTotal) {
+  const now = new Date();
+  const { days: week } = buildAnalyseDayBuckets(null);
+  const f = computeFuetternAnalysis(week, analyseBucketByDay(fuetternWithRunning(feedings, now), week));
+  const w = computeWindelnAnalysis(week, analyseBucketByDay(diapers, week));
+  const s = computeSchlafenAnalysis(week, sleeps);
 
-// Kennzahlen, Trends und Wochenlinie aus denselben Regeln wie die Bereiche:
-// ein Tag zählt nur abgeschlossen und ab Beginn der Aufzeichnung, Schlaf in der
-// Nacht nur mit Einträgen (analysePerDay, hasNight, wakeMin).
-function computeAnalyseOverview(feedings, diapers, sleeps, weeks, diaperTotal) {
-  const days = buildAnalyseDaysUntilYesterday(weeks.length ? weeks[0].weekStart : todayStartDate());
+  const days = buildAnalyseDaysUntilYesterday(ANALYSE_OV_TEST_DAYS);
   const fD = computeFuetternAnalysis(days, analyseBucketByDay(feedings, days)).perDay;
   const wD = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days)).perDay;
   const sD = computeSchlafenAnalysis(days, sleeps).perDay;
-  const fW = computeFuetternAnalysis(weeks, analyseBucketByDay(feedings, weeks)).perDay;
-  const wW = computeWindelnAnalysis(weeks, analyseBucketByDay(diapers, weeks)).perDay;
-  const sW = computeSchlafenAnalysis(weeks, sleeps).perDay;
-
   const done = (b) => b.daysComplete === 1;
-  const daily = (list, fn) => list.map((b) => (done(b) ? fn(b) : null));
-  const night = (b) => (b.hasNight ? b.nightMinutes / 60 : null);
-  const series = {
-    ml: daily(fD, (b) => analysePerDay(b, 'bottleMl')),
-    breast: daily(fD, (b) => analysePerDay(b, 'breastMin')),
-    pump: daily(fD, (b) => analysePerDay(b, 'pumpMl')),
-    total: daily(wD, (b) => analysePerDay(b, 'total')),
-    big: daily(wD, (b) => analysePerDay(b, 'big')),
-    small: daily(wD, (b) => analysePerDay(b, 'small')),
-    nap: daily(sD, (b) => analysePerDay(b, 'napMinutes') / 60),
-    night: daily(sD, night),
-    sleep: daily(sD, (b) => (b.hasNight ? b.nightMinutes / 60 + analysePerDay(b, 'napMinutes') / 60 : null)),
-    wake: daily(sD, (b) => (b.wakeMin === null ? null : b.wakeMin / 60))
-  };
-  const kpi = (key) => analyseOvMean(series[key].slice(-ANALYSE_OV_KPI_DAYS));
-  const trend = (key) => analyseTrendDirection(series[key].slice(-ANALYSE_OV_TEST_DAYS));
-  // Gesamtschlaf wie im Bereich: Ø Nacht über die Nächte mit Einträgen plus
-  // Ø Tagschlaf über die abgeschlossenen Tage.
-  const nightAvg = kpi('night'), napAvg = kpi('nap');
-  const sleepAvg = nightAvg === null && napAvg === null ? null : (nightAvg || 0) + (napAvg || 0);
+  const trend = (list, fn) => analyseTrendDirection(list.map((b) => (done(b) ? fn(b) : null)));
+  const nap = (b) => analysePerDay(b, 'napMinutes') / 60;
 
-  // Wochenpunkte: Ø der abgeschlossenen Tage der Woche. Wochen vor Beginn der
-  // Aufzeichnung und die laufende Woche ohne abgeschlossenen Tag (montags)
-  // haben keinen Punkt.
-  const weekly = (list, fn) => list.map((b) => (b.daysComplete > 0 ? fn(b) : null));
-  // Die Skala zoomt nur auf, wenn der Verlauf über die ganzen 8 Wochen einen
-  // gesicherten Trend hat — sonst sähe normales Hin und Her wie ein Ausschlag aus.
-  const longTrend = (key) => analyseTrendDirection(series[key]) !== 0;
-
-  // Je Kachel ihr Tageswert, ihr Trend und ihre Wochenlinie — die Linie
-  // zeigt immer die gewählte Kachel.
-  const metric = (v, key, list, fn) => ({ v, t: trend(key), line: weekly(list, fn), zoom: longTrend(key) });
-  const weekNight = (b) => (b.hasNight ? b.nightMinutes / 60 : null);
-
-  const recent = days.slice(-ANALYSE_OV_KPI_DAYS);
   return {
-    rangeFrom: recent.length ? recent[0].dayStart : null,
-    rangeTo: recent.length ? recent[recent.length - 1].dayStart : null,
-    weekLabels: weeks.map((b) => (b.isToday ? analyseAxisWeekNow() : b.label)),
-    currentWeek: weeks.length > 0 && weeks[weeks.length - 1].isToday,
-    fuettern: {
-      metrics: [
-        metric(kpi('ml'), 'ml', fW, (b) => analysePerDay(b, 'bottleMl')),
-        metric(kpi('breast'), 'breast', fW, (b) => analysePerDay(b, 'breastMin')),
-        metric(kpi('pump'), 'pump', fW, (b) => analysePerDay(b, 'pumpMl'))
-      ]
-    },
-    windeln: {
-      metrics: [
-        metric(kpi('total'), 'total', wW, (b) => analysePerDay(b, 'total')),
-        metric(kpi('big'), 'big', wW, (b) => analysePerDay(b, 'big')),
-        metric(kpi('small'), 'small', wW, (b) => analysePerDay(b, 'small'))
-      ],
-      allTime: diaperTotal
-    },
-    schlafen: {
-      metrics: [
-        metric(sleepAvg, 'sleep', sW, (b) => (b.hasNight ? weekNight(b) + analysePerDay(b, 'napMinutes') / 60 : null)),
-        metric(nightAvg, 'night', sW, weekNight),
-        metric(kpi('wake'), 'wake', sW, (b) => (b.wakeMin === null ? null : b.wakeMin / 60))
-      ]
-    }
+    rangeFrom: week[0].dayStart,
+    rangeTo: week[week.length - 1].dayStart,
+    fuettern: [
+      { v: f.avgBottleMlExact, t: trend(fD, (b) => analysePerDay(b, 'bottleMl')) },
+      { v: f.avgBreastMinExact, t: trend(fD, (b) => analysePerDay(b, 'breastMin')) },
+      { v: f.avgPumpMlExact, t: trend(fD, (b) => analysePerDay(b, 'pumpMl')) }
+    ],
+    windeln: [
+      { v: w.avgPerDayExact, t: trend(wD, (b) => analysePerDay(b, 'total')) },
+      { v: w.avgBigExact, t: trend(wD, (b) => analysePerDay(b, 'big')) },
+      { v: w.avgSmallExact, t: trend(wD, (b) => analysePerDay(b, 'small')) }
+    ],
+    windelnAllTime: diaperTotal,
+    schlafen: [
+      { v: s.avgNightHExact + s.avgNapHExact, t: trend(sD, (b) => (b.hasNight ? b.nightMinutes / 60 + nap(b) : null)) },
+      { v: s.avgNightHExact, t: trend(sD, (b) => (b.hasNight ? b.nightMinutes / 60 : null)) },
+      { v: s.avgWakeExact, t: trend(sD, (b) => (b.wakeMin === null ? null : b.wakeMin / 60)) }
+    ]
   };
 }
-
-// Die laufende Woche heißt an der Achse wie in der Zoomstufe „Wochen".
-function analyseAxisWeekNow() { return ANALYSE_ZOOM_UI.weeks.axisToday; }
 
 const ANALYSE_OV_UP = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>';
 const ANALYSE_OV_DOWN = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>';
 
-// Eine Kennzahl-Kachel, zugleich der Schalter für die Linie darunter: die
-// gewählte trägt den hellen Bereichston. Ein gesicherter Trend rahmt sie in
-// der Füllfarbe des Bereichs und setzt ein Etikett auf die Kante — „steigt"
-// oben, „sinkt" unten, die Lage zeigt die Richtung mit. Bewusst ohne Betrag:
-// der widerspräche dem Wochenschnitt der Linie darunter.
-function analyseOvKpi(k, def, index, on) {
-  const tag = k.t > 0 ? '<span class="a-ov-tag">' + ANALYSE_OV_UP + 'steigt</span>'
-    : k.t < 0 ? '<span class="a-ov-tag down">' + ANALYSE_OV_DOWN + 'sinkt</span>' : '';
-  const num = k.v === null ? '–' : def.fmt(k.v) + (def.unit ? '<span class="u">' + def.unit + '</span>' : '');
-  return '<button type="button" class="a-ov-kpi' + (on ? ' on' : '') + (k.t ? ' sig' : '') + '" data-ov-kpi="' + index + '" aria-pressed="' + on + '">' + tag +
-    '<span class="a-ov-num">' + num + '</span><span class="a-ov-cap">' + def.cap + '</span></button>';
-}
-
-// Wochenschnitte als Linie, die laufende Woche als hohler Punkt, gestrichelt
-// angebunden. Erster und letzter Wert stehen als Zahl daran, damit die
-// Größenordnung ablesbar bleibt, obwohl die Skala nicht bei 0 beginnt. Ohne
-// gesicherten Trend umfasst sie mindestens ±15 % um den Mittelwert.
-function svgOvWeekLine(vals, labels, current, color, strong, fmt, zoom) {
-  const W = 300, top = 18, base = 56, padX = 18, n = vals.length;
-  const x = (i) => (n < 2 ? W / 2 : padX + i * (W - 2 * padX) / (n - 1));
-  const txt = (tx, ty, s, bold) => '<text x="' + tx + '" y="' + ty + '" text-anchor="middle" font-size="' + (ty > base ? 10 : 10.5) +
-    '" font-weight="' + (bold ? 700 : 600) + '" fill="' + (bold ? 'var(--text)' : 'var(--text-muted)') + '" font-family="Work Sans, sans-serif">' + s + '</text>';
-  let svg = '<line x1="0" x2="' + W + '" y1="' + (base + 6) + '" y2="' + (base + 6) + '" stroke="var(--border)" stroke-width="1"/>';
-  labels.forEach((l, i) => { svg += txt(x(i), base + 20, l, i === n - 1); });
-  const idx = vals.map((v, i) => i).filter((i) => vals[i] !== null && Number.isFinite(vals[i]));
-  if (!idx.length) return '<svg viewBox="0 0 ' + W + ' 80">' + svg + '</svg>';
-  const got = idx.map((i) => vals[i]);
-  let lo = Math.min(...got), hi = Math.max(...got);
-  if (!zoom) {
-    const m = analyseAvg(got);
-    lo = Math.min(lo, m * 0.85);
-    hi = Math.max(hi, m * 1.15);
-  }
-  const span = (hi - lo) || 1;
-  const y = (v) => base - ((v - lo) / span) * (base - top);
-  const live = current && idx[idx.length - 1] === n - 1 ? n - 1 : -1;
-  const solid = idx.filter((i) => i !== live);
-  if (solid.length) {
-    const pts = solid.map((i) => x(i) + ',' + y(vals[i]));
-    svg += '<polygon points="' + x(solid[0]) + ',' + (base + 6) + ' ' + pts.join(' ') + ' ' + x(solid[solid.length - 1]) + ',' + (base + 6) + '" fill="' + color + '" fill-opacity="0.18"/>';
-    svg += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
-    if (live >= 0) {
-      const p = solid[solid.length - 1];
-      svg += '<line x1="' + x(p) + '" y1="' + y(vals[p]) + '" x2="' + x(live) + '" y2="' + y(vals[live]) + '" stroke="' + color + '" stroke-width="2" stroke-dasharray="3 3"/>';
-    }
-  }
-  idx.forEach((i) => {
-    svg += i === live
-      ? '<circle cx="' + x(i) + '" cy="' + y(vals[i]) + '" r="4.2" fill="var(--surface)" stroke="' + strong + '" stroke-width="2"/>'
-      : '<circle cx="' + x(i) + '" cy="' + y(vals[i]) + '" r="2.6" fill="' + color + '" stroke="var(--surface)" stroke-width="1"/>';
-  });
-  const first = idx[0], last = idx[idx.length - 1];
-  svg += txt(x(last), y(vals[last]) - 9, fmt(vals[last]), true);
-  if (first !== last) svg += txt(x(first), y(vals[first]) - 9, fmt(vals[first]), false);
-  return '<svg viewBox="0 0 ' + W + ' 80">' + svg + '</svg>';
-}
-
-// Welche Kachel je Bereich die Linie bestimmt. Bleibt stehen, solange die App
-// läuft — auch über neue Daten und den Abstecher in einen Bereich hinweg.
-const analyseOvSel = { fuettern: 0, windeln: 0, schlafen: 0 };
-
 const analyseOvInt = (v) => String(analyseRound(v));
-// Je Bereich Aussehen und die drei Kennzahlen: Bezeichnung der Kachel,
-// Einheit, Zahlformat, Titel und Einheit der Linie.
+// Je Bereich Aussehen und die drei Kennzahlen: Bezeichnung, Einheit,
+// Zahlformat und das Diagramm im Bereich, zu dem die Kachel führt — samt
+// Legendenfilter, wenn die Kennzahl dort nur eine Reihe ist.
 const ANALYSE_OV_DEFS = {
   fuettern: {
     name: 'Füttern',
     icon: '<path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/>',
-    c: { soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', fill: 'var(--fuettern-strong)', line: 'var(--fuettern)' },
+    c: { soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', fill: 'var(--fuettern-strong)' },
     metrics: [
-      { cap: 'Trinkmenge', unit: 'ml', fmt: analyseOvInt, title: 'Trinkmenge', per: 'Ø ml / Tag' },
-      { cap: 'Stillen', unit: 'Min.', fmt: analyseOvInt, title: 'Stillen', per: 'Ø Min. / Tag' },
-      { cap: 'Abgepumpt', unit: 'ml', fmt: analyseOvInt, title: 'Abgepumpt', per: 'Ø ml / Tag' }
+      { cap: 'Trinkmenge', unit: 'ml', fmt: analyseOvInt, chart: 'fu-menge' },
+      { cap: 'Stillen', unit: 'Min.', fmt: analyseOvInt, chart: 'fu-still' },
+      { cap: 'Abgepumpt', unit: 'ml', fmt: analyseOvInt, chart: 'fu-pump' }
     ]
   },
   windeln: {
@@ -7822,42 +7715,48 @@ const ANALYSE_OV_DEFS = {
     icon: '<path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/>',
     // Die Schrift im hellen Grund braucht den dunklen Ton, die Füllung unter
     // weißer Schrift ist wie beim Speichern-Knopf die Grundfarbe.
-    c: { soft: 'var(--windeln-soft)', strong: 'var(--windeln-ink)', fill: 'var(--windeln)', line: 'var(--windeln)' },
+    c: { soft: 'var(--windeln-soft)', strong: 'var(--windeln-ink)', fill: 'var(--windeln)' },
     metrics: [
-      { cap: 'Wechsel', unit: '', fmt: analyseDe1, title: 'Wechsel', per: 'Ø / Tag' },
-      { cap: 'Groß', unit: '', fmt: analyseDe1, title: 'Große', per: 'Ø / Tag' },
-      { cap: 'Feucht', unit: '', fmt: analyseDe1, title: 'Feuchte', per: 'Ø / Tag' }
+      { cap: 'Wechsel', unit: '', fmt: analyseDe1, chart: 'wi-wechsel' },
+      { cap: 'Groß', unit: '', fmt: analyseDe1, chart: 'wi-wechsel', series: 'big' },
+      { cap: 'Feucht', unit: '', fmt: analyseDe1, chart: 'wi-wechsel', series: 'small' }
     ]
   },
   schlafen: {
     name: 'Schlafen',
     icon: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
-    c: { soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', fill: 'var(--schlafen-strong)', line: 'var(--schlafen)' },
+    c: { soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', fill: 'var(--schlafen-strong)' },
     metrics: [
-      { cap: 'Gesamt', unit: 'Std.', fmt: analyseHhmm, title: 'Schlaf gesamt', per: 'Ø Std. / Tag' },
-      { cap: 'Nachts', unit: 'Std.', fmt: analyseHhmm, title: 'Nachtschlaf', per: 'Ø Std. / Nacht' },
-      { cap: 'Nachts wach', unit: 'Std.', fmt: analyseHhmm, title: 'Nachts wach', per: 'Ø Std. / Nacht' }
+      { cap: 'Gesamt', unit: 'Std.', fmt: analyseHhmm, chart: 'schlaf-gesamt' },
+      { cap: 'Nachts', unit: 'Std.', fmt: analyseHhmm, chart: 'schlaf-gesamt', series: 'night' },
+      { cap: 'Nachts wach', unit: 'Std.', fmt: analyseHhmm, chart: 'schlaf-wach' }
     ]
   }
 };
 
-// Nur „Details" führt in den Bereich; ein Tipp auf eine Kachel wählt die Linie.
+// Eine Kennzahl-Kachel, zugleich der Sprung zu ihrem Diagramm im Bereich. Ein
+// gesicherter Trend rahmt sie in der Füllfarbe des Bereichs und setzt ein
+// Etikett auf die Kante — „steigt" oben, „sinkt" unten, die Lage zeigt die
+// Richtung mit. Bewusst ohne Betrag.
+function analyseOvKpi(k, def, index) {
+  const tag = k.t > 0 ? '<span class="a-ov-tag">' + ANALYSE_OV_UP + 'steigt</span>'
+    : k.t < 0 ? '<span class="a-ov-tag down">' + ANALYSE_OV_DOWN + 'sinkt</span>' : '';
+  const num = k.v === null ? '–' : def.fmt(k.v) + (def.unit ? '<span class="u">' + def.unit + '</span>' : '');
+  return '<button type="button" class="a-ov-kpi' + (k.t ? ' sig' : '') + '" data-ov-kpi="' + index + '">' + tag +
+    '<span class="a-ov-num">' + num + '</span><span class="a-ov-cap">' + def.cap + '</span></button>';
+}
+
 function analyseOvCard(target, o) {
-  const def = ANALYSE_OV_DEFS[target], part = o[target], c = def.c;
-  const sel = Math.min(analyseOvSel[target], part.metrics.length - 1);
-  const m = part.metrics[sel], md = def.metrics[sel];
-  const sub = target === 'windeln' && part.allTime !== null && part.allTime !== undefined
-    ? '<span class="a-ov-sub"><b>' + part.allTime.toLocaleString('de-DE') + '</b> Windeln insgesamt</span>' : '';
+  const def = ANALYSE_OV_DEFS[target], c = def.c;
+  const sub = target === 'windeln' && o.windelnAllTime !== null
+    ? '<span class="a-ov-sub"><b>' + o.windelnAllTime.toLocaleString('de-DE') + '</b> Windeln insgesamt</span>' : '';
   return '<div class="a-ov-card" data-ov="' + target + '" style="--ov-soft:' + c.soft + '; --ov-strong:' + c.strong + '; --ov-fill:' + c.fill + ';">' +
     '<div class="a-ov-top"><div class="a-ov-id">' +
       '<div class="a-ov-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + def.icon + '</svg></div>' +
       '<div class="a-ov-name-wrap"><span class="a-ov-name">' + def.name + '</span>' + sub + '</div></div>' +
       '<button type="button" class="a-ov-details" data-target="' + target + '">Details ' + ANALYSE_ICON_CHEVRON + '</button>' +
     '</div>' +
-    '<div class="a-ov-kpis">' + part.metrics.map((k, i) => analyseOvKpi(k, def.metrics[i], i, i === sel)).join('') + '</div>' +
-    '<div class="a-ov-chart"><div class="a-ov-chart-label"><span>' + md.title + ' · ' + ANALYSE_WEEK_COUNT + ' Wochen</span><span>' + md.per + '</span></div>' +
-      svgOvWeekLine(m.line, o.weekLabels, o.currentWeek, c.line, c.strong, md.fmt, m.zoom) +
-      '<div class="a-axis-unit">Kalenderwoche</div></div>' +
+    '<div class="a-ov-kpis">' + o[target].map((k, i) => analyseOvKpi(k, def.metrics[i], i)).join('') + '</div>' +
   '</div>';
 }
 
@@ -7865,6 +7764,36 @@ function renderAnalyseOverview() {
   const o = analyseOverview;
   if (!o) return '';
   return ['fuettern', 'windeln', 'schlafen'].map((t) => analyseOvCard(t, o)).join('');
+}
+
+// Aus der Übersicht in einen Bereich, immer in der Zoomstufe „Tage" — dort
+// stehen dieselben Zahlen wie auf den Kacheln. Mit `chart` zu diesem Diagramm
+// gescrollt und seine Legende (und die seines Tagesverlaufs) auf `series`
+// gesetzt; ohne `series` zeigt es alle Reihen. „Details" kommt ohne chart.
+function openAnalyseFromOverview(view, chart, series) {
+  if (chart) {
+    const charts = ANALYSE_SECTION_UI[view].charts;
+    const set = [chart].concat(Object.keys(charts).filter((id) => charts[id].legendFrom === chart));
+    set.forEach((id) => { analyseFilter[id] = series || null; });
+    if (view === 'windeln') analyseColorFilter = null;
+    // Die Seitenwahl filtert auch die Stilldauer — sonst stünde dort nur eine Seite.
+    if (chart === 'fu-still') analyseFilter['fu-seite'] = null;
+    analysePendingScroll = chart;
+  }
+  // Gewählte Stufe „Tage": die Bereiche springen dann nicht nach „Stunden".
+  analyseZoomChoice = 'days';
+  const reload = analyseScope.mode !== 'days' || analyseScope.parent !== null || !analyseData[view];
+  analyseClearSelections();
+  analyseScope = { mode: 'days', parent: null };
+  showAnalyseView(view);
+  if (reload) { updateAnalyseScopeChips(); loadAnalyse(); return; }
+  // Die Daten stehen schon in „Tage": nur die Karten mit den neuen Filtern
+  // neu zeichnen, dann zum Diagramm.
+  if (chart) {
+    renderAnalyseSection(view, analyseData[view]);
+    applySecSelection(view, true);
+  }
+  applyAnalysePendingScroll();
 }
 
 // „16.–22. Okt" — wie die Wochenzeile der Zoomstufe „Wochen".
@@ -7883,9 +7812,10 @@ function updateAnalyseOverview() {
 }
 
 // Rechnet die Übersicht nur neu, wenn sich ihre Grundlage geändert hat: der
-// Bestand, der Tag, der Beginn der Aufzeichnung oder das Nachtfenster. Ohne
-// lokalen Bestand wird direkt gelesen — dann höchstens alle 5 Minuten, damit
-// der Wechsel zwischen Übersicht und Bereich keine Abfragen kostet.
+// Bestand, die Minute (laufender Schlaf, die Nacht von heute früh), der Beginn
+// der Aufzeichnung oder das Nachtfenster. Ohne lokalen Bestand wird direkt
+// gelesen — dann höchstens alle 5 Minuten, damit der Wechsel zwischen
+// Übersicht und Bereich keine Abfragen kostet.
 // Laufen Übersicht und Nachladen gleichzeitig an (Rückkehr aus einem Bereich),
 // rechnet nur einer — der andere wartet auf dessen Ergebnis.
 let analyseOverviewLoading = null;
@@ -7898,11 +7828,12 @@ function loadAnalyseOverview() {
 
 async function loadAnalyseOverviewNow() {
   const store = await entryStoreLoaded();
-  const key = [store ? 'v' + entryStore.version : 'd' + Math.floor(Date.now() / 300000),
+  const key = [store ? 'v' + entryStore.version + '|' + Math.floor(Date.now() / 60000) : 'd' + Math.floor(Date.now() / 300000),
     isoDate(todayStartDate()), analyseStartKey, nightWindowText()].join('|');
   if (key === analyseOverviewKey && analyseOverview) { updateAnalyseOverview(); return; }
-  const weeks = buildAnalyseWeekBuckets(null).days;
-  const start = weeks.length ? new Date(weeks[0].weekStart) : todayStartDate();
+  // 14 Tage für die Trends; die 7 Tage der Kennzahlen liegen darin (heute dazu).
+  const start = todayStartDate();
+  start.setDate(start.getDate() - ANALYSE_OV_TEST_DAYS);
   const sleepSince = new Date(start);
   sleepSince.setDate(sleepSince.getDate() - 1);
   const [feedings, diapers, nights, naps] = await Promise.all([
@@ -7915,7 +7846,7 @@ async function loadAnalyseOverviewNow() {
   // Zählung direkt in Firestore wäre ein eigener Lesevorgang je Öffnen.
   const diaperTotal = store && entryStore.docs.diaperChanges ? entryStore.docs.diaperChanges.size : null;
   const sleeps = analyseSleepSpans(naps, nights, new Date());
-  analyseOverview = computeAnalyseOverview(feedings, diapers, sleeps, weeks, diaperTotal);
+  analyseOverview = computeAnalyseOverview(feedings, diapers, sleeps, diaperTotal);
   analyseOverviewKey = key;
   updateAnalyseOverview();
 }
@@ -9690,15 +9621,15 @@ function analyseTimeSelNear(view, chartId, clientX) {
 
   host.addEventListener('click', (e) => {
     // Übersichtskarten hängen an der Delegation, nicht an eigenen Listenern —
-    // sie werden bei neuen Daten neu gezeichnet. In den Bereich führt nur
-    // „Details"; eine Kachel wählt, welche Kennzahl die Linie zeigt.
+    // sie werden bei neuen Daten neu gezeichnet. „Details" führt in den
+    // Bereich, eine Kachel direkt zu ihrem Diagramm — beides in „Tage".
     const details = e.target.closest && e.target.closest('.a-ov-details');
-    if (details) { showAnalyseView(details.dataset.target); return; }
+    if (details) { openAnalyseFromOverview(details.dataset.target); return; }
     const kpiBtn = e.target.closest && e.target.closest('.a-ov-kpi');
     if (kpiBtn) {
       const target = kpiBtn.closest('.a-ov-card').dataset.ov;
-      analyseOvSel[target] = Number(kpiBtn.dataset.ovKpi);
-      updateAnalyseOverview();
+      const m = ANALYSE_OV_DEFS[target].metrics[Number(kpiBtn.dataset.ovKpi)];
+      openAnalyseFromOverview(target, m.chart, m.series);
       return;
     }
     if (e.target.closest && e.target.closest('.a-ov-card')) return;

@@ -1663,7 +1663,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 5;
+const APP_RELEASE = 6;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -6713,7 +6713,7 @@ function buildAnalyseWeekBuckets(range) {
     // Monats — hat keinen einzigen Tag und damit auch keinen Wert.
     if (!dayKeys.length) continue;
     const weekNum = isoWeekNumber(wStart);
-    days.push({
+    days.push(analyseMarkOpen({
       dayKeys,
       weekStart: new Date(wStart),
       label: String(weekNum),
@@ -6723,7 +6723,7 @@ function buildAnalyseWeekBuckets(range) {
       daysElapsed: dayKeys.length,
       daysCounted: analyseCountedDays(dayKeys),
       daysComplete: analyseCompleteDays(dayKeys)
-    });
+    }));
   }
   return { days, start: days.length ? new Date(days[0].weekStart) : first };
 }
@@ -6742,7 +6742,7 @@ function buildAnalyseMonthBuckets() {
       if (d > today) break;
       dayKeys.push(isoDate(d));
     }
-    days.push({
+    days.push(analyseMarkOpen({
       dayKeys,
       monthStart: new Date(mStart),
       label: ANALYSE_MONTH_SHORT[mStart.getMonth()],
@@ -6754,9 +6754,18 @@ function buildAnalyseMonthBuckets() {
       daysElapsed: dayKeys.length,
       daysCounted: analyseCountedDays(dayKeys),
       daysComplete: analyseCompleteDays(dayKeys)
-    });
+    }));
   }
   return { days, start };
+}
+
+// Eine Woche bzw. ein Monat, in dem bisher nur der angefangene heutige Tag
+// liegt (montags, am Monatsersten), hat noch keinen Tagesschnitt: der Stand
+// von heute würde ihn nach unten ziehen. Solche Balken bleiben leer, die
+// Kacheln zeigen „–". Ab dem nächsten Tag zählt der erste abgeschlossene.
+function analyseMarkOpen(b) {
+  b.open = b.daysComplete === 0 && b.daysCounted > 0;
+  return b;
 }
 
 // Stand des lokalen Bestands, aus dem die angezeigte Analyse gerechnet ist
@@ -6939,7 +6948,7 @@ function computeFuetternAnalysis(days, feedMap) {
     const sums = fuetternDayFields(feedMap[i]);
     return Object.assign({
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
-      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
+      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed, open: !!d.open,
       daysCounted: d.daysCounted, daysComplete: d.daysComplete
     }, sums, analyseAvgBasis(d, feedMap[i], fuetternDayFields), {
       intervalH: analyseIntervalH(docs),
@@ -7068,7 +7077,7 @@ function computeWindelnAnalysis(days, diaperMap) {
     const sums = windelnDayFields(docs);
     return Object.assign({
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
-      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
+      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed, open: !!d.open,
       daysCounted: d.daysCounted, daysComplete: d.daysComplete,
       intervalH: analyseIntervalH(docs),
       intervalSmallH: analyseIntervalH(docs.filter((x) => windelnKind(x) !== 'bigOnly')),
@@ -7262,7 +7271,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
     const wakeOff = valid.length ? analyseAvg(valid.map((n) => (n.wake - n.win.end) / 60000)) : null;
     return {
       label: d.label, fullLabel: d.fullLabel, contextLabel: d.contextLabel,
-      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed,
+      weekStart: d.weekStart, isToday: d.isToday, daysElapsed: d.daysElapsed, open: !!d.open,
       daysCounted: d.daysCounted, daysComplete: d.daysComplete,
       // Tagschlaf und Schläfchen als Summe; der Tagesschnitt (analysePerDay)
       // nimmt nur die abgeschlossenen Tage, ein Bucket nur aus heute dessen Stand.
@@ -8441,7 +8450,8 @@ function secBarInner(chartId, cfg, analysis) {
   const { barW, gap } = analyseBarGeom(bs.length);
   const startX = 4, baseline = 95, maxPx = 78;
   const series = secVisibleSeries(chartId, cfg);
-  const totals = bs.map((b) => series.reduce((s, se) => s + se.value(b), 0));
+  // Ein offener Balken (Woche/Monat nur mit heute, analyseMarkOpen) bleibt leer.
+  const totals = bs.map((b) => (b.open ? 0 : series.reduce((s, se) => s + se.value(b), 0)));
   const mean = series.reduce((s, se) => s + (se.mean(analysis) || 0), 0);
   const maxVal = Math.max(1, ...totals, mean);
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx]);
@@ -8459,17 +8469,19 @@ function secBarInner(chartId, cfg, analysis) {
     let stack = 0, rects = '';
     // barColor: eine Reihe kann einzelne Balken umfärben (Nacht ohne Einträge).
     const colorOf = (se) => (se.barColor && se.barColor(b)) || se.color;
-    series.forEach((se) => {
-      const h = baseline - y(se.value(b));
-      rects += '<rect x="' + x + '" y="' + (baseline - stack - h) + '" width="' + barW +
-        '" height="' + Math.max(0, h) + '" rx="4" fill="' + colorOf(se) + '"/>';
-      stack += h;
-    });
-    // Beim markierten Balken ausgeblendet (per CSS): dort steht die
-    // Markierungslinie, und die Zahl steht ohnehin groß im Label.
-    rects += '<text class="val" x="' + cxOf(i) + '" y="' + Math.max(12, baseline - stack - 4) +
-      '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + ((series[0].barColor && series[0].barColor(b)) || seInk(series[0])) +
-      '" text-anchor="middle">' + (cfg.barText ? cfg.barText(b) : cfg.barLabel(totals[i])) + '</text>';
+    if (!b.open) {
+      series.forEach((se) => {
+        const h = baseline - y(se.value(b));
+        rects += '<rect x="' + x + '" y="' + (baseline - stack - h) + '" width="' + barW +
+          '" height="' + Math.max(0, h) + '" rx="4" fill="' + colorOf(se) + '"/>';
+        stack += h;
+      });
+      // Beim markierten Balken ausgeblendet (per CSS): dort steht die
+      // Markierungslinie, und die Zahl steht ohnehin groß im Label.
+      rects += '<text class="val" x="' + cxOf(i) + '" y="' + Math.max(12, baseline - stack - 4) +
+        '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + ((series[0].barColor && series[0].barColor(b)) || seInk(series[0])) +
+        '" text-anchor="middle">' + (cfg.barText ? cfg.barText(b) : cfg.barLabel(totals[i])) + '</text>';
+    }
     out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cxOf(i), seInk(series[0])) + '</g>';
   });
 
@@ -8491,7 +8503,8 @@ function secAreaInner(chartId, cfg, analysis) {
   const series = secVisibleSeries(chartId, cfg);
   const se = series[0];
   const stacked = series.length > 1;
-  const totals = bs.map((b) => series.reduce((s, r) => s + r.value(b), 0));
+  // Ein offener Punkt (Woche/Monat nur mit heute) fehlt, die Linie endet davor.
+  const totals = bs.map((b) => (b.open ? 0 : series.reduce((s, r) => s + r.value(b), 0)));
   const mean = series.reduce((s, r) => s + (r.mean(analysis) || 0), 0);
   const maxVal = Math.max(1, ...totals, mean);
   const x = scalePoint().domain(bs.map((_, i) => i)).range([19, 289]);
@@ -8503,20 +8516,20 @@ function secAreaInner(chartId, cfg, analysis) {
     idxAt: (vx) => Math.round((vx - x(0)) / step)
   };
 
-  const pts = bs.map((b, i) => ({ x: x(i), y: y(totals[i]) }));
-  const linePath = d3Line().x((p) => p.x).y((p) => p.y).curve(curveLinear).digits(10)(pts);
+  const pts = bs.map((b, i) => ({ x: x(i), y: y(totals[i]), open: b.open }));
+  const linePath = d3Line().defined((p) => !p.open).x((p) => p.x).y((p) => p.y).curve(curveLinear).digits(10)(pts);
   const gid = 'grad-' + chartId, cid = 'clip-' + chartId;
   const line = '<path d="' + linePath + '" fill="none" stroke="' + se.color +
     '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
   let curve;
   if (stacked) {
-    const lows = bs.map((b, i) => ({ x: x(i), y0: y(0), y1: y(se.value(b)), yt: pts[i].y }));
-    const lowPath = d3Area().x((p) => p.x).y0((p) => p.y0).y1((p) => p.y1).curve(curveLinear).digits(10)(lows);
-    const topPath = d3Area().x((p) => p.x).y0((p) => p.y1).y1((p) => p.yt).curve(curveLinear).digits(10)(lows);
+    const lows = bs.map((b, i) => ({ x: x(i), y0: y(0), y1: y(b.open ? 0 : se.value(b)), yt: pts[i].y, open: b.open }));
+    const lowPath = d3Area().defined((p) => !p.open).x((p) => p.x).y0((p) => p.y0).y1((p) => p.y1).curve(curveLinear).digits(10)(lows);
+    const topPath = d3Area().defined((p) => !p.open).x((p) => p.x).y0((p) => p.y1).y1((p) => p.yt).curve(curveLinear).digits(10)(lows);
     curve = '<path d="' + topPath + '" fill="' + series[1].color + '" fill-opacity="0.75"/>' +
       '<path d="' + lowPath + '" fill="' + se.color + '" fill-opacity="0.85"/>' + line;
   } else {
-    const areaPath = d3Area().x((p) => p.x).y0(baseline).y1((p) => p.y).curve(curveLinear).digits(10)(pts);
+    const areaPath = d3Area().defined((p) => !p.open).x((p) => p.x).y0(baseline).y1((p) => p.y).curve(curveLinear).digits(10)(pts);
     curve = '<path d="' + areaPath + '" fill="url(#' + gid + ')"/>' + line;
   }
 
@@ -8531,7 +8544,7 @@ function secAreaInner(chartId, cfg, analysis) {
 
   bs.forEach((b, i) => {
     const p = pts[i];
-    const dot = b.isToday
+    const dot = b.open ? '' : b.isToday
       ? '<circle cx="' + p.x + '" cy="' + p.y + '" r="3.4" fill="' + se.color + '" stroke="white" stroke-width="1.5"/>'
       : '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + se.color + '"/>';
     out += '<g class="bk" data-i="' + i + '">' + dot + secAxisLabel(b, p.x, se.color) + '</g>';
@@ -9027,7 +9040,8 @@ function secShareInner(chartId, cfg, analysis) {
   const startX = 4, baseline = 95, colH = 78, step = barW + gap;
   const series = secVisibleSeries(chartId, cfg);
   const lead = series[0];
-  const totals = bs.map((b) => lead.value(b));
+  // Ein offener Balken (Woche/Monat nur mit heute) hat keinen Wert.
+  const totals = bs.map((b) => (b.open ? null : lead.value(b)));
   const mean = lead.mean(analysis);
   const y = scaleLinear().domain([0, 100]).range([baseline, baseline - colH]);
   const cxOf = (i) => startX + i * step + barW / 2;
@@ -9046,7 +9060,7 @@ function secShareInner(chartId, cfg, analysis) {
     const x = startX + i * step, cx = cxOf(i);
     let stack = 0, rects = '';
     series.forEach((se) => {
-      const v = se.value(b);
+      const v = b.open ? null : se.value(b);
       if (v === null) return;
       const h = v / 100 * colH;
       rects += '<rect x="' + x + '" y="' + (baseline - stack - h) + '" width="' + barW +
@@ -9082,8 +9096,10 @@ function secClockInner(chartId, cfg, analysis) {
   const color = cfg.series[0].color, light = '#B7ADEB';
   const bandH = 62, bedTop = 32, bedBot = bedTop + bandH, wakeTop = bedBot + 22, wakeBot = wakeTop + bandH;
   const bedLabelY = 13, wakeLabelY = wakeBot + 29, baseline = wakeLabelY + 9;
-  const beds = bs.map((b) => b.bedMin).filter((v) => v !== null);
-  const wakes = bs.map((b) => b.wakeClockMin).filter((v) => v !== null);
+  // Ein offener Balken (Woche/Monat nur mit heute) bleibt leer.
+  const bedOf = (b) => (b.open ? null : b.bedMin), wakeOf = (b) => (b.open ? null : b.wakeClockMin);
+  const beds = bs.map(bedOf).filter((v) => v !== null);
+  const wakes = bs.map(wakeOf).filter((v) => v !== null);
   const spread = (vs) => (vs.length ? Math.max(...vs) - Math.min(...vs) : 0);
   const mid = (vs) => (vs.length ? (Math.max(...vs) + Math.min(...vs)) / 2 : 0);
   const span = Math.max(60, spread(beds), spread(wakes)) + 20;
@@ -9094,10 +9110,10 @@ function secClockInner(chartId, cfg, analysis) {
   const step = bs.length > 1 ? x(1) - x(0) : 270;
   const hour = (m) => String(((Math.round(m / 60) % 24) + 24) % 24);
   analyseRender[chartId] = {
-    cfg, bs, series: cfg.series, totals: bs.map((b) => b.bedMin), mean: analysis, cxOf,
+    cfg, bs, series: cfg.series, totals: bs.map(bedOf), mean: analysis, cxOf,
     // Ohne Nacht sitzt die Markierung auf der Grundlinie.
     yOf: (v) => (v === null ? baseline : yBed(v)),
-    yOf2: (i) => (bs[i].wakeClockMin === null ? null : yWake(bs[i].wakeClockMin)),
+    yOf2: (i) => (wakeOf(bs[i]) === null ? null : yWake(bs[i].wakeClockMin)),
     idxAt: (vx) => Math.round((vx - x(0)) / step)
   };
 
@@ -9141,7 +9157,7 @@ function secClockInner(chartId, cfg, analysis) {
   bs.forEach((b, i) => {
     const cx = x(i);
     let g = '';
-    if (b.bedMin !== null) {
+    if (bedOf(b) !== null) {
       const yb = yBed(b.bedMin), yw = yWake(b.wakeClockMin);
       const dot = (cy) => (b.isToday
         ? '<circle cx="' + cx + '" cy="' + cy + '" r="4.4" fill="' + color + '" stroke="white" stroke-width="1.5"/>'
@@ -9265,16 +9281,17 @@ function updateSecStats(view) {
   // „Stunden": Füttern zählt bis zur markierten Uhrzeit, Windeln und Schlafen zeigen den Tag.
   const hours = analyseScope.mode === 'hours' && ANALYSE_HOURS_VIEWS.includes(view);
   const b = !hours ? analyseSelectedBucket(view) : view === 'fuettern' ? fuetternHoursBucket(a) : analyseHoursDay(a);
-  const vals = sec.stats(a, b);
+  // Ein offener Balken (Woche/Monat nur mit heute) hat noch keinen Tagesschnitt.
+  const vals = b && b.open ? {} : sec.stats(a, b);
   // „Ø" nur, wo wirklich gemittelt wird — bei einem einzelnen Tag nicht.
-  const isAvg = !b || b.daysElapsed > 1;
+  const isAvg = !b || b.daysElapsed > 1 || b.open;
   const host = document.getElementById(sec.hostId);
 
   sec.tiles.forEach((t) => {
     const numEl = host.querySelector('.a-stat-num[data-stat="' + t.key + '"]');
     const capEl = host.querySelector('.a-stat-cap[data-cap="' + t.key + '"]');
     if (!numEl) return;
-    const raw = vals[t.key];
+    const raw = vals[t.key] === undefined ? '–' : vals[t.key];
     const value = raw && typeof raw === 'object' ? raw : { v: raw, c: null };
     numEl.textContent = value.v;
     numEl.style.color = value.c || sec.tileColor;
@@ -9347,11 +9364,11 @@ function applySecSelection(view, center) {
     // Label: große Zahl, darunter die Aufteilung. Ohne Datum — das steht schon
     // hervorgehoben unter dem Balken und in der Kontextzeile.
     const bucket = r.bs[i];
-    const sub = r.cfg.tipSub ? r.cfg.tipSub(bucket)
+    const sub = bucket.open ? 'erst ab morgen ein Tagesschnitt' : r.cfg.tipSub ? r.cfg.tipSub(bucket)
       : r.series.length > 1
       ? r.series.map((s) => s.label + ' ' + r.cfg.detail(s.value(bucket), bucket)).join(' · ') : '';
     tip.hidden = false;
-    tip.innerHTML = '<div class="a-tip-v">' + r.cfg.tipValue(r.totals[i], bucket) + '</div>' +
+    tip.innerHTML = '<div class="a-tip-v">' + (bucket.open ? 'Noch kein ganzer Tag' : r.cfg.tipValue(r.totals[i], bucket)) + '</div>' +
       (sub ? '<div class="a-tip-s">' + sub + '</div>' : '');
     // Waagerecht auf den Balken zentriert, aber in die Karte hineingeschoben,
     // damit es am Rand nicht abgeschnitten wird. Misst live — schlägt die

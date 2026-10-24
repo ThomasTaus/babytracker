@@ -1311,7 +1311,7 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
       </div>
-      <div class="a-ov-context"><span>Letzte 7 Tage · Ø pro Tag</span><small id="analyse-ov-range"></small></div>
+      <div class="a-ov-context"><span>Durchschnitt pro Tag</span><small id="analyse-ov-range"></small></div>
     </div>
 
     <div id="analyse-body" class="timeline-scroll" style="flex: 1; overflow-y: auto; padding: 16px 24px 16px; display: flex; flex-direction: column; gap: 14px;">
@@ -1663,7 +1663,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 6;
+const APP_RELEASE = 7;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -7681,7 +7681,9 @@ function computeAnalyseOverview(feedings, diapers, sleeps, diaperTotal) {
 
   return {
     rangeFrom: week[0].dayStart,
-    rangeTo: week[week.length - 1].dayStart,
+    // Rechts in der Kopfzeile stehen die Tage, über die gemittelt wird: die
+    // abgeschlossenen, also bis gestern — heute zählt nicht mit.
+    rangeTo: week[week.length - 2].dayStart,
     fuettern: [
       { v: f.avgBottleMlExact, t: trend(fD, (b) => analysePerDay(b, 'bottleMl')) },
       { v: f.avgBreastMinExact, t: trend(fD, (b) => analysePerDay(b, 'breastMin')) },

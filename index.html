@@ -403,6 +403,32 @@
   #screen-analyse .a-ctx-reset { display: none; width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; border: none; padding: 0; background: var(--surface-alt); color: var(--text-muted); align-items: center; justify-content: center; cursor: pointer; }
   #screen-analyse .a-context.sel .a-ctx-reset { display: inline-flex; }
 
+  /* Maßband: das Fenster steht fest in der Mitte, darunter läuft die Zeit
+     durch. Es zeigt je Zoomstufe einen festen Ausschnitt (Tage ~3 Monate),
+     damit das Fenster auch nach langer Aufzeichnung gut greifbar bleibt.
+     Schraffiert: vor Beginn der Aufzeichnung und nach heute. */
+  #screen-analyse .a-tape { position: relative; height: 36px; margin-top: 10px; cursor: grab; touch-action: none; overflow: hidden; user-select: none; -webkit-user-select: none; }
+  #screen-analyse:not(.a-detail) .a-tape { display: none; }
+  #screen-analyse .a-tape .tp-track { position: absolute; left: 0; right: 0; top: 6px; height: 14px; border-radius: 7px; background: var(--surface-alt); }
+  #screen-analyse .a-tape .tp-none { position: absolute; top: 6px; height: 14px; background: repeating-linear-gradient(135deg, transparent 0 4px, var(--border) 4px 5px); }
+  #screen-analyse .a-tape .tp-tick { position: absolute; top: 6px; width: 1px; height: 14px; background: var(--border); }
+  #screen-analyse .a-tape .tp-tick.w { top: 15px; height: 5px; }
+  #screen-analyse .a-tape .tp-lab { position: absolute; top: 23px; padding-left: 3px; font-size: 10.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+  #screen-analyse .a-tape .tp-lab.y { color: var(--neutral-strong); font-weight: 700; }
+  #screen-analyse .a-tape .tp-win { position: absolute; top: 2px; height: 22px; border-radius: 7px; background: oklch(93% 0.004 250 / 0.55); border: 2px solid var(--neutral-strong); box-sizing: border-box; }
+  #screen-analyse .a-tape .tp-edge { position: absolute; top: 0; width: 18px; height: 26px; pointer-events: none; }
+  #screen-analyse .a-tape .tp-edge.l { left: 0; background: linear-gradient(90deg, oklch(96% 0.003 250), transparent); }
+  #screen-analyse .a-tape .tp-edge.r { right: 0; background: linear-gradient(270deg, oklch(96% 0.003 250), transparent); }
+
+  /* Blättern in Datum-Diagrammen: kleine Pfeile im Kartenrand wie in der
+     Farbauswahl auf „Windel wechseln“ — nur dort, wo es weitergeht, und
+     antippbar (ein ganzes Fenster). Uhrzeit-Diagramme haben keine. */
+  #screen-analyse .a-pg { position: absolute; top: 0; height: 80%; width: 18px; z-index: 2; display: flex; align-items: center; justify-content: center; padding: 0; border: none; background: none; color: var(--text-muted); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #screen-analyse .a-pg.l { left: -18px; }
+  #screen-analyse .a-pg.r { right: -18px; }
+  #screen-analyse .a-pg[hidden] { display: none; }
+  #screen-analyse .a-pg:active { color: var(--neutral-strong); }
+
   #screen-analyse .a-chart-wrap { position: relative; }
   #screen-analyse .a-chart { display: block; width: 100%; height: 105px; touch-action: pan-y; cursor: pointer; }
   #screen-analyse .a-chart .sc-line, #screen-analyse .a-chart .sc-dot { pointer-events: none; }
@@ -1305,6 +1331,8 @@
         <div class="a-range-chip" data-scope="months">Monate</div>
       </div>
 
+      <div id="analyse-tape" class="a-tape" role="slider" aria-label="Zeitraum verschieben"></div>
+
       <div id="analyse-context" class="a-context">
         <span data-ctx-text></span>
         <button id="analyse-reset" class="a-ctx-reset" aria-label="Zeitraum zurücksetzen" title="Zeitraum zurücksetzen">
@@ -1663,7 +1691,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 7;
+const APP_RELEASE = 8;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -2345,7 +2373,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     if (analyse) {
       analyseOrigin = null;
       analyseZoomChoice = null;
-      analyseScope = { mode: 'days', parent: null };
+      analyseScope = { mode: 'days', end: null };
       analyseClearSelections();
       analyseView = 'overview';
     }
@@ -6500,14 +6528,98 @@ const ANALYSE_MONTH_FULL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni'
 const ANALYSE_ZOOM_ORDER = ['hours', 'days', 'weeks', 'months'];
 const ANALYSE_HOURS_VIEWS = ['fuettern', 'windeln', 'schlafen'];
 
-// Zeitausschnitt der Analyse. Die Chips oben sind ein Zoomstufen-Regler, kein
-// reiner Zeitraum-Umschalter: sie sagen "wie fein", ein markierter Balken sagt
-// "wovon". `parent` ist der Balken, in den zuletzt hineingezoomt wurde — ohne
-// ihn ließe sich ein zurückliegender Ausschnitt gar nicht darstellen. Er hält
-// zugleich den Weg dorthin fest (`returnIndex`/`returnChart`/`returnView`),
-// damit der gröbere Chip mit derselben Markierung zurückführt, und über `up`
-// die Stufe darüber: Monat → Woche → Tag lässt sich so wieder aufrollen.
-let analyseScope = { mode: 'days', parent: null };
+// Zeitausschnitt der Analyse. Die Chips oben sind ein Zoomstufen-Regler: sie
+// sagen "wie fein". `end` ist der letzte Tag des Fensters (null = heute, der
+// laufende Zeitraum) — Maßband, Wischen und die Pfeile verschieben ihn, ein
+// markierter Balken sagt beim Hineinzoomen "wovon". Das Fenster ist auf jeder
+// Stufe gleich lang: 7 Tage, 8 Wochen, 6 Monate; „Stunden" zeigt den Tag `end`.
+let analyseScope = { mode: 'days', end: null };
+
+// Je Zoomstufe: wie viele Tage das Maßband zeigt, wie lang das Fenster darauf
+// ist und wie viele Tage ein Balken ungefähr umfasst (für das Mitlaufen).
+const ANALYSE_TAPE = {
+  hours: { span: 21, len: 1, bar: 1 },
+  days: { span: 91, len: ANALYSE_RANGE_DAYS, bar: 1 },
+  weeks: { span: 364, len: ANALYSE_WEEK_COUNT * 7, bar: 7 },
+  months: { span: 730, len: 183, bar: 30.44 }
+};
+
+function analyseEndDate() { return analyseScope.end || todayStartDate(); }
+function analyseAddDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+
+// Erster Tag mit Einträgen — davor gibt es nichts zu sehen. Ohne Eintrag das
+// Geburtsdatum, ohne beides heute.
+function analyseFirstDay() {
+  const key = analyseStartKey ? isoDate(analyseAddDays(new Date(analyseStartKey + 'T00:00:00'), -1)) : readProfil().birth;
+  return key ? new Date(key + 'T00:00:00') : todayStartDate();
+}
+
+// Frühestes Fensterende: der erste Tag mit Einträgen liegt gerade noch im
+// ersten Balken.
+function analyseMinEnd(mode) {
+  const first = analyseFirstDay(), today = todayStartDate();
+  let e;
+  if (mode === 'hours') e = first;
+  else if (mode === 'days') e = analyseAddDays(first, ANALYSE_RANGE_DAYS - 1);
+  else if (mode === 'weeks') e = analyseAddDays(mondayOf(first), ANALYSE_WEEK_COUNT * 7 - 1);
+  else e = new Date(first.getFullYear(), first.getMonth() + ANALYSE_MONTH_COUNT, 0);
+  return e > today ? today : e;
+}
+
+// Fensterende um n Balken verschoben, begrenzt auf Beginn und heute.
+function analyseShiftEnd(mode, end, n) {
+  let e;
+  if (mode === 'days' || mode === 'hours') e = analyseAddDays(end, n);
+  else if (mode === 'weeks') e = analyseAddDays(end, 7 * n);
+  else e = new Date(end.getFullYear(), end.getMonth() + n + 1, 0);
+  const today = todayStartDate(), min = analyseMinEnd(mode);
+  if (e > today) e = today;
+  if (e < min) e = min;
+  return e;
+}
+
+// Wie viele Balken zwischen zwei Fensterenden liegen.
+function analyseBarDelta(mode, a, b) {
+  if (mode === 'days' || mode === 'hours') return Math.round((b - a) / 86400000);
+  if (mode === 'weeks') return Math.round((mondayOf(b) - mondayOf(a)) / 86400000 / 7);
+  return (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+}
+
+// Ein Fenster weiter, ungekappt — das Nachbarfenster, das beim Wischen
+// hereingleitet.
+function analyseNeighbourEnd(mode, end, dir) {
+  if (mode === 'days') return analyseAddDays(end, ANALYSE_RANGE_DAYS * dir);
+  if (mode === 'weeks') return analyseAddDays(end, ANALYSE_WEEK_COUNT * 7 * dir);
+  return new Date(end.getFullYear(), end.getMonth() + ANALYSE_MONTH_COUNT * dir + 1, 0);
+}
+
+function analyseBuildBuckets(mode, end) {
+  return mode === 'months' ? buildAnalyseMonthBuckets(end)
+    : mode === 'weeks' ? buildAnalyseWeekBuckets(end)
+    : buildAnalyseDayBuckets(end);
+}
+
+// Wie weit es von hier aus noch zurück bzw. vor geht, in Balken.
+function analyseRoom(dir) {
+  const end = analyseEndDate();
+  return Math.abs(analyseBarDelta(analyseScope.mode, end, dir < 0 ? analyseMinEnd(analyseScope.mode) : todayStartDate()));
+}
+
+// Neues Fensterende. Liegt heute schon im letzten Balken (heute selbst, die
+// laufende Woche, der laufende Monat), ist es wieder der laufende Zeitraum.
+function analyseSetEnd(d) {
+  const today = todayStartDate();
+  const current = !d || d >= today || analyseBarDelta(analyseScope.mode, d, today) === 0;
+  analyseScope = { mode: analyseScope.mode, end: current ? null : d };
+}
+
+// Ein markierter Balken wandert mit seinem Tag mit, solange der im Fenster
+// bleibt; fällt er heraus, bleibt die Markierung auf derselben Position.
+function analyseMoveSel(n) {
+  if (!analyseSel || !n) return;
+  const i = analyseSel.index - n;
+  if (i >= 0 && i < analyseBuckets.length) analyseSel = { index: i };
+}
 // Range-dependent labels/phrasing, set at the top of loadAnalyse() for whichever
 // range is currently selected, and read by the chart/insight builders below —
 // avoids threading a "range" parameter through every function signature.
@@ -6686,27 +6798,27 @@ function mondayOf(d) {
   return date;
 }
 
-// Echte Kalenderwochen (Mo–So). Ohne `range` sind es die letzten 8, die
-// laufende auf heute gekürzt; steckt der Ausschnitt in einem Monat, sind es
-// dessen Wochen, an den Monatsrändern gekürzt. daysElapsed hält fest, wie
-// viele Tage zu einer Woche gehören, daysCounted, wie viele davon in die
-// Tagesmittel eingehen (ab Beginn der Aufzeichnung) — dadurch bleiben die Tagesmittel über
-// volle und angeschnittene Wochen hinweg vergleichbar.
-function buildAnalyseWeekBuckets(range) {
+// Echte Kalenderwochen (Mo–So): die 8 bis zu der Woche, in der endDate liegt
+// (null = heute), die laufende auf heute gekürzt. Wochen ganz nach heute
+// fallen weg — das betrifft nur das Nachbarfenster rechts beim Wischen.
+// daysElapsed hält fest, wie viele Tage zu einer Woche gehören, daysCounted,
+// wie viele davon in die Tagesmittel eingehen (ab Beginn der Aufzeichnung) —
+// dadurch bleiben die Tagesmittel über volle und angeschnittene Wochen hinweg
+// vergleichbar.
+function buildAnalyseWeekBuckets(endDate) {
   const today = todayStartDate();
   const todayKey = isoDate(today);
-  const first = mondayOf(range ? range.start : today);
-  if (!range) first.setDate(first.getDate() - (ANALYSE_WEEK_COUNT - 1) * 7);
-  const from = range ? range.start : first;
-  const until = range ? range.end : today;
+  const first = mondayOf(endDate || today);
+  first.setDate(first.getDate() - (ANALYSE_WEEK_COUNT - 1) * 7);
+  const until = new Date(first);
+  until.setDate(until.getDate() + ANALYSE_WEEK_COUNT * 7 - 1);
   const days = [];
   for (let wStart = new Date(first); wStart <= until; wStart.setDate(wStart.getDate() + 7)) {
     const dayKeys = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(wStart);
       d.setDate(d.getDate() + i);
-      if (d > today || d > until) break;
-      if (d < from) continue;
+      if (d > today) break;
       dayKeys.push(isoDate(d));
     }
     // Eine Woche ganz außerhalb des Ausschnitts — etwa der Rest des laufenden
@@ -6728,12 +6840,14 @@ function buildAnalyseWeekBuckets(range) {
   return { days, start: days.length ? new Date(days[0].weekStart) : first };
 }
 
-// Die letzten 6 Kalendermonate, der laufende auf heute gekürzt — dieselbe
-// Logik wie bei den Wochen, eine Stufe gröber.
-function buildAnalyseMonthBuckets() {
+// Die 6 Kalendermonate bis zu dem, in dem endDate liegt (null = heute), der
+// laufende auf heute gekürzt — dieselbe Logik wie bei den Wochen, eine Stufe
+// gröber. Monate ganz nach heute fallen weg.
+function buildAnalyseMonthBuckets(endDate) {
   const today = todayStartDate();
   const todayKey = isoDate(today);
-  const start = new Date(today.getFullYear(), today.getMonth() - (ANALYSE_MONTH_COUNT - 1), 1);
+  const end = endDate || today;
+  const start = new Date(end.getFullYear(), end.getMonth() - (ANALYSE_MONTH_COUNT - 1), 1);
   const days = [];
   for (let m = 0; m < ANALYSE_MONTH_COUNT; m++) {
     const mStart = new Date(start.getFullYear(), start.getMonth() + m, 1);
@@ -6742,6 +6856,7 @@ function buildAnalyseMonthBuckets() {
       if (d > today) break;
       dayKeys.push(isoDate(d));
     }
+    if (!dayKeys.length) continue;
     days.push(analyseMarkOpen({
       dayKeys,
       monthStart: new Date(mStart),
@@ -7361,10 +7476,12 @@ function analyseBarGeom(n) {
   return { barW: scale.bandwidth(), gap: scale.step() - scale.bandwidth() };
 }
 
+// Die Linie reicht weit über die Zeichenfläche hinaus (dort beschnitten):
+// beim seitlichen Schieben bleibt sie so ohne Lücke.
 function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
   if (meanValue == null) return '';
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx])(meanValue);
-  return '<line x1="4" y1="' + y + '" x2="304" y2="' + y + '" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>';
+  return '<line x1="-300" y1="' + y + '" x2="608" y2="' + y + '" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>';
 }
 
 // Uhrzeit des Schlafs. Ein einzelner markierter Tag zeigt seine echten
@@ -7582,6 +7699,7 @@ function svgColorDistribution(buckets, sel) {
 
 const ANALYSE_ICON_STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none"/></svg>';
 const ANALYSE_ICON_CHEVRON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+const ANALYSE_ICON_CHEVRON_L = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
 
 // ===== Übersicht ========================================================
 // Ein fester Zeitraum statt der Zoomstufen: dieselben letzten 7 Tage wie die
@@ -7793,9 +7911,9 @@ function openAnalyseFromOverview(view, chart, series) {
   }
   // Gewählte Stufe „Tage": die Bereiche springen dann nicht nach „Stunden".
   analyseZoomChoice = 'days';
-  const reload = analyseScope.mode !== 'days' || analyseScope.parent !== null || !analyseData[view];
+  const reload = analyseScope.mode !== 'days' || analyseScope.end !== null || !analyseData[view];
   analyseClearSelections();
-  analyseScope = { mode: 'days', parent: null };
+  analyseScope = { mode: 'days', end: null };
   showAnalyseView(view);
   if (reload) { updateAnalyseScopeChips(); loadAnalyse(); return; }
   // Die Daten stehen schon in „Tage": nur die Karten mit den neuen Filtern
@@ -7881,24 +7999,38 @@ function analyseDe1(n) {
 function analyseCount(value, single) {
   return single ? String(analyseRound(value)) : analyseDe1(value);
 }
-// Der Ausschnitt, in den hineingezoomt wurde: einmal als Überschrift für die
-// Zeitraum-Zeile, einmal als Einschub für die Insight-Sätze.
-function analyseParentTitle(p) {
-  if (p.unit === 'day') return ANALYSE_WEEKDAY_FULL[p.start.getDay()] + ', ' + p.start.getDate() + '. ' + ANALYSE_MONTH_FULL[p.start.getMonth()];
-  return p.unit === 'week' ? analyseWeekRangeText(p.start)
-    : ANALYSE_MONTH_FULL[p.start.getMonth()] + ' ' + p.start.getFullYear();
+// Ein zurückliegendes Fenster (analyseScope.end gesetzt): einmal als
+// Überschrift für die Zeitraum-Zeile, einmal als Einschub für die
+// Insight-Sätze. Das Jahr steht nur, wenn es nicht das laufende ist.
+function analyseWindowEdges() {
+  const bs = analyseBuckets;
+  if (!bs.length) return null;
+  const first = new Date(bs[0].dayKeys[0] + 'T00:00:00');
+  const lastB = bs[bs.length - 1];
+  const last = new Date(lastB.dayKeys[lastB.dayKeys.length - 1] + 'T00:00:00');
+  return { first, last, year: last.getFullYear() !== todayStartDate().getFullYear() ? ' ' + last.getFullYear() : '' };
 }
-function analyseParentPhrase(p) {
-  if (p.unit === 'day') return 'am ' + p.start.getDate() + '. ' + ANALYSE_MONTH_FULL[p.start.getMonth()];
-  return p.unit === 'week' ? 'in KW ' + isoWeekNumber(p.start)
-    : 'im ' + ANALYSE_MONTH_FULL[p.start.getMonth()];
+function analyseWindowTitle() {
+  const w = analyseWindowEdges();
+  if (!w) return '';
+  const mode = analyseScope.mode;
+  if (mode === 'hours') return analyseBuckets[analyseBuckets.length - 1].contextLabel;
+  if (mode === 'months') {
+    return ANALYSE_MONTH_SHORT[w.first.getMonth()] + (w.first.getFullYear() !== w.last.getFullYear() ? ' ' + w.first.getFullYear() : '') +
+      ' – ' + ANALYSE_MONTH_SHORT[w.last.getMonth()] + ' ' + w.last.getFullYear();
+  }
+  const range = analyseOvRangeText(w.first, w.last) + w.year;
+  return mode === 'weeks' ? 'KW ' + analyseBuckets[0].label + '–' + analyseBuckets[analyseBuckets.length - 1].label + ' · ' + range : range;
 }
-function analyseWeekRangeText(weekStart) {
-  const end = new Date(weekStart);
-  end.setDate(end.getDate() + 6);
-  let a = weekStart.getDate() + '.';
-  if (weekStart.getMonth() !== end.getMonth()) a += ' ' + ANALYSE_MONTH_SHORT[weekStart.getMonth()];
-  return 'KW ' + isoWeekNumber(weekStart) + ' · ' + a + '–' + end.getDate() + '. ' + ANALYSE_MONTH_SHORT[end.getMonth()];
+function analyseWindowPhrase() {
+  const w = analyseWindowEdges();
+  if (!w) return '';
+  const mode = analyseScope.mode;
+  if (mode === 'hours') return 'am ' + w.last.getDate() + '. ' + ANALYSE_MONTH_FULL[w.last.getMonth()];
+  if (mode === 'months') return 'von ' + ANALYSE_MONTH_FULL[w.first.getMonth()] + ' bis ' + ANALYSE_MONTH_FULL[w.last.getMonth()];
+  if (mode === 'weeks') return 'in KW ' + analyseBuckets[0].label + '–' + analyseBuckets[analyseBuckets.length - 1].label;
+  return 'vom ' + w.first.getDate() + '. ' + (w.first.getMonth() !== w.last.getMonth() ? ANALYSE_MONTH_FULL[w.first.getMonth()] + ' ' : '') +
+    'bis ' + w.last.getDate() + '. ' + ANALYSE_MONTH_FULL[w.last.getMonth()];
 }
 
 const FUETTERN_COLOR = 'oklch(48% 0.13 250)';
@@ -8450,24 +8582,29 @@ const SEC_MARKER = '<g class="sc" style="display:none">' +
 function secBarInner(chartId, cfg, analysis) {
   const bs = analysis.perDay;
   const { barW, gap } = analyseBarGeom(bs.length);
-  const startX = 4, baseline = 95, maxPx = 78;
+  const startX = 4, baseline = 95, maxPx = 78, step = barW + gap;
   const series = secVisibleSeries(chartId, cfg);
   // Ein offener Balken (Woche/Monat nur mit heute, analyseMarkOpen) bleibt leer.
-  const totals = bs.map((b) => (b.open ? 0 : series.reduce((s, se) => s + se.value(b), 0)));
+  const totalOf = (b) => (b.open ? 0 : series.reduce((s, se) => s + se.value(b), 0));
+  const totals = bs.map(totalOf);
+  const nbs = secNeighbours(analysis);
   const mean = series.reduce((s, se) => s + (se.mean(analysis) || 0), 0);
-  const maxVal = Math.max(1, ...totals, mean);
+  // Die Nachbarfenster zählen für den Maßstab mit — sonst sprängen die Balken
+  // beim Einrasten auf eine neue Höhe.
+  const maxVal = Math.max(1, ...totals, ...nbs.map((n) => totalOf(n.b)), mean);
   const y = scaleLinear().domain([0, maxVal]).range([baseline, baseline - maxPx]);
-  const cxOf = (i) => startX + i * (barW + gap) + barW / 2;
+  const cxOf = (i) => startX + i * step + barW / 2;
   analyseRender[chartId] = {
-    cfg, bs, series, totals, mean, cxOf, yOf: (v) => y(v),
-    idxAt: (vx) => Math.round((vx - startX - barW / 2) / (barW + gap))
+    cfg, bs, series, totals, mean, cxOf, yOf: (v) => y(v), step,
+    idxAt: (vx) => Math.round((vx - startX - barW / 2) / step)
   };
 
-  let out = '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
+  let out = '<line x1="-300" y1="95" x2="608" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
     svgMeanLine(mean, maxVal, baseline, maxPx, seInk(series[0]));
 
-  bs.forEach((b, i) => {
-    const x = startX + i * (barW + gap);
+  // i < 0 bzw. ≥ bs.length: ein Balken der Nachbarfenster, ohne data-i.
+  const bar = (b, i, own) => {
+    const x = startX + i * step;
     let stack = 0, rects = '';
     // barColor: eine Reihe kann einzelne Balken umfärben (Nacht ohne Einträge).
     const colorOf = (se) => (se.barColor && se.barColor(b)) || se.color;
@@ -8482,12 +8619,23 @@ function secBarInner(chartId, cfg, analysis) {
       // Markierungslinie, und die Zahl steht ohnehin groß im Label.
       rects += '<text class="val" x="' + cxOf(i) + '" y="' + Math.max(12, baseline - stack - 4) +
         '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' + ((series[0].barColor && series[0].barColor(b)) || seInk(series[0])) +
-        '" text-anchor="middle">' + (cfg.barText ? cfg.barText(b) : cfg.barLabel(totals[i])) + '</text>';
+        '" text-anchor="middle">' + (cfg.barText ? cfg.barText(b) : cfg.barLabel(totalOf(b))) + '</text>';
     }
-    out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cxOf(i), seInk(series[0])) + '</g>';
-  });
+    return '<g class="bk"' + (own ? ' data-i="' + i + '"' : '') + '>' + rects + secAxisLabel(b, cxOf(i), seInk(series[0])) + '</g>';
+  };
+  bs.forEach((b, i) => { out += bar(b, i, true); });
+  nbs.forEach((n) => { out += bar(n.b, n.i, false); });
 
-  return out + SEC_MARKER + secHitRects(bs, cxOf, barW + gap);
+  return out + SEC_MARKER + secHitRects(bs, cxOf, step);
+}
+
+// Die Balken der Nachbarfenster mit ihrem Platz neben dem Fenster: links
+// i = −n…−1, rechts ab bs.length. In „Stunden" gibt es keine.
+function secNeighbours(analysis) {
+  const ext = analysis.ext;
+  if (!ext || analyseScope.mode === 'hours') return [];
+  const n = analysis.perDay.length;
+  return ext.prev.map((b, k) => ({ b, i: k - ext.prev.length })).concat(ext.next.map((b, k) => ({ b, i: n + k })));
 }
 
 // Linien-/Flächendiagramm. Der markierte Tag tritt hervor, indem die ganze
@@ -8506,26 +8654,30 @@ function secAreaInner(chartId, cfg, analysis) {
   const se = series[0];
   const stacked = series.length > 1;
   // Ein offener Punkt (Woche/Monat nur mit heute) fehlt, die Linie endet davor.
-  const totals = bs.map((b) => (b.open ? 0 : series.reduce((s, r) => s + r.value(b), 0)));
+  const totalOf = (b) => (b.open ? 0 : series.reduce((s, r) => s + r.value(b), 0));
+  const totals = bs.map(totalOf);
   const mean = series.reduce((s, r) => s + (r.mean(analysis) || 0), 0);
-  const maxVal = Math.max(1, ...totals, mean);
-  const x = scalePoint().domain(bs.map((_, i) => i)).range([19, 289]);
+  // Die Kurve läuft durch die Nachbarfenster weiter (beim Schieben sichtbar).
+  const nbs = secNeighbours(analysis);
+  const all = nbs.filter((n) => n.i < 0).concat(bs.map((b, i) => ({ b, i })), nbs.filter((n) => n.i >= 0));
+  const maxVal = Math.max(1, ...all.map((n) => totalOf(n.b)), mean);
+  const x0 = 19, step = bs.length > 1 ? 270 / (bs.length - 1) : 270;
+  const x = (i) => x0 + i * step;
   const y = scaleLinear().domain([0, maxVal]).range([baseline, topY]);
   const cxOf = (i) => x(i);
-  const step = bs.length > 1 ? x(1) - x(0) : 270;
   analyseRender[chartId] = {
     cfg, bs, series, totals, mean, cxOf, yOf: (v) => y(v), step,
-    idxAt: (vx) => Math.round((vx - x(0)) / step)
+    idxAt: (vx) => Math.round((vx - x0) / step)
   };
 
-  const pts = bs.map((b, i) => ({ x: x(i), y: y(totals[i]), open: b.open }));
+  const pts = all.map((n) => ({ x: x(n.i), y: y(totalOf(n.b)), open: n.b.open }));
   const linePath = d3Line().defined((p) => !p.open).x((p) => p.x).y((p) => p.y).curve(curveLinear).digits(10)(pts);
   const gid = 'grad-' + chartId, cid = 'clip-' + chartId;
   const line = '<path d="' + linePath + '" fill="none" stroke="' + se.color +
     '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
   let curve;
   if (stacked) {
-    const lows = bs.map((b, i) => ({ x: x(i), y0: y(0), y1: y(b.open ? 0 : se.value(b)), yt: pts[i].y, open: b.open }));
+    const lows = all.map((n, k) => ({ x: x(n.i), y0: y(0), y1: y(n.b.open ? 0 : se.value(n.b)), yt: pts[k].y, open: n.b.open }));
     const lowPath = d3Area().defined((p) => !p.open).x((p) => p.x).y0((p) => p.y0).y1((p) => p.y1).curve(curveLinear).digits(10)(lows);
     const topPath = d3Area().defined((p) => !p.open).x((p) => p.x).y0((p) => p.y1).y1((p) => p.yt).curve(curveLinear).digits(10)(lows);
     curve = '<path d="' + topPath + '" fill="' + series[1].color + '" fill-opacity="0.75"/>' +
@@ -8539,17 +8691,17 @@ function secAreaInner(chartId, cfg, analysis) {
       '<stop offset="0%" stop-color="' + se.color + '" stop-opacity="0.35"/>' +
       '<stop offset="100%" stop-color="' + se.color + '" stop-opacity="0"/></linearGradient>' +
       '<clipPath id="' + cid + '"><rect class="ar-clip" x="0" y="0" width="' + step + '" height="' + baseline + '"/></clipPath></defs>' +
-    '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
+    '<line x1="-300" y1="95" x2="608" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
     svgMeanLine(mean, maxVal, baseline, baseline - topY, se.color) +
     '<g class="ar-dim">' + curve + '</g>' +
     '<g class="ar-hi" clip-path="url(#' + cid + ')">' + curve + '</g>';
 
-  bs.forEach((b, i) => {
-    const p = pts[i];
+  all.forEach((n, k) => {
+    const p = pts[k], b = n.b, own = n.i >= 0 && n.i < bs.length;
     const dot = b.open ? '' : b.isToday
       ? '<circle cx="' + p.x + '" cy="' + p.y + '" r="3.4" fill="' + se.color + '" stroke="white" stroke-width="1.5"/>'
       : '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + se.color + '"/>';
-    out += '<g class="bk" data-i="' + i + '">' + dot + secAxisLabel(b, p.x, se.color) + '</g>';
+    out += '<g class="bk"' + (own ? ' data-i="' + n.i + '"' : '') + '>' + dot + secAxisLabel(b, p.x, se.color) + '</g>';
   });
 
   return out + SEC_MARKER + secHitRects(bs, cxOf, step);
@@ -9048,17 +9200,18 @@ function secShareInner(chartId, cfg, analysis) {
   const y = scaleLinear().domain([0, 100]).range([baseline, baseline - colH]);
   const cxOf = (i) => startX + i * step + barW / 2;
   analyseRender[chartId] = {
-    cfg, bs, series, totals, mean, cxOf,
+    cfg, bs, series, totals, mean, cxOf, step,
     // Ohne Seitenangabe hat der Tag keinen Wert — die Markierung sitzt dann
     // auf der Grundlinie statt im Nirgendwo.
     yOf: (v) => (v === null ? baseline : y(v)),
     idxAt: (vx) => Math.round((vx - startX - barW / 2) / step)
   };
 
-  let out = '<line x1="4" y1="95" x2="304" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
+  let out = '<line x1="-300" y1="95" x2="608" y2="95" stroke="oklch(87% 0.004 250)" stroke-width="1"/>' +
     svgMeanLine(mean, 100, baseline, colH, lead.color);
 
-  bs.forEach((b, i) => {
+  // Nachbarfenster ohne data-i (für das seitliche Schieben).
+  bs.map((b, i) => ({ b, i, own: true })).concat(secNeighbours(analysis)).forEach(({ b, i, own }) => {
     const x = startX + i * step, cx = cxOf(i);
     let stack = 0, rects = '';
     series.forEach((se) => {
@@ -9071,14 +9224,14 @@ function secShareInner(chartId, cfg, analysis) {
     });
     // Die Zahl steht im Block der führenden Seite. Wird er zu flach, rückt sie
     // darüber und wechselt aus der Schrift auf dem Block in die daneben.
-    const v0 = totals[i];
+    const v0 = b.open ? null : lead.value(b);
     if (v0 !== null) {
       const inside = v0 >= 20;
       rects += '<text class="val" x="' + cx + '" y="' + (inside ? baseline - 7 : y(v0) - 5) +
         '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' +
         (inside ? lead.ink : cfg.inkOut) + '" text-anchor="middle">' + cfg.barLabel(v0) + '</text>';
     }
-    out += '<g class="bk" data-i="' + i + '">' + rects + secAxisLabel(b, cx, lead.color) + '</g>';
+    out += '<g class="bk"' + (own ? ' data-i="' + i + '"' : '') + '>' + rects + secAxisLabel(b, cx, lead.color) + '</g>';
   });
 
   // Die Ø-Linie steht schon oben, hinter den Säulen: in den Lücken zwischen
@@ -9100,29 +9253,31 @@ function secClockInner(chartId, cfg, analysis) {
   const bedLabelY = 13, wakeLabelY = wakeBot + 29, baseline = wakeLabelY + 9;
   // Ein offener Balken (Woche/Monat nur mit heute) bleibt leer.
   const bedOf = (b) => (b.open ? null : b.bedMin), wakeOf = (b) => (b.open ? null : b.wakeClockMin);
-  const beds = bs.map(bedOf).filter((v) => v !== null);
-  const wakes = bs.map(wakeOf).filter((v) => v !== null);
+  // Die Nachbarfenster (beim seitlichen Schieben sichtbar) zählen für den Maßstab mit.
+  const all = bs.map((b, i) => ({ b, i, own: true })).concat(secNeighbours(analysis));
+  const beds = all.map((n) => bedOf(n.b)).filter((v) => v !== null);
+  const wakes = all.map((n) => wakeOf(n.b)).filter((v) => v !== null);
   const spread = (vs) => (vs.length ? Math.max(...vs) - Math.min(...vs) : 0);
   const mid = (vs) => (vs.length ? (Math.max(...vs) + Math.min(...vs)) / 2 : 0);
   const span = Math.max(60, spread(beds), spread(wakes)) + 20;
   const yBed = scaleLinear().domain([mid(beds) - span / 2, mid(beds) + span / 2]).range([bedTop, bedBot]);
   const yWake = scaleLinear().domain([mid(wakes) - span / 2, mid(wakes) + span / 2]).range([wakeTop, wakeBot]);
-  const x = scalePoint().domain(bs.map((_, i) => i)).range([19, 289]);
+  const step = bs.length > 1 ? 270 / (bs.length - 1) : 270;
+  const x = (i) => 19 + i * step;
   const cxOf = (i) => x(i);
-  const step = bs.length > 1 ? x(1) - x(0) : 270;
   const hour = (m) => String(((Math.round(m / 60) % 24) + 24) % 24);
   analyseRender[chartId] = {
-    cfg, bs, series: cfg.series, totals: bs.map(bedOf), mean: analysis, cxOf,
+    cfg, bs, series: cfg.series, totals: bs.map(bedOf), mean: analysis, cxOf, step,
     // Ohne Nacht sitzt die Markierung auf der Grundlinie.
     yOf: (v) => (v === null ? baseline : yBed(v)),
     yOf2: (i) => (wakeOf(bs[i]) === null ? null : yWake(bs[i].wakeClockMin)),
     idxAt: (vx) => Math.round((vx - x(0)) / step)
   };
 
-  let out = '<line x1="4" y1="' + baseline + '" x2="304" y2="' + baseline + '" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
+  let out = '<line x1="-300" y1="' + baseline + '" x2="608" y2="' + baseline + '" stroke="oklch(87% 0.004 250)" stroke-width="1"/>';
   if (analysis.avgBedMin !== null) {
     [yBed(analysis.avgBedMin), yWake(analysis.avgWakeMin)].forEach((y) => {
-      out += '<line x1="4" y1="' + y + '" x2="304" y2="' + y + '" stroke="' + color +
+      out += '<line x1="-300" y1="' + y + '" x2="608" y2="' + y + '" stroke="' + color +
         '" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"/>';
     });
   }
@@ -9140,13 +9295,16 @@ function secClockInner(chartId, cfg, analysis) {
     sun += '<line x1="' + (15 + c * 4.4) + '" y1="' + (sunY + s * 4.4) + '" x2="' + (15 + c * 6) + '" y2="' + (sunY + s * 6) +
       '" stroke="' + color + '" stroke-width="1.3" stroke-linecap="round"/>';
   }
-  out += label(bedLabelY, 'Einschlafen', moon) + label(wakeLabelY, 'Aufwachen', sun);
+  // Die Beschriftung bleibt beim seitlichen Schieben stehen (hinter
+  // SEC_STATIC, außerhalb der verschiebbaren Gruppe).
+  const bandLabels = label(bedLabelY, 'Einschlafen', moon) + label(wakeLabelY, 'Aufwachen', sun);
 
   // Achsenbruch: Streifen mit Zickzack-Kanten, deckend über den Balken (wird
   // deshalb nach ihnen angehängt). Farben wie Fläche/Grundlinie, nicht Lila.
+  // Er reicht über die Zeichenfläche hinaus, damit er beim Schieben durchläuft.
   const zig = (y, dir) => {
     const p = [];
-    for (let zx = 4, k = 0; zx <= 304; zx += 6, k++) p.push(zx + ',' + (y + (k % 2 ? dir * 2.2 : 0)));
+    for (let zx = -296, k = 0; zx <= 604; zx += 6, k++) p.push(zx + ',' + (y + (k % 2 ? dir * 2.2 : 0)));
     return p;
   };
   const zTop = zig(bedBot + 6, -1), zBot = zig(wakeTop - 6, 1);
@@ -9156,7 +9314,7 @@ function secClockInner(chartId, cfg, analysis) {
 
   const bar = (cx, y1, y2) => '<line x1="' + cx + '" y1="' + y1 + '" x2="' + cx + '" y2="' + y2 + '" stroke="' + light +
     '" stroke-opacity="0.65" stroke-width="6" stroke-linecap="round"/>';
-  bs.forEach((b, i) => {
+  all.forEach(({ b, i, own }) => {
     const cx = x(i);
     let g = '';
     if (bedOf(b) !== null) {
@@ -9170,7 +9328,7 @@ function secClockInner(chartId, cfg, analysis) {
         '<text class="val" x="' + cx + '" y="' + (yw + 19) + '" font-family="Work Sans, sans-serif" font-size="13" font-weight="700" fill="' +
           color + '" text-anchor="middle">' + hour(b.wakeClockMin) + '</text>';
     }
-    out += '<g class="bk" data-i="' + i + '">' + g + secAxisLabel(b, cx, color, baseline + 17) + '</g>';
+    out += '<g class="bk"' + (own ? ' data-i="' + i + '"' : '') + '>' + g + secAxisLabel(b, cx, color, baseline + 17) + '</g>';
   });
 
   // Wie SEC_MARKER, dazu ein zweiter Punkt auf der Aufwachzeit. Die Linie
@@ -9179,8 +9337,12 @@ function secClockInner(chartId, cfg, analysis) {
     '<line class="sc-line" x1="0" y1="' + (bedLabelY + 6) + '" x2="0" y2="0" stroke="oklch(27% 0.006 250)" stroke-width="1.4"/>' +
     '<circle class="sc-dot" cx="0" cy="0" r="4" fill="oklch(27% 0.006 250)" stroke="white" stroke-width="2"/>' +
     '<circle class="sc-dot2" cx="0" cy="0" r="4" fill="oklch(27% 0.006 250)" stroke="white" stroke-width="2"/></g>' +
-    secHitRects(bs, cxOf, step, cfg.viewH);
+    secHitRects(bs, cxOf, step, cfg.viewH) + SEC_STATIC + bandLabels;
 }
+
+// Trennt im Innenleben eines Datum-Diagramms, was beim seitlichen Schieben
+// stehen bleibt (danach), von dem, was mitgleitet (davor).
+const SEC_STATIC = '<!--static-->';
 
 function secChartInner(chartId, cfg, analysis) {
   if (analyseScope.mode === 'hours' && cfg.hours) return secHoursInner(chartId, cfg, analysis);
@@ -9215,6 +9377,9 @@ function secCardShell(view, chartId, part) {
       '</div>';
   return '<div class="' + (part ? 'a-part' : 'a-card') + '" data-card="' + chartId + '">' + head +
     '<div class="a-chart-wrap"><div class="a-tip" hidden></div>' +
+      (cfg.type === 'verlauf' ? '' :
+        '<button type="button" class="a-pg l" data-dir="-1" aria-label="Früherer Zeitraum" hidden>' + ANALYSE_ICON_CHEVRON_L + '</button>' +
+        '<button type="button" class="a-pg r" data-dir="1" aria-label="Späterer Zeitraum" hidden>' + ANALYSE_ICON_CHEVRON + '</button>') +
       // Höhere Diagramme behalten den Maßstab der übrigen (105 px für 118 Einheiten).
       '<svg class="a-chart" viewBox="0 0 308 ' + (cfg.viewH || 118) + '" data-chart="' + chartId + '"' +
         (cfg.viewH ? ' style="height:' + Math.round(cfg.viewH * 105 / 118) + 'px"' : '') + '></svg></div>' +
@@ -9258,7 +9423,7 @@ function updateAnalyseContext() {
   // sein Name. Dunkel, sobald ein bestimmter Ausschnitt gezeigt wird. Eine
   // markierte Uhrzeit allein bekommt kein ✕ — sie schließt per Tipp daneben.
   if (analyseScope.mode === 'hours') {
-    const plain = !analyseScope.parent;
+    const plain = !analyseScope.end;
     const day = analyseBuckets[analyseBuckets.length - 1];
     ctx.querySelector('[data-ctx-text]').textContent = plain || !day ? 'Heute' : day.contextLabel;
     ctx.classList.toggle('sel', !plain);
@@ -9267,10 +9432,10 @@ function updateAnalyseContext() {
   const b = analyseSelectedBucket(analyseView);
 
   ctx.querySelector('[data-ctx-text]').textContent = b ? b.contextLabel
-    : analyseScope.parent ? analyseParentTitle(analyseScope.parent)
+    : analyseScope.end ? analyseWindowTitle()
     : ANALYSE_ZOOM_UI[analyseScope.mode].rangeText;
   // Farbig = ein bestimmter Ausschnitt, grau = der laufende Zeitraum.
-  ctx.classList.toggle('sel', !!b || analyseScope.parent !== null);
+  ctx.classList.toggle('sel', !!b || analyseScope.end !== null);
 }
 
 // Kennzahl-Kacheln und Kontextzeile folgen dem markierten Balken. Der
@@ -9337,7 +9502,8 @@ function applySecSelection(view, center) {
     // gewählte Tag über alle Kennzahlen hinweg ablesbar.
     svgEl.classList.toggle('has-sel', i >= 0);
     svgEl.classList.toggle('is-active', active);
-    const groups = svgEl.querySelectorAll('.bk');
+    // Nur die Balken des Fensters — die der Nachbarfenster tragen kein data-i.
+    const groups = svgEl.querySelectorAll('.bk[data-i]');
     for (let k = 0; k < groups.length; k++) groups[k].classList.toggle('on', k === i);
 
     const cx = i >= 0 ? r.cxOf(i) : 0;
@@ -9390,7 +9556,21 @@ function updateSecCard(view, chartId) {
   card.hidden = hours && !cfg.hours;
   if (card.hidden) return;
   card.querySelector('.a-card-label').textContent = hours ? cfg.hours.title : cfg.title;
-  card.querySelector('svg.a-chart').innerHTML = secChartInner(chartId, cfg, analyseData[view]);
+  // Datum-Diagramme lassen sich seitlich schieben: der Inhalt liegt in einer
+  // verschiebbaren Gruppe, beschnitten auf die Zeichenfläche — die Nachbar-
+  // fenster daneben wären sonst im Leerraum links und rechts zu sehen.
+  const dated = !hours && cfg.type !== 'verlauf';
+  const [moving, still] = secChartInner(chartId, cfg, analyseData[view]).split(SEC_STATIC);
+  card.querySelector('svg.a-chart').innerHTML = dated
+    ? '<defs><clipPath id="pan-clip-' + chartId + '"><rect x="0" y="0" width="308" height="' + (cfg.viewH || 118) + '"/></clipPath></defs>' +
+      '<g clip-path="url(#pan-clip-' + chartId + ')"><g class="a-pan">' + moving + '</g></g>' + (still || '')
+    : moving + (still || '');
+  // Frisch gezeichnet liegt nichts mehr verschoben — das Label darf zurück.
+  const tipEl = card.querySelector('.a-tip');
+  if (tipEl) tipEl.style.visibility = '';
+  card.querySelectorAll('.a-pg').forEach((btn) => {
+    btn.hidden = !dated || analyseRoom(Number(btn.dataset.dir)) === 0;
+  });
 
   const iso = analyseFilter[chartId];
   const cs = secForcedSeries(chartId);
@@ -9581,13 +9761,13 @@ function analyseTimeSelNear(view, chartId, clientX) {
       if (mouse && !near) pickT(view, id, e.clientX);
       return;
     }
-    const i0 = secIndexAt(svgEl, e.clientX);
+    // Datum-Diagramme: Wischen verschiebt den Zeitraum, ein Tipp markiert.
+    // Auch mit der Maus erst beim Loslassen — Ziehen heißt dort ebenfalls
+    // Schieben.
     scrub = {
-      view, id, startX: e.clientX, startY: e.clientY, startIndex: i0,
-      locked: mouse, moved: false,
-      wasSelected: secIsPicked(view, id, i0)
+      view, id, startX: e.clientX, startY: e.clientY, startIndex: secIndexAt(svgEl, e.clientX),
+      locked: false, pan: null, hist: [{ x: e.clientX, t: e.timeStamp }]
     };
-    if (mouse) secPick(view, id, i0, false);
   });
 
   host.addEventListener('pointermove', (e) => {
@@ -9605,15 +9785,32 @@ function analyseTimeSelNear(view, chartId, clientX) {
       ' svg[data-chart="' + scrub.id + '"]');
     if (!svgEl) return;
     if (scrub.hours) { scrub.pickT(scrub.view, scrub.id, e.clientX); return; }
-    if (Math.abs(e.clientX - scrub.startX) > 4) scrub.moved = true;
-    secPick(scrub.view, scrub.id, secIndexAt(svgEl, e.clientX), false);
+    if (!scrub.pan) {
+      const r = analyseRender[scrub.id], m = svgEl.getScreenCTM();
+      if (analysePanBusy || !r || !r.step || !m || !m.a) return;
+      scrub.pan = { scale: m.a, step: r.step, back: Math.min(analyseRoom(-1), analyseBuckets.length), fwd: Math.min(analyseRoom(1), analyseBuckets.length), d: 0 };
+    }
+    // d: um wie viele Balken der Finger geschoben hat (nach rechts positiv).
+    // Über Beginn bzw. heute hinaus gibt es nur noch etwas nach.
+    const p = scrub.pan;
+    let d = (e.clientX - scrub.startX) / p.scale / p.step;
+    if (d > p.back) d = p.back + (d - p.back) * 0.25;
+    if (d < -p.fwd) d = -p.fwd + (d + p.fwd) * 0.25;
+    p.d = d;
+    scrub.hist.push({ x: e.clientX, t: e.timeStamp });
+    if (scrub.hist.length > 6) scrub.hist.shift();
+    analysePanTo(scrub.view, d, false);
+    analyseTapeFollow(d);
   });
 
   // Der Browser übernimmt die Geste als Scrollen (touch-action: pan-y) und
   // schickt pointercancel — dann ist es keine Balkenauswahl.
-  host.addEventListener('pointercancel', () => { scrub = null; });
+  host.addEventListener('pointercancel', () => {
+    if (scrub && scrub.pan) { analysePanTo(scrub.view, 0, true); analyseTapeFollow(0); }
+    scrub = null;
+  });
 
-  window.addEventListener('pointerup', () => {
+  window.addEventListener('pointerup', (e) => {
     if (!scrub) return;
     const s = scrub;
     scrub = null;
@@ -9629,13 +9826,15 @@ function analyseTimeSelNear(view, chartId, clientX) {
     // Nie festgelegt = kurzer Tipp ohne nennenswerte Bewegung: jetzt erst
     // auswählen, bzw. eine bestehende Markierung wieder aufheben.
     if (!s.locked) { secPick(s.view, s.id, s.startIndex, true); return; }
+    if (!s.pan) return;
 
-    // Ein Tipp auf den bereits markierten Balken hebt die Markierung auf;
-    // nach einer Wischbewegung bleibt sie stehen.
-    if (!s.moved && s.wasSelected && secIsPicked(s.view, s.id, s.startIndex)) {
-      analyseSel = null;
-      applySecSelection(s.view);
-    }
+    // Auf ganze Balken einrasten. Schwung trägt etwas weiter — aber nur, wenn
+    // der Finger beim Loslassen noch in Bewegung war.
+    const p = s.pan, a = s.hist[0], b = s.hist[s.hist.length - 1];
+    const v = b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0;
+    const throwD = e.timeStamp - b.t < 80 && Math.abs(v) > 0.3 ? v * 160 / p.scale / p.step : 0;
+    const n = Math.max(-p.back, Math.min(p.fwd, -Math.round(p.d + throwD)));
+    analyseSlide(n, Math.max(-p.fwd, Math.min(p.back, p.d)));
   });
 
   host.addEventListener('click', (e) => {
@@ -9652,6 +9851,10 @@ function analyseTimeSelNear(view, chartId, clientX) {
       return;
     }
     if (e.target.closest && e.target.closest('.a-ov-card')) return;
+
+    // Pfeile neben einem Datum-Diagramm: ein ganzes Fenster weiter.
+    const pg = e.target.closest && e.target.closest('.a-pg');
+    if (pg) { analyseSlide(Number(pg.dataset.dir) * analyseBuckets.length); return; }
 
     // Farbfilter der Verteilungskarte: er steuert auch das Diagramm darüber.
     const clg = e.target.closest && e.target.closest('.clg');
@@ -9713,6 +9916,234 @@ function analyseTimeSelNear(view, chartId, clientX) {
   }, true);
 })();
 
+// --- Zeitraum verschieben: Wischen, Pfeile, Maßband ----------------------
+// Wischen und Pfeile lassen die Datum-Diagramme seitlich gleiten (die
+// Nachbarfenster sind schon gezeichnet) und rasten auf ganze Balken ein; das
+// Maßband im Kopf läuft mit. Erst danach wird das neue Fenster gerechnet.
+const ANALYSE_DAY_MS = 86400000;
+// Sperrt weitere Bewegungen, bis das neue Fenster gezeichnet ist.
+let analysePanBusy = false;
+
+// Alle Datum-Diagramme des Bereichs gleiten gemeinsam um d Balken (positiv =
+// nach rechts, also in die Vergangenheit), jedes in seiner eigenen
+// Balkenbreite. Das schwebende Label tritt solange zurück.
+function analysePanTo(view, d, animate) {
+  const ui = ANALYSE_SECTION_UI[view];
+  if (!ui) return;
+  document.querySelectorAll('#' + ui.hostId + ' svg.a-chart').forEach((svgEl) => {
+    const g = svgEl.querySelector('.a-pan');
+    const r = analyseRender[svgEl.dataset.chart];
+    if (!g || !r || !r.step) return;
+    g.style.transition = animate ? 'transform .24s cubic-bezier(.2, .7, .3, 1)' : 'none';
+    g.style.transform = d ? 'translateX(' + (d * r.step) + 'px)' : '';
+    const tip = svgEl.parentElement.querySelector('.a-tip');
+    if (tip) tip.style.visibility = d ? 'hidden' : '';
+  });
+}
+
+// Um n Balken weiter (negativ = früher). fromD: wo der Finger die Diagramme
+// losgelassen hat, von dort gleiten sie weiter.
+function analyseSlide(n, fromD) {
+  const view = analyseView;
+  if (analysePanBusy || !ANALYSE_SECTION_UI[view]) return;
+  const mode = analyseScope.mode, end = analyseEndDate();
+  const target = analyseShiftEnd(mode, end, n);
+  n = analyseBarDelta(mode, end, target);
+  if (!n) { analysePanTo(view, 0, true); analyseTapeFollow(0); return; }
+  analysePanBusy = true;
+  if (fromD !== undefined) analysePanTo(view, fromD, false);
+  // Startlage festschreiben, damit der Übergang von dort aus greift.
+  document.getElementById('analyse-body').getBoundingClientRect();
+  analysePanTo(view, -n, true);
+  analyseTapeAnimate(+target, false);
+  setTimeout(() => {
+    analyseMoveSel(n);
+    analyseHourSel = null;
+    analyseVerlaufSel = null;
+    analyseSetEnd(target);
+    updateAnalyseScopeChips();
+    loadAnalyse().finally(() => { analysePanBusy = false; });
+  }, 250);
+}
+
+// Nachladen während das Maßband läuft: nie zwei auf einmal, und nach dem
+// laufenden nur noch das jüngste.
+let analyseLoadRunning = false, analyseLoadAgain = false;
+function analyseScheduleLoad() {
+  if (analyseLoadRunning) { analyseLoadAgain = true; return; }
+  analyseLoadRunning = true;
+  loadAnalyse().finally(() => {
+    analyseLoadRunning = false;
+    if (analyseLoadAgain) { analyseLoadAgain = false; analyseScheduleLoad(); }
+  });
+}
+
+// Fensterende auf dem Maßband (ms), solange es sich bewegt; sonst null und
+// das Band steht auf analyseScope.end.
+let analyseTapeMs = null;
+let analyseTapeAnim = null;
+
+function analyseTapeEndMs() { return analyseTapeMs !== null ? analyseTapeMs : +analyseEndDate(); }
+
+// Das Fenster steht fest in der Mitte; x eines Zeitpunkts auf dem Band.
+function analyseTapeX(ms, w) {
+  const t = ANALYSE_TAPE[analyseScope.mode], endMs = analyseTapeEndMs();
+  const center = (endMs - (t.len - 1) * ANALYSE_DAY_MS + endMs + ANALYSE_DAY_MS) / 2;
+  return w / 2 + (ms - center) / ANALYSE_DAY_MS / t.span * w;
+}
+
+function renderAnalyseTape() {
+  const el = document.getElementById('analyse-tape');
+  const w = el ? el.clientWidth : 0;
+  if (!w) return;
+  const mode = analyseScope.mode, t = ANALYSE_TAPE[mode], endMs = analyseTapeEndMs();
+  const X = (ms) => analyseTapeX(ms, w);
+  const today = todayStartDate();
+  let h = '<div class="tp-track"></div>';
+  const xs = X(+analyseFirstDay()), xe = X(+today + ANALYSE_DAY_MS);
+  if (xs > 0) h += '<div class="tp-none" style="left:0;width:' + xs + 'px;border-radius:7px 0 0 7px"></div>';
+  if (xe < w) h += '<div class="tp-none" style="left:' + xe + 'px;width:' + (w - xe) + 'px;border-radius:0 7px 7px 0"></div>';
+  const lo = new Date(endMs - t.span * ANALYSE_DAY_MS), hi = new Date(endMs + t.span * ANALYSE_DAY_MS);
+  // Feine Striche: in „Stunden" jeder Tag, in „Tage" jeder Montag.
+  if (mode === 'hours' || mode === 'days') {
+    const stepDays = mode === 'hours' ? 1 : 7;
+    for (let d = mode === 'hours' ? new Date(lo.getFullYear(), lo.getMonth(), lo.getDate()) : mondayOf(lo); d <= hi; d = analyseAddDays(d, stepDays)) {
+      const x = X(+d);
+      if (x > 0 && x < w) h += '<div class="tp-tick w" style="left:' + x + 'px"></div>';
+    }
+  }
+  // Monate: Strich und Name; bei Wochen jeder zweite Name, bei Monaten nur
+  // die Quartale. Das Jahr steht am Januar und am ersten Namen.
+  let first = true;
+  for (let m = new Date(lo.getFullYear(), lo.getMonth(), 1); m <= hi; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+    const x = X(+m);
+    if (x < -60 || x > w) continue;
+    if (mode === 'months' && m.getMonth() % 3) continue;
+    h += '<div class="tp-tick" style="left:' + x + 'px"></div>';
+    if (mode === 'weeks' && m.getMonth() % 2) continue;
+    if (x < -2) continue;
+    const year = m.getMonth() === 0 || first || mode === 'months';
+    h += '<div class="tp-lab' + (m.getMonth() === 0 ? ' y' : '') + '" style="left:' + x + 'px" data-jump="' + (+m) + '">' +
+      ANALYSE_MONTH_SHORT[m.getMonth()] + (year ? ' ' + m.getFullYear() : '') + '</div>';
+    first = false;
+  }
+  const ws = X(endMs - (t.len - 1) * ANALYSE_DAY_MS), we = X(endMs + ANALYSE_DAY_MS);
+  h += '<div class="tp-win" style="left:' + ws + 'px;width:' + Math.max(14, we - ws) + 'px"></div>' +
+    '<div class="tp-edge l"></div><div class="tp-edge r"></div>';
+  el.innerHTML = h;
+}
+
+// Beim Wischen im Diagramm läuft das Band mit (d Balken, wie analysePanTo).
+function analyseTapeFollow(d) {
+  analyseTapeMs = d ? +analyseEndDate() - d * ANALYSE_TAPE[analyseScope.mode].bar * ANALYSE_DAY_MS : null;
+  renderAnalyseTape();
+}
+
+// Einrasten auf ganze Balken: Tage auf den Tag, Wochen auf den Sonntag,
+// Monate auf das Monatsende — begrenzt auf Beginn und heute.
+function analyseSnapEnd(ms) {
+  const mode = analyseScope.mode, x = new Date(ms + ANALYSE_DAY_MS / 2);
+  let d = new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  if (mode === 'weeks') {
+    const mon = mondayOf(d);
+    d = (d - mon) / ANALYSE_DAY_MS < 3.5 ? analyseAddDays(mon, -1) : analyseAddDays(mon, 6);
+  } else if (mode === 'months') {
+    d = d.getDate() < 15 ? new Date(d.getFullYear(), d.getMonth(), 0) : new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  }
+  const today = todayStartDate(), min = analyseMinEnd(mode);
+  return +(d > today ? today : d < min ? min : d);
+}
+
+// Das Band auf ms stellen. live: das Fenster folgt sofort (Ziehen am Band) —
+// sobald ein anderer Balken am Ende steht, wird nachgeladen.
+function analyseTapeSet(ms, live) {
+  const today = todayStartDate();
+  analyseTapeMs = Math.max(+analyseMinEnd(analyseScope.mode), Math.min(+today, ms));
+  if (live) {
+    const x = new Date(analyseTapeMs + ANALYSE_DAY_MS / 2);
+    const day = new Date(x.getFullYear(), x.getMonth(), x.getDate());
+    const old = analyseEndDate();
+    if (+day !== +old) {
+      const n = analyseBarDelta(analyseScope.mode, old, day);
+      analyseSetEnd(day);
+      if (n) {
+        analyseMoveSel(n);
+        analyseHourSel = null;
+        analyseVerlaufSel = null;
+        analyseScheduleLoad();
+      }
+      updateAnalyseContext();
+    }
+  }
+  renderAnalyseTape();
+}
+
+function analyseTapeAnimate(target, live) {
+  cancelAnimationFrame(analyseTapeAnim);
+  const from = analyseTapeEndMs(), t0 = performance.now();
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const step = (now) => {
+    const k = reduce ? 1 : Math.min(1, (now - t0) / 260), e = 1 - Math.pow(1 - k, 3);
+    analyseTapeSet(from + (target - from) * e, live);
+    if (k < 1) analyseTapeAnim = requestAnimationFrame(step);
+    else { analyseTapeMs = null; renderAnalyseTape(); }
+  };
+  analyseTapeAnim = requestAnimationFrame(step);
+}
+
+(function wireAnalyseTape() {
+  const el = document.getElementById('analyse-tape');
+  el.addEventListener('pointerdown', (e) => {
+    if (analysePanBusy) return;
+    cancelAnimationFrame(analyseTapeAnim);
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* Zeiger schon weg */ }
+    const box = el.getBoundingClientRect(), w = box.width, sx = e.clientX;
+    const t = ANALYSE_TAPE[analyseScope.mode], startMs = analyseTapeEndMs();
+    let moved = false;
+    const hist = [{ x: sx, t: e.timeStamp }];
+    const move = (ev) => {
+      if (Math.abs(ev.clientX - sx) > 4) moved = true;
+      if (!moved) return;
+      hist.push({ x: ev.clientX, t: ev.timeStamp });
+      if (hist.length > 6) hist.shift();
+      // Band nach rechts ziehen holt frühere Tage ins Fenster.
+      analyseTapeSet(startMs - (ev.clientX - sx) / w * t.span * ANALYSE_DAY_MS, true);
+    };
+    const up = (ev) => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+      if (!moved) {
+        // Tipp: auf einen Monatsnamen springt dorthin, sonst an die Stelle.
+        const lab = ev.target.closest && ev.target.closest('[data-jump]');
+        const ms = lab ? +lab.dataset.jump + (t.len - 1) * ANALYSE_DAY_MS
+          : analyseTapeEndMs() + ((ev.clientX - box.left) / w - 0.5) * t.span * ANALYSE_DAY_MS + t.len / 2 * ANALYSE_DAY_MS;
+        analyseTapeAnimate(analyseSnapEnd(ms), true);
+        return;
+      }
+      // Schwung nur, wenn der Finger beim Loslassen noch in Bewegung war.
+      const a = hist[0], b = hist[hist.length - 1];
+      let v = b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0;
+      v = Math.max(-2.5, Math.min(2.5, v));
+      if (Math.abs(v) < 0.25 || ev.timeStamp - b.t > 80) { analyseTapeAnimate(analyseSnapEnd(analyseTapeEndMs()), true); return; }
+      let last = performance.now();
+      const glide = (now) => {
+        const dt = now - last;
+        last = now;
+        analyseTapeSet(analyseTapeEndMs() - v * dt / w * t.span * ANALYSE_DAY_MS, true);
+        v *= Math.pow(0.94, dt / 16);
+        const atEdge = analyseTapeMs <= +analyseMinEnd(analyseScope.mode) || analyseTapeMs >= +todayStartDate();
+        if (Math.abs(v) > 0.04 && !atEdge) analyseTapeAnim = requestAnimationFrame(glide);
+        else analyseTapeAnimate(analyseSnapEnd(analyseTapeEndMs()), true);
+      };
+      analyseTapeAnim = requestAnimationFrame(glide);
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  });
+})();
+
 const ANALYSE_VIEWS = ['overview', 'fuettern', 'windeln', 'schlafen'];
 
 // Akzentfarbe je Ansicht, gültig ab der Kennzahl-Zeile abwärts: Diagramme,
@@ -9748,7 +10179,7 @@ function showAnalyseView(view) {
   // Standard in den Bereichen: heute in „Stunden" — außer man hat selbst eine
   // Stufe gewählt oder in der Übersicht etwas markiert bzw. aufgezogen.
   else if ((analyseZoomChoice === null || analyseZoomChoice === 'hours') && ANALYSE_HOURS_VIEWS.includes(view) && analyseScope.mode === 'days' &&
-      !analyseScope.parent && !analyseSel) analyseZoomTo('hours');
+      !analyseScope.end && !analyseSel) analyseZoomTo('hours');
   updateAnalyseScopeChips();
   ANALYSE_VIEWS.forEach((v) => {
     document.getElementById('analyse-view-' + v).style.display = v === view ? 'flex' : 'none';
@@ -9763,6 +10194,8 @@ function showAnalyseView(view) {
   const sec = ANALYSE_SECTIONS[view];
   const screen = document.getElementById('screen-analyse');
   screen.classList.toggle('a-detail', view !== 'overview');
+  // Das Maßband misst seine Breite — erst jetzt, wo es zu sehen ist.
+  renderAnalyseTape();
   document.getElementById('analyse-back-label').textContent = analyseOrigin === 'heute' ? 'Heute' : 'zur Übersicht';
   screen.style.setProperty('--sec-soft', sec.soft);
   screen.style.setProperty('--sec-strong', sec.strong);
@@ -9820,7 +10253,7 @@ function openAnalyseFromHeute(key) {
   analyseZoomChoice = null;
   analyseClearSelections();
   // Gleich in „Stunden" laden statt erst „Tage" und dann noch einmal.
-  analyseScope = { mode: 'hours', parent: null };
+  analyseScope = { mode: 'hours', end: null };
   analyseView = t.view;
   analysePendingScroll = t.chart;
   showScreen('analyse');
@@ -9850,6 +10283,7 @@ function updateAnalyseScopeChips() {
   // Die Zeile darunter benennt denselben Zeitraum — sie darf nicht bis zum
   // Ende des Nachladens auf dem alten Text stehen bleiben.
   updateAnalyseContext();
+  renderAnalyseTape();
 }
 
 // Zurück auf den laufenden Zeitraum, ohne die Zoomstufe anzufassen: aus einer
@@ -9858,10 +10292,10 @@ function updateAnalyseScopeChips() {
 // Markierung, wird die aufgehoben; dafür braucht es kein Nachladen.
 function resetAnalyseSelection() {
   // Eine markierte Uhrzeit hebt analyseClearSelections() gleich mit auf.
-  const wasDrilled = analyseScope.parent !== null;
+  const wasDrilled = analyseScope.end !== null;
   analyseClearSelections();
   if (wasDrilled) {
-    analyseScope = { mode: analyseScope.mode, parent: null };
+    analyseScope = { mode: analyseScope.mode, end: null };
     updateAnalyseScopeChips();
     loadAnalyse();
     return;
@@ -9871,18 +10305,6 @@ function resetAnalyseSelection() {
   updateAnalyseContext();
 }
 document.getElementById('analyse-reset').addEventListener('click', resetAnalyseSelection);
-
-// Wo die Markierung gerade sitzt — beim Herauszoomen wird genau das wieder
-// hergestellt. Die Übersicht trägt kein einzelnes Diagramm, dort bleibt nur
-// der Index übrig; er reicht, weil alle Bereiche dieselben Buckets zählen.
-function analyseReturnMarker(index) {
-  const inSection = !!ANALYSE_SECTION_UI[analyseView];
-  return {
-    returnIndex: index,
-    returnChart: inSection ? secActiveChart(analyseView) : null,
-    returnView: inSection ? analyseView : null
-  };
-}
 
 // Die Chips sind ein Zoomstufen-Regler: sie sagen "wie fein", ein markierter
 // Balken sagt "wovon". Ihr Text ändert sich nie, nur die Markierung wandert.
@@ -9898,62 +10320,36 @@ function analyseZoomTo(unit) {
   const from = ANALYSE_ZOOM_ORDER.indexOf(analyseScope.mode);
   const to = ANALYSE_ZOOM_ORDER.indexOf(unit);
 
-  // Eine Stufe feiner + markierter Balken = hinein, in genau diesen Balken:
-  // aus einem Monat werden seine Wochen, aus einer Woche ihre Tage, aus einem
-  // Tag seine Stunden. Die Markierung gilt für alle Bereiche; gemerkt wird
-  // nur, wo das Label lag, damit es beim Zurück dort wieder auftaucht.
-  if (to === from - 1 && analyseSel && analyseBuckets.length) {
-    const idx = Math.min(analyseSel.index, analyseBuckets.length - 1);
-    const b = analyseBuckets[idx];
-    const bStart = b.monthStart || b.weekStart || b.dayStart;
-    if (bStart) {
-      const today = todayStartDate();
-      let end = b.monthStart
-        ? new Date(bStart.getFullYear(), bStart.getMonth() + 1, 0)
-        : new Date(bStart.getTime());
-      if (b.weekStart) end.setDate(end.getDate() + 6);
-      if (end > today) end = today;
-      analyseScope = {
-        mode: unit,
-        parent: Object.assign({
-          unit: b.monthStart ? 'month' : b.weekStart ? 'week' : 'day',
-          start: new Date(bStart.getTime()), end,
-          up: analyseScope.parent
-        }, analyseReturnMarker(idx))
-      };
-      analyseClearSelections();
-      updateAnalyseScopeChips();
-      loadAnalyse();
-      return;
-    }
-  }
-
-  // Gröber, während der Ausschnitt aufgezogen ist = wieder heraus, mit dem
-  // Balken von damals noch markiert. Zwei Stufen auf einmal (Tage → Monate)
-  // rollen beide auf, markiert bleibt der Balken der Zielstufe.
-  if (to > from && analyseScope.parent) {
-    let scope = analyseScope, back = null;
-    while (scope.parent && ANALYSE_ZOOM_ORDER.indexOf(scope.mode) < to) {
-      back = scope.parent;
-      scope = { mode: ANALYSE_ZOOM_ORDER[ANALYSE_ZOOM_ORDER.indexOf(scope.mode) + 1], parent: scope.parent.up };
-    }
-    analyseScope = scope;
+  // Nochmal auf den aktiven Chip = zurück auf den laufenden Zeitraum.
+  if (to === from) {
+    if (analyseScope.end === null) return;
+    analyseScope = { mode: unit, end: null };
     analyseClearSelections();
-    if (back && back.returnIndex !== null) {
-      analyseSel = { index: back.returnIndex };
-      if (back.returnView) analyseActiveChart[back.returnView] = back.returnChart;
-    }
     updateAnalyseScopeChips();
     loadAnalyse();
     return;
   }
 
-  // Nochmal auf den aktiven Chip = zurück auf den laufenden Zeitraum. Sonst
-  // käme man aus einem aufgezogenen Ausschnitt nicht mehr zu "heute", weil
-  // die feinere Stufe ja wieder dorthin zurückführen würde.
-  if (unit === analyseScope.mode && analyseScope.parent === null) return;
-  analyseScope = { mode: unit, parent: null };
+  // Der Zeitraum bleibt beim Zoomen stehen: das neue Fenster endet dort, wo
+  // das alte endete. Eine Stufe feiner mit markiertem Balken = hinein, in
+  // genau diesen Balken: aus einem Monat die 8 Wochen bis zu seinem Ende, aus
+  // einer Woche ihre Tage, aus einem Tag seine Stunden.
+  let end = analyseScope.end;
+  if (to === from - 1 && analyseSel && analyseBuckets.length) {
+    const b = analyseBuckets[Math.min(analyseSel.index, analyseBuckets.length - 1)];
+    end = new Date(b.dayKeys[b.dayKeys.length - 1] + 'T00:00:00');
+  }
+  analyseScope = { mode: unit, end: null };
+  analyseSetEnd(end);
   analyseClearSelections();
+  // Gröber: der Balken mit dem bisherigen Fensterende bleibt markiert — so
+  // sieht man, wo man herkommt. Kam man aus dem laufenden Zeitraum, bleibt
+  // es ohne Markierung.
+  if (to > from && end) {
+    const key = isoDate(end);
+    const idx = analyseBuildBuckets(unit, analyseEndDate()).days.findIndex((b) => b.dayKeys.includes(key));
+    if (idx >= 0) analyseSel = { index: idx };
+  }
   updateAnalyseScopeChips();
   loadAnalyse();
 }
@@ -9971,34 +10367,50 @@ async function loadAnalyse() {
     analyseAxisTodayLabel = zoom.axisToday;
     analyseProseTodayLabel = zoom.proseToday;
     analyseBucketUnitPhrase = zoom.bucketPhrase;
-    // Steckt der Ausschnitt in einer Woche oder einem Monat, benennen die
-    // Insight-Sätze genau die — "der letzten 8 Wochen" wäre dort schlicht falsch.
-    analyseRangePhrase = analyseScope.parent ? analyseParentPhrase(analyseScope.parent) : zoom.rangePhrase;
 
     // Bewusst keine obere Schranke auf der Firestore-Abfrage: nachgetragene
     // Einträge haben ein createdAt nach ihrem fachlichen Datum und würden aus
     // einem zurückliegenden Ausschnitt herausfallen. Gefiltert wird über
     // analyseBucketByDay(), das kostet nur ein paar überflüssige Dokumente.
     await refreshAnalyseStart();
-    const { days, start } = analyseScope.mode === 'months' ? buildAnalyseMonthBuckets()
-      : analyseScope.mode === 'weeks' ? buildAnalyseWeekBuckets(analyseScope.parent)
-      : buildAnalyseDayBuckets(analyseScope.parent ? analyseScope.parent.end : null);
+    renderAnalyseTape();
+    const mode = analyseScope.mode, end = analyseEndDate();
+    const { days, start } = analyseBuildBuckets(mode, end);
     analyseBuckets = days;
+    // Liegt der Ausschnitt zurück, benennen die Insight-Sätze genau ihn —
+    // "der letzten 8 Wochen" wäre dort schlicht falsch.
+    analyseRangePhrase = analyseScope.end ? analyseWindowPhrase() : zoom.rangePhrase;
+    // Die Fenster links und rechts davon gleiten beim Wischen herein und
+    // werden deshalb mitgerechnet. Rechts nur, was nicht nach heute liegt.
+    const todayKey = isoDate(todayStartDate());
+    const prev = mode === 'hours' ? null : analyseBuildBuckets(mode, analyseNeighbourEnd(mode, end, -1));
+    const next = mode === 'hours' || !analyseScope.end ? null : analyseBuildBuckets(mode, analyseNeighbourEnd(mode, end, 1));
+    if (next) next.days = next.days.filter((b) => b.dayKeys[0] <= todayKey);
+    const from = prev ? prev.start : start;
     // Schlaf einen Tag früher: die erste Nacht des Ausschnitts beginnt am
     // Vorabend, und ihr Schlaf wurde oft schon dort angelegt.
-    const sleepSince = new Date(start);
+    const sleepSince = new Date(from);
     sleepSince.setDate(sleepSince.getDate() - 1);
     const [feedings, diapers, nights, naps] = await Promise.all([
-      getAnalyseRangeDocs('feedings', start),
-      getAnalyseRangeDocs('diaperChanges', start),
+      getAnalyseRangeDocs('feedings', from),
+      getAnalyseRangeDocs('diaperChanges', from),
       getAnalyseRangeDocs('nightWakeups', sleepSince),
       getAnalyseRangeDocs('naps', sleepSince)
     ]);
 
-    const fuettern = computeFuetternAnalysis(days, analyseBucketByDay(fuetternWithRunning(feedings, new Date()), days));
-    const windeln = computeWindelnAnalysis(days, analyseBucketByDay(diapers, days));
+    const feedingsNow = fuetternWithRunning(feedings, new Date());
     const sleeps = analyseSleepSpans(naps, nights, new Date());
-    const schlafen = computeSchlafenAnalysis(days, sleeps);
+    const computeAll = (ds) => ({
+      fuettern: computeFuetternAnalysis(ds, analyseBucketByDay(feedingsNow, ds)),
+      windeln: computeWindelnAnalysis(ds, analyseBucketByDay(diapers, ds)),
+      schlafen: computeSchlafenAnalysis(ds, sleeps)
+    });
+    const { fuettern, windeln, schlafen } = computeAll(days);
+    const before = prev && prev.days.length ? computeAll(prev.days) : null;
+    const after = next && next.days.length ? computeAll(next.days) : null;
+    [['fuettern', fuettern], ['windeln', windeln], ['schlafen', schlafen]].forEach(([v, a]) => {
+      a.ext = { prev: before ? before[v].perDay : [], next: after ? after[v].perDay : [] };
+    });
 
     renderAnalyseSection('fuettern', fuettern);
     renderAnalyseSection('windeln', windeln);

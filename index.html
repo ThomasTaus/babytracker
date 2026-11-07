@@ -409,6 +409,7 @@
      Vor der Geburt und nach heute fehlt das Band ganz. */
   #screen-analyse .a-tape { position: relative; height: 36px; margin-top: 10px; cursor: grab; touch-action: none; overflow: hidden; user-select: none; -webkit-user-select: none; }
   #screen-analyse:not(.a-detail) .a-tape { display: none; }
+  #screen-analyse .a-tape .tp-in { position: absolute; inset: 0; }
   #screen-analyse .a-tape .tp-track { position: absolute; left: 0; right: 0; top: 6px; height: 14px; border-radius: 7px; background: var(--surface-alt); }
   #screen-analyse .a-tape .tp-tick { position: absolute; top: 6px; width: 1px; height: 14px; background: var(--border); }
   #screen-analyse .a-tape .tp-tick.w { top: 15px; height: 5px; }
@@ -1691,7 +1692,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 10;
+const APP_RELEASE = 11;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -9983,13 +9984,35 @@ function analyseScheduleLoad() {
 let analyseTapeMs = null;
 let analyseTapeAnim = null;
 
+// Über das Ende hinausgezogen: so weit (px) gibt das Band nach, beim
+// Loslassen federt es zurück.
+let analyseTapeOver = 0;
+let analyseTapeSpring = null;
+
 function analyseTapeEndMs() { return analyseTapeMs !== null ? analyseTapeMs : +analyseEndDate(); }
+
+// Das Band beginnt bei der Geburt (ohne Geburtsdatum: beim ersten Eintrag).
+function analyseTapeStart() {
+  const birth = readProfil().birth;
+  return birth ? new Date(birth + 'T00:00:00') : analyseFirstDay();
+}
+
+// Wie viele Tage das Band zeigt. Ist die Aufzeichnung kürzer als der übliche
+// Ausschnitt, rückt es heran, bis sie (mit etwas Luft) die Breite füllt —
+// sonst wäre das Band kaum größer als der Rahmen, ohne Monatsnamen, und man
+// sähe nicht, dass schon alles im Rahmen liegt. Mit der Zeit wächst es von
+// selbst bis zum üblichen Ausschnitt.
+function analyseTapeSpan() {
+  const t = ANALYSE_TAPE[analyseScope.mode];
+  const days = (todayStartDate() - analyseTapeStart()) / ANALYSE_DAY_MS + 1;
+  return Math.min(t.span, Math.max(t.len, days) * 1.2);
+}
 
 // Das Fenster steht fest in der Mitte; x eines Zeitpunkts auf dem Band.
 function analyseTapeX(ms, w) {
   const t = ANALYSE_TAPE[analyseScope.mode], endMs = analyseTapeEndMs();
   const center = (endMs - (t.len - 1) * ANALYSE_DAY_MS + endMs + ANALYSE_DAY_MS) / 2;
-  return w / 2 + (ms - center) / ANALYSE_DAY_MS / t.span * w;
+  return w / 2 + (ms - center) / ANALYSE_DAY_MS / analyseTapeSpan() * w;
 }
 
 function renderAnalyseTape() {
@@ -10002,12 +10025,11 @@ function renderAnalyseTape() {
   // Das Band gibt es nur von der Geburt (ohne Geburtsdatum: vom ersten
   // Eintrag) bis heute — davor und danach fehlt es ganz, dort gibt es keine
   // Daten. Striche und Monatsnamen bleiben ebenfalls innerhalb.
-  const birth = readProfil().birth;
-  const startDay = birth ? new Date(birth + 'T00:00:00') : analyseFirstDay();
-  const xs = Math.max(0, X(+startDay)), xe = Math.min(w, X(+today + ANALYSE_DAY_MS));
+  const xs = Math.max(0, X(+analyseTapeStart())), xe = Math.min(w, X(+today + ANALYSE_DAY_MS));
   let h = xe > xs ? '<div class="tp-track" style="left:' + xs + 'px;right:auto;width:' + (xe - xs) + 'px"></div>' : '';
   const inside = (x) => x > xs && x < xe;
-  const lo = new Date(endMs - t.span * ANALYSE_DAY_MS), hi = new Date(endMs + t.span * ANALYSE_DAY_MS);
+  const span = analyseTapeSpan();
+  const lo = new Date(endMs - span * ANALYSE_DAY_MS), hi = new Date(endMs + span * ANALYSE_DAY_MS);
   // Feine Striche: in „Stunden" jeder Tag, in „Tage" jeder Montag.
   if (mode === 'hours' || mode === 'days') {
     const stepDays = mode === 'hours' ? 1 : 7;
@@ -10024,10 +10046,11 @@ function renderAnalyseTape() {
   const per = mode === 'months' ? 3 : 1;
   for (let m = new Date(lo.getFullYear(), lo.getMonth(), 1); m <= hi; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
     let x = X(+m);
-    if (x >= xe) continue;
-    const next = X(+new Date(m.getFullYear(), m.getMonth() + per - m.getMonth() % per, 1));
-    if (next <= xs) continue;
+    // Nur Monate, die das Band berühren; außer dem ersten (an den Bandanfang
+    // gerückt) bei „Monate" nur die Quartale.
+    if (x >= xe || X(+new Date(m.getFullYear(), m.getMonth() + 1, 1)) <= xs) continue;
     if (m.getMonth() % per && x > xs) continue;
+    const next = X(+new Date(m.getFullYear(), m.getMonth() + per - m.getMonth() % per, 1));
     const turn = m.getMonth() === 0 && inside(x);
     if (inside(x)) h += '<div class="tp-tick' + (turn ? ' yr' : '') + '" style="left:' + x + 'px"></div>';
     x = Math.max(x, xs);
@@ -10041,9 +10064,24 @@ function renderAnalyseTape() {
     h += '<div class="tp-lab' + (m.getMonth() === 0 ? ' y' : '') + '" style="left:' + x + 'px" data-jump="' + (+m) + '">' + text + '</div>';
   }
   const ws = X(endMs - (t.len - 1) * ANALYSE_DAY_MS), we = X(endMs + ANALYSE_DAY_MS);
-  h += '<div class="tp-win" style="left:' + ws + 'px;width:' + Math.max(14, we - ws) + 'px"></div>' +
+  h += '<div class="tp-win" style="left:' + ws + 'px;width:' + Math.max(14, we - ws) + 'px"></div>';
+  el.innerHTML = '<div class="tp-in"' + (analyseTapeOver ? ' style="transform:translateX(' + analyseTapeOver + 'px)"' : '') + '>' + h + '</div>' +
     '<div class="tp-edge l"></div><div class="tp-edge r"></div>';
-  el.innerHTML = h;
+}
+
+// Zurückfedern nach dem Ziehen über das Ende hinaus.
+function analyseTapeSpringBack() {
+  cancelAnimationFrame(analyseTapeSpring);
+  if (!analyseTapeOver) return;
+  const from = analyseTapeOver, t0 = performance.now();
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / 260);
+    analyseTapeOver = from * Math.pow(1 - k, 3);
+    if (k >= 1) analyseTapeOver = 0;
+    renderAnalyseTape();
+    if (k < 1) analyseTapeSpring = requestAnimationFrame(step);
+  };
+  analyseTapeSpring = requestAnimationFrame(step);
 }
 
 // Beim Wischen im Diagramm läuft das Band mit (d Balken, wie analysePanTo).
@@ -10110,8 +10148,10 @@ function analyseTapeAnimate(target, live) {
     if (analysePanBusy) return;
     cancelAnimationFrame(analyseTapeAnim);
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* Zeiger schon weg */ }
+    cancelAnimationFrame(analyseTapeSpring);
+    analyseTapeOver = 0;
     const box = el.getBoundingClientRect(), w = box.width, sx = e.clientX;
-    const t = ANALYSE_TAPE[analyseScope.mode], startMs = analyseTapeEndMs();
+    const t = ANALYSE_TAPE[analyseScope.mode], span = analyseTapeSpan(), startMs = analyseTapeEndMs();
     let moved = false;
     const hist = [{ x: sx, t: e.timeStamp }];
     const move = (ev) => {
@@ -10119,18 +10159,24 @@ function analyseTapeAnimate(target, live) {
       if (!moved) return;
       hist.push({ x: ev.clientX, t: ev.timeStamp });
       if (hist.length > 6) hist.shift();
-      // Band nach rechts ziehen holt frühere Tage ins Fenster.
-      analyseTapeSet(startMs - (ev.clientX - sx) / w * t.span * ANALYSE_DAY_MS, true);
+      // Band nach rechts ziehen holt frühere Tage ins Fenster. Über Beginn
+      // bzw. heute hinaus gibt es nur noch ein Stück nach.
+      const raw = startMs - (ev.clientX - sx) / w * span * ANALYSE_DAY_MS;
+      const clamped = Math.max(+analyseMinEnd(analyseScope.mode), Math.min(+todayStartDate(), raw));
+      const beyond = (clamped - raw) / ANALYSE_DAY_MS / span * w;
+      analyseTapeOver = Math.sign(beyond) * Math.min(40, Math.abs(beyond) * 0.25);
+      analyseTapeSet(clamped, true);
     };
     const up = (ev) => {
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
       el.removeEventListener('pointercancel', up);
+      analyseTapeSpringBack();
       if (!moved) {
         // Tipp: auf einen Monatsnamen springt dorthin, sonst an die Stelle.
         const lab = ev.target.closest && ev.target.closest('[data-jump]');
         const ms = lab ? +lab.dataset.jump + (t.len - 1) * ANALYSE_DAY_MS
-          : analyseTapeEndMs() + ((ev.clientX - box.left) / w - 0.5) * t.span * ANALYSE_DAY_MS + t.len / 2 * ANALYSE_DAY_MS;
+          : analyseTapeEndMs() + ((ev.clientX - box.left) / w - 0.5) * span * ANALYSE_DAY_MS + t.len / 2 * ANALYSE_DAY_MS;
         analyseTapeAnimate(analyseSnapEnd(ms), true);
         return;
       }
@@ -10143,7 +10189,7 @@ function analyseTapeAnimate(target, live) {
       const glide = (now) => {
         const dt = now - last;
         last = now;
-        analyseTapeSet(analyseTapeEndMs() - v * dt / w * t.span * ANALYSE_DAY_MS, true);
+        analyseTapeSet(analyseTapeEndMs() - v * dt / w * span * ANALYSE_DAY_MS, true);
         v *= Math.pow(0.94, dt / 16);
         const atEdge = analyseTapeMs <= +analyseMinEnd(analyseScope.mode) || analyseTapeMs >= +todayStartDate();
         if (Math.abs(v) > 0.04 && !atEdge) analyseTapeAnim = requestAnimationFrame(glide);

@@ -1695,7 +1695,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 13;
+const APP_RELEASE = 14;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -6613,6 +6613,10 @@ function analyseRoom(dir) {
 // laufende Woche, der laufende Monat), ist es wieder der laufende Zeitraum.
 function analyseSetEnd(d) {
   const today = todayStartDate();
+  // Nie vor das früheste Fensterende — sonst begänne das Fenster vor dem
+  // ersten Eintrag (z. B. beim Herauszoomen aus einem frühen Tag).
+  const min = analyseMinEnd(analyseScope.mode);
+  if (d && d < min) d = min;
   const current = !d || d >= today || analyseBarDelta(analyseScope.mode, d, today) === 0;
   analyseScope = { mode: analyseScope.mode, end: current ? null : d };
 }
@@ -10343,6 +10347,10 @@ function applyAnalysePendingScroll() {
 }
 
 function updateAnalyseScopeChips() {
+  // Ein neuer Zeitraum steht fest: ein noch laufendes Gleiten oder Einrasten
+  // des Maßbands darf ihn nicht mehr überschreiben.
+  cancelAnimationFrame(analyseTapeAnim);
+  analyseTapeMs = null;
   document.querySelectorAll('.a-range-chip[data-scope]').forEach((c) => {
     c.classList.toggle('active', c.dataset.scope === analyseScope.mode);
     if (c.dataset.scope === 'hours') {

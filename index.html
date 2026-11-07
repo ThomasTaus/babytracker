@@ -406,11 +406,10 @@
   /* Maßband: das Fenster steht fest in der Mitte, darunter läuft die Zeit
      durch. Es zeigt je Zoomstufe einen festen Ausschnitt (Tage ~3 Monate),
      damit das Fenster auch nach langer Aufzeichnung gut greifbar bleibt.
-     Schraffiert: vor Beginn der Aufzeichnung und nach heute. */
+     Vor der Geburt und nach heute fehlt das Band ganz. */
   #screen-analyse .a-tape { position: relative; height: 36px; margin-top: 10px; cursor: grab; touch-action: none; overflow: hidden; user-select: none; -webkit-user-select: none; }
   #screen-analyse:not(.a-detail) .a-tape { display: none; }
   #screen-analyse .a-tape .tp-track { position: absolute; left: 0; right: 0; top: 6px; height: 14px; border-radius: 7px; background: var(--surface-alt); }
-  #screen-analyse .a-tape .tp-none { position: absolute; top: 6px; height: 14px; background: repeating-linear-gradient(135deg, transparent 0 4px, var(--border) 4px 5px); }
   #screen-analyse .a-tape .tp-tick { position: absolute; top: 6px; width: 1px; height: 14px; background: var(--border); }
   #screen-analyse .a-tape .tp-tick.w { top: 15px; height: 5px; }
   #screen-analyse .a-tape .tp-lab { position: absolute; top: 23px; padding-left: 3px; font-size: 10.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
@@ -1691,7 +1690,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 8;
+const APP_RELEASE = 9;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -9999,32 +9998,45 @@ function renderAnalyseTape() {
   const mode = analyseScope.mode, t = ANALYSE_TAPE[mode], endMs = analyseTapeEndMs();
   const X = (ms) => analyseTapeX(ms, w);
   const today = todayStartDate();
-  let h = '<div class="tp-track"></div>';
-  const xs = X(+analyseFirstDay()), xe = X(+today + ANALYSE_DAY_MS);
-  if (xs > 0) h += '<div class="tp-none" style="left:0;width:' + xs + 'px;border-radius:7px 0 0 7px"></div>';
-  if (xe < w) h += '<div class="tp-none" style="left:' + xe + 'px;width:' + (w - xe) + 'px;border-radius:0 7px 7px 0"></div>';
+  // Das Band gibt es nur von der Geburt (ohne Geburtsdatum: vom ersten
+  // Eintrag) bis heute — davor und danach fehlt es ganz, dort gibt es keine
+  // Daten. Striche und Monatsnamen bleiben ebenfalls innerhalb.
+  const birth = readProfil().birth;
+  const startDay = birth ? new Date(birth + 'T00:00:00') : analyseFirstDay();
+  const xs = Math.max(0, X(+startDay)), xe = Math.min(w, X(+today + ANALYSE_DAY_MS));
+  let h = xe > xs ? '<div class="tp-track" style="left:' + xs + 'px;right:auto;width:' + (xe - xs) + 'px"></div>' : '';
+  const inside = (x) => x > xs && x < xe;
   const lo = new Date(endMs - t.span * ANALYSE_DAY_MS), hi = new Date(endMs + t.span * ANALYSE_DAY_MS);
   // Feine Striche: in „Stunden" jeder Tag, in „Tage" jeder Montag.
   if (mode === 'hours' || mode === 'days') {
     const stepDays = mode === 'hours' ? 1 : 7;
     for (let d = mode === 'hours' ? new Date(lo.getFullYear(), lo.getMonth(), lo.getDate()) : mondayOf(lo); d <= hi; d = analyseAddDays(d, stepDays)) {
       const x = X(+d);
-      if (x > 0 && x < w) h += '<div class="tp-tick w" style="left:' + x + 'px"></div>';
+      if (inside(x)) h += '<div class="tp-tick w" style="left:' + x + 'px"></div>';
     }
   }
-  // Monate: Strich und Name; bei Wochen jeder zweite Name, bei Monaten nur
-  // die Quartale. Das Jahr steht am Januar und am ersten Namen.
+  // Monate: Strich und Name, bei „Monate" nur die Quartale. Ein Name steht
+  // nur, wo er bis zum nächsten Platz hat. Das Jahr steht am Januar und am
+  // ersten Namen. Der Monat der Geburt beginnt vor dem Band — sein Name steht
+  // an dessen Anfang.
   let first = true;
+  const per = mode === 'months' ? 3 : 1;
   for (let m = new Date(lo.getFullYear(), lo.getMonth(), 1); m <= hi; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
-    const x = X(+m);
-    if (x < -60 || x > w) continue;
-    if (mode === 'months' && m.getMonth() % 3) continue;
-    h += '<div class="tp-tick" style="left:' + x + 'px"></div>';
-    if (mode === 'weeks' && m.getMonth() % 2) continue;
+    let x = X(+m);
+    if (x >= xe) continue;
+    const next = X(+new Date(m.getFullYear(), m.getMonth() + per - m.getMonth() % per, 1));
+    if (next <= xs) continue;
+    if (m.getMonth() % per && x > xs) continue;
+    if (inside(x)) h += '<div class="tp-tick" style="left:' + x + 'px"></div>';
+    x = Math.max(x, xs);
     if (x < -2) continue;
-    const year = m.getMonth() === 0 || first || mode === 'months';
-    h += '<div class="tp-lab' + (m.getMonth() === 0 ? ' y' : '') + '" style="left:' + x + 'px" data-jump="' + (+m) + '">' +
-      ANALYSE_MONTH_SHORT[m.getMonth()] + (year ? ' ' + m.getFullYear() : '') + '</div>';
+    // Nur, wenn der Name bis zum nächsten Platz passt (gut 6 px je Zeichen);
+    // ohne Jahr, wenn es nur so passt.
+    const room = Math.min(next, xe) - x;
+    let text = ANALYSE_MONTH_SHORT[m.getMonth()];
+    if ((m.getMonth() === 0 || first || mode === 'months') && room >= (text.length + 5) * 6.2 + 4) text += ' ' + m.getFullYear();
+    if (room < text.length * 6.2 + 4) continue;
+    h += '<div class="tp-lab' + (m.getMonth() === 0 ? ' y' : '') + '" style="left:' + x + 'px" data-jump="' + (+m) + '">' + text + '</div>';
     first = false;
   }
   const ws = X(endMs - (t.len - 1) * ANALYSE_DAY_MS), we = X(endMs + ANALYSE_DAY_MS);

@@ -1692,7 +1692,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 11;
+const APP_RELEASE = 12;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -10001,17 +10001,22 @@ function analyseTapeStart() {
 // Ausschnitt, rückt es heran, bis sie (mit etwas Luft) die Breite füllt —
 // sonst wäre das Band kaum größer als der Rahmen, ohne Monatsnamen, und man
 // sähe nicht, dass schon alles im Rahmen liegt. Mit der Zeit wächst es von
-// selbst bis zum üblichen Ausschnitt.
+// selbst bis zum üblichen Ausschnitt. Der Rahmen zählt dabei nur, soweit er
+// auf dem Band liegt (siehe renderAnalyseTape) — sonst bestimmten bei
+// „Monate" sechs Monate den Maßstab, von denen vier vor der Geburt liegen.
 function analyseTapeSpan() {
   const t = ANALYSE_TAPE[analyseScope.mode];
   const days = (todayStartDate() - analyseTapeStart()) / ANALYSE_DAY_MS + 1;
-  return Math.min(t.span, Math.max(t.len, days) * 1.2);
+  return Math.min(t.span, days * 1.2);
 }
 
 // Das Fenster steht fest in der Mitte; x eines Zeitpunkts auf dem Band.
+// Mitte ist die des Teils, der auf dem Band liegt (zwischen Geburt und heute).
 function analyseTapeX(ms, w) {
   const t = ANALYSE_TAPE[analyseScope.mode], endMs = analyseTapeEndMs();
-  const center = (endMs - (t.len - 1) * ANALYSE_DAY_MS + endMs + ANALYSE_DAY_MS) / 2;
+  const a = Math.max(endMs - (t.len - 1) * ANALYSE_DAY_MS, +analyseTapeStart());
+  const b = Math.min(endMs + ANALYSE_DAY_MS, +todayStartDate() + ANALYSE_DAY_MS);
+  const center = b > a ? (a + b) / 2 : endMs;
   return w / 2 + (ms - center) / ANALYSE_DAY_MS / analyseTapeSpan() * w;
 }
 
@@ -10038,12 +10043,14 @@ function renderAnalyseTape() {
       if (inside(x)) h += '<div class="tp-tick w" style="left:' + x + 'px"></div>';
     }
   }
-  // Monate: Strich und Name, bei „Monate" nur die Quartale. Ein Name steht
-  // nur, wo er bis zum nächsten Platz hat. Die Jahreszahl steht nur am
+  // Monate: Strich und Name. Ein Name steht nur, wo er bis zum nächsten
+  // Platz hat. Die Jahreszahl steht nur am
   // Jahreswechsel — am Januar, wenn er auf dem Band liegt —, dort ist auch
   // der Strich kräftiger. Sonst ist das Jahr ohnehin klar. Der Monat der
   // Geburt beginnt vor dem Band — sein Name steht an dessen Anfang.
-  const per = mode === 'months' ? 3 : 1;
+  // Quartale nur, wenn ein Monat zu schmal für seinen Namen ist (weit
+  // herausgezoomt); bei kurzer Aufzeichnung steht jeder Monat.
+  const per = 30.4 / span * w < 28 ? 3 : 1;
   for (let m = new Date(lo.getFullYear(), lo.getMonth(), 1); m <= hi; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
     let x = X(+m);
     // Nur Monate, die das Band berühren; außer dem ersten (an den Bandanfang
@@ -10063,7 +10070,9 @@ function renderAnalyseTape() {
     if (room < text.length * 6.2 + 4) continue;
     h += '<div class="tp-lab' + (m.getMonth() === 0 ? ' y' : '') + '" style="left:' + x + 'px" data-jump="' + (+m) + '">' + text + '</div>';
   }
-  const ws = X(endMs - (t.len - 1) * ANALYSE_DAY_MS), we = X(endMs + ANALYSE_DAY_MS);
+  // Der Rahmen umfasst nur, was auf dem Band liegt: ein Fenster, das vor der
+  // Geburt beginnt, zeigt dort ohnehin nichts.
+  const ws = Math.max(xs, X(endMs - (t.len - 1) * ANALYSE_DAY_MS)), we = Math.min(xe, X(endMs + ANALYSE_DAY_MS));
   h += '<div class="tp-win" style="left:' + ws + 'px;width:' + Math.max(14, we - ws) + 'px"></div>';
   el.innerHTML = '<div class="tp-in"' + (analyseTapeOver ? ' style="transform:translateX(' + analyseTapeOver + 'px)"' : '') + '>' + h + '</div>' +
     '<div class="tp-edge l"></div><div class="tp-edge r"></div>';

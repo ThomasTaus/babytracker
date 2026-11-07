@@ -412,6 +412,7 @@
   #screen-analyse .a-tape .tp-track { position: absolute; left: 0; right: 0; top: 6px; height: 14px; border-radius: 7px; background: var(--surface-alt); }
   #screen-analyse .a-tape .tp-tick { position: absolute; top: 6px; width: 1px; height: 14px; background: var(--border); }
   #screen-analyse .a-tape .tp-tick.w { top: 15px; height: 5px; }
+  #screen-analyse .a-tape .tp-tick.yr { top: 3px; width: 1.5px; height: 20px; background: var(--neutral-strong); }
   #screen-analyse .a-tape .tp-lab { position: absolute; top: 23px; padding-left: 3px; font-size: 10.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
   #screen-analyse .a-tape .tp-lab.y { color: var(--neutral-strong); font-weight: 700; }
   #screen-analyse .a-tape .tp-win { position: absolute; top: 2px; height: 22px; border-radius: 7px; background: oklch(93% 0.004 250 / 0.55); border: 2px solid var(--neutral-strong); box-sizing: border-box; }
@@ -1690,7 +1691,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 9;
+const APP_RELEASE = 10;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -10016,10 +10017,10 @@ function renderAnalyseTape() {
     }
   }
   // Monate: Strich und Name, bei „Monate" nur die Quartale. Ein Name steht
-  // nur, wo er bis zum nächsten Platz hat. Das Jahr steht am Januar und am
-  // ersten Namen. Der Monat der Geburt beginnt vor dem Band — sein Name steht
-  // an dessen Anfang.
-  let first = true;
+  // nur, wo er bis zum nächsten Platz hat. Die Jahreszahl steht nur am
+  // Jahreswechsel — am Januar, wenn er auf dem Band liegt —, dort ist auch
+  // der Strich kräftiger. Sonst ist das Jahr ohnehin klar. Der Monat der
+  // Geburt beginnt vor dem Band — sein Name steht an dessen Anfang.
   const per = mode === 'months' ? 3 : 1;
   for (let m = new Date(lo.getFullYear(), lo.getMonth(), 1); m <= hi; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
     let x = X(+m);
@@ -10027,17 +10028,17 @@ function renderAnalyseTape() {
     const next = X(+new Date(m.getFullYear(), m.getMonth() + per - m.getMonth() % per, 1));
     if (next <= xs) continue;
     if (m.getMonth() % per && x > xs) continue;
-    if (inside(x)) h += '<div class="tp-tick" style="left:' + x + 'px"></div>';
+    const turn = m.getMonth() === 0 && inside(x);
+    if (inside(x)) h += '<div class="tp-tick' + (turn ? ' yr' : '') + '" style="left:' + x + 'px"></div>';
     x = Math.max(x, xs);
     if (x < -2) continue;
     // Nur, wenn der Name bis zum nächsten Platz passt (gut 6 px je Zeichen);
     // ohne Jahr, wenn es nur so passt.
     const room = Math.min(next, xe) - x;
     let text = ANALYSE_MONTH_SHORT[m.getMonth()];
-    if ((m.getMonth() === 0 || first || mode === 'months') && room >= (text.length + 5) * 6.2 + 4) text += ' ' + m.getFullYear();
+    if (turn && room >= (text.length + 5) * 6.2 + 4) text += ' ' + m.getFullYear();
     if (room < text.length * 6.2 + 4) continue;
     h += '<div class="tp-lab' + (m.getMonth() === 0 ? ' y' : '') + '" style="left:' + x + 'px" data-jump="' + (+m) + '">' + text + '</div>';
-    first = false;
   }
   const ws = X(endMs - (t.len - 1) * ANALYSE_DAY_MS), we = X(endMs + ANALYSE_DAY_MS);
   h += '<div class="tp-win" style="left:' + ws + 'px;width:' + Math.max(14, we - ws) + 'px"></div>' +

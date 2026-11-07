@@ -410,11 +410,14 @@
   #screen-analyse .a-tape { position: relative; height: 36px; margin-top: 10px; cursor: grab; touch-action: none; overflow: hidden; user-select: none; -webkit-user-select: none; }
   #screen-analyse:not(.a-detail) .a-tape { display: none; }
   #screen-analyse .a-tape .tp-in { position: absolute; inset: 0; }
-  #screen-analyse .a-tape .tp-track { position: absolute; left: 0; right: 0; top: 6px; height: 14px; border-radius: 7px; background: var(--surface-alt); }
-  #screen-analyse .a-tape .tp-tick { position: absolute; top: 6px; width: 1px; height: 14px; background: var(--border); }
-  #screen-analyse .a-tape .tp-tick.w { top: 15px; height: 5px; }
-  #screen-analyse .a-tape .tp-tick.yr { top: 3px; width: 1.5px; height: 20px; background: var(--neutral-strong); }
-  #screen-analyse .a-tape .tp-lab { position: absolute; top: 23px; padding-left: 3px; font-size: 10.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+  /* Band weiß mit feinem Rand wie die Karten; Wochen (bzw. Tage) als Striche
+     über die ganze Höhe, Monatsgrenzen dunkelgrau und etwas überstehend, der
+     Jahreswechsel noch einmal kräftiger. */
+  #screen-analyse .a-tape .tp-track { position: absolute; left: 0; right: 0; top: 6px; height: 14px; border-radius: 7px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); }
+  #screen-analyse .a-tape .tp-tick { position: absolute; top: 3px; width: 1.5px; height: 20px; margin-left: -0.75px; border-radius: 1px; background: var(--text-muted); }
+  #screen-analyse .a-tape .tp-tick.w { top: 6px; width: 1px; height: 14px; margin-left: 0; border-radius: 0; background: var(--border); }
+  #screen-analyse .a-tape .tp-tick.yr { width: 2px; margin-left: -1px; background: var(--neutral-strong); }
+  #screen-analyse .a-tape .tp-lab { position: absolute; top: 23px; padding-left: 4px; font-size: 10.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
   #screen-analyse .a-tape .tp-lab.y { color: var(--neutral-strong); font-weight: 700; }
   #screen-analyse .a-tape .tp-win { position: absolute; top: 2px; height: 22px; border-radius: 7px; background: oklch(93% 0.004 250 / 0.55); border: 2px solid var(--neutral-strong); box-sizing: border-box; }
   #screen-analyse .a-tape .tp-edge { position: absolute; top: 0; width: 18px; height: 26px; pointer-events: none; }
@@ -1692,7 +1695,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 12;
+const APP_RELEASE = 13;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;

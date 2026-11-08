@@ -1695,7 +1695,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 15;
+const APP_RELEASE = 16;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -7248,13 +7248,12 @@ function computeWindelnAnalysis(days, diaperMap) {
 }
 
 // Uhrzeit des Schlafs: jeder Tag als 24-Stunden-Band ab Beginn seiner Nacht
-// (die Nacht gehört zum Morgen), geteilt in 288 Fünf-Minuten-Fächer. Je Fach
+// (die Nacht gehört zum Morgen), geteilt in 96 Viertelstunden. Je Fach
 // zählt, wie viel davon geschlafen wurde (0–1, minutengenau); über mehrere
 // Tage wird gemittelt — „Anteil der Tage mit Schlaf". Fächer in der
 // Zukunft und vor dem ersten erfassten Schlaf zählen nicht mit; eine Nacht
-// ohne Einträge zählt als 0. Fein genug, dass die Kurve ohne Glättung
-// direkt durch die echten Werte laufen kann.
-const SLEEP_SLOT_MIN = 5, SLEEP_SLOTS = 288;
+// ohne Einträge zählt als 0. 5-Minuten-Fächer wirkten zu kantig.
+const SLEEP_SLOT_MIN = 15, SLEEP_SLOTS = 96;
 
 // Überlappende Schlafspannen zusammenlegen (doppelt erfasster Schlaf zählt
 // einmal). Ergebnis nach Beginn sortiert, in Millisekunden.
@@ -7496,7 +7495,7 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
 // Uhrzeit des Schlafs. Ein einzelner markierter Tag zeigt seine echten
 // Schlafblöcke — ohne Beschriftung darin, ohne Glättung (sonst verschöben sich
 // Einschlafen und Aufwachen). Sonst die Fläche „Anteil der Tage mit Schlaf"
-// je Fünf-Minuten-Fach: eine monotone Kurve (Fritsch-Carlson) genau durch die
+// je Viertelstunde: eine monotone Kurve (Fritsch-Carlson) genau durch die
 // echten Werte in der Fachmitte — ohne vorherige Glättung, damit Kurve und
 // Label übereinstimmen (eine Glättung zog 100-%-Kanten sichtbar herunter).
 // Zwischen zwei Punkten bleibt sie zwischen deren Werten, schießt also nie
@@ -7529,9 +7528,10 @@ function svgSleepClock(spans, shareArr) {
   const { t0, t1, step, color } = sleepAxisRange();
   const x = (min) => x0 + (min - t0) / (t1 - t0) * (x1 - x0);
   const y = (v) => base - v * (base - top);
-  // Das Nachtfenster hinterlegt, soweit es im Ausschnitt liegt.
+  // Das Nachtfenster hinterlegt, soweit es im Ausschnitt liegt — oben genau
+  // bis 100 %, sonst wirkt eine volle Fläche, als läge sie darunter.
   const shadeEnd = Math.min(winMin, t1);
-  let out = shadeEnd > t0 ? '<rect x="' + x0 + '" y="2" width="' + (x(shadeEnd) - x0) + '" height="' + (base - 2) + '" fill="#E8E5F9"/>' : '';
+  let out = shadeEnd > t0 ? '<rect x="' + x0 + '" y="' + top + '" width="' + (x(shadeEnd) - x0) + '" height="' + (base - top) + '" fill="#E8E5F9"/>' : '';
   const iA = Math.floor(t0 / SLEEP_SLOT_MIN), iB = Math.ceil(t1 / SLEEP_SLOT_MIN);
   sleepClockState = { fromMin, spans, share: shareArr, curveY: null, t0, t1, iA, iB, px: null };
   [0.5, 1].forEach((v) => {

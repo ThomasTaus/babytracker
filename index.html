@@ -1695,7 +1695,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 14;
+const APP_RELEASE = 15;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -7248,12 +7248,13 @@ function computeWindelnAnalysis(days, diaperMap) {
 }
 
 // Uhrzeit des Schlafs: jeder Tag als 24-Stunden-Band ab Beginn seiner Nacht
-// (die Nacht gehört zum Morgen), geteilt in 96 Viertelstunden. Je Viertelstunde
+// (die Nacht gehört zum Morgen), geteilt in 288 Fünf-Minuten-Fächer. Je Fach
 // zählt, wie viel davon geschlafen wurde (0–1, minutengenau); über mehrere
-// Tage wird gemittelt — „Anteil der Tage mit Schlaf". Viertelstunden in der
+// Tage wird gemittelt — „Anteil der Tage mit Schlaf". Fächer in der
 // Zukunft und vor dem ersten erfassten Schlaf zählen nicht mit; eine Nacht
-// ohne Einträge zählt als 0.
-const SLEEP_SLOT_MIN = 15, SLEEP_SLOTS = 96;
+// ohne Einträge zählt als 0. Fein genug, dass die Kurve ohne Glättung
+// direkt durch die echten Werte laufen kann.
+const SLEEP_SLOT_MIN = 5, SLEEP_SLOTS = 288;
 
 // Überlappende Schlafspannen zusammenlegen (doppelt erfasster Schlaf zählt
 // einmal). Ergebnis nach Beginn sortiert, in Millisekunden.
@@ -7339,7 +7340,7 @@ function computeSchlafenAnalysis(days, sleepSpans) {
       for (let i = 0; i < SLEEP_SLOTS; i++) {
         const s = band + i * slotMs, e = s + slotMs;
         if (e > now.getTime() || dataStart === null || e <= dataStart) continue;
-        // Tage und Viertelstunden laufen aufsteigend: bereits beendeter Schlaf
+        // Tage und Fächer laufen aufsteigend: bereits beendeter Schlaf
         // muss nie wieder angesehen werden.
         while (mergedIdx < merged.length && merged[mergedIdx][1] <= s) mergedIdx++;
         let ov = 0;
@@ -7494,10 +7495,12 @@ function svgMeanLine(meanValue, maxVal, baseline, maxPx, color) {
 
 // Uhrzeit des Schlafs. Ein einzelner markierter Tag zeigt seine echten
 // Schlafblöcke — ohne Beschriftung darin, ohne Glättung (sonst verschöben sich
-// Einschlafen und Aufwachen). Sonst die geglättete Fläche „Anteil der Tage mit
-// Schlaf" je Viertelstunde: gleitender Mittelwert über 3 Viertelstunden, dann
-// eine monotone Kurve (Fritsch-Carlson), die nie über 100 % oder unter 0 %
-// schießt. Die Achse läuft 24 Stunden ab Beginn des Nachtfensters, das
+// Einschlafen und Aufwachen). Sonst die Fläche „Anteil der Tage mit Schlaf"
+// je Fünf-Minuten-Fach: eine monotone Kurve (Fritsch-Carlson) genau durch die
+// echten Werte in der Fachmitte — ohne vorherige Glättung, damit Kurve und
+// Label übereinstimmen (eine Glättung zog 100-%-Kanten sichtbar herunter).
+// Zwischen zwei Punkten bleibt sie zwischen deren Werten, schießt also nie
+// über 100 % oder unter 0 %. Die Achse läuft 24 Stunden ab Beginn des Nachtfensters, das
 // Fenster ist hinterlegt. Gleiche Koordinaten und dieselbe Farbe (voll
 // deckend) wie die Balken darüber; passt ganz in die Karte. Rechts neben der
 // Fläche (ab x1) stehen die Hilfslinien-Beschriftungen 50 % / 100 %, damit
@@ -7543,12 +7546,8 @@ function svgSleepClock(spans, shareArr) {
       out += '<rect x="' + x(a) + '" y="' + top + '" width="' + Math.max(1.5, x(b) - x(a)) + '" height="' + (base - top) + '" fill="' + color + '"/>';
     });
   } else {
-    // Geglättet über das ganze Band, dann nur die Viertelstunden im Ausschnitt.
-    const vals = shareArr.map((v) => (v === null ? 0 : v));
-    const sm = vals.map((_, i) => {
-      const w = vals.slice(Math.max(0, i - 1), i + 2);
-      return w.reduce((s, v) => s + v, 0) / w.length;
-    }).slice(iA, iB);
+    // Die echten Werte der Fächer im Ausschnitt, ungeglättet.
+    const sm = shareArr.slice(iA, iB).map((v) => (v === null ? 0 : v));
     const dx = (x(t0 + SLEEP_SLOT_MIN) - x(t0));
     const px = sm.map((_, i) => x((iA + i + 0.5) * SLEEP_SLOT_MIN)), py = sm.map(y);
     sleepClockState.curveY = py;
@@ -7596,8 +7595,9 @@ function sleepClockDuration(min) {
   return h ? h + ' Std' + (m % 60 ? ' ' + (m % 60) + ' Min' : '') : (m % 60) + ' Min';
 }
 
-// Label und Markierung an der Stelle clientX. Bei der Fläche: der exakte,
-// ungeglättete Anteil der Viertelstunde. Beim einzelnen Tag: Uhrzeit und der
+// Label und Markierung an der Stelle clientX. Bei der Fläche: der exakte
+// Anteil des Fachs, die Markierung rastet auf dessen Mitte ein — dort geht
+// die Kurve genau durch diesen Wert. Beim einzelnen Tag: Uhrzeit und der
 // Schlaf bzw. die wache Phase, in der sie liegt.
 function showSleepClockAt(svgEl, clientX) {
   const st = sleepClockState;

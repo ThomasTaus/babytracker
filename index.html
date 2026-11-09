@@ -416,6 +416,9 @@
   #screen-analyse .a-tape .tp-track { position: absolute; left: 0; right: 0; top: 6px; height: 14px; border-radius: 7px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); }
   #screen-analyse .a-tape .tp-tick { position: absolute; top: 3px; width: 1.5px; height: 20px; margin-left: -0.75px; border-radius: 1px; background: var(--text-muted); }
   #screen-analyse .a-tape .tp-tick.w { top: 6px; width: 1px; height: 14px; margin-left: 0; border-radius: 0; background: var(--border); }
+  /* „Stunden": der 10. und 20. etwas dunkler als die übrigen Tage. */
+  #screen-analyse .a-tape .tp-tick.d { top: 6px; width: 1px; height: 14px; margin-left: 0; border-radius: 0; background: var(--text-muted); opacity: 0.55; }
+  #screen-analyse .a-tape .tp-lab.d { font-weight: 500; }
   #screen-analyse .a-tape .tp-tick.yr { width: 2px; margin-left: -1px; background: var(--neutral-strong); }
   #screen-analyse .a-tape .tp-lab { position: absolute; top: 23px; padding-left: 4px; font-size: 10.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
   #screen-analyse .a-tape .tp-lab.y { color: var(--neutral-strong); font-weight: 700; }
@@ -1695,7 +1698,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 17;
+const APP_RELEASE = 18;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -10054,9 +10057,11 @@ function renderAnalyseTape() {
     const stepDays = mode === 'hours' ? 1 : 7;
     for (let d = mode === 'hours' ? new Date(lo.getFullYear(), lo.getMonth(), lo.getDate()) : mondayOf(lo); d <= hi; d = analyseAddDays(d, stepDays)) {
       const x = X(+d);
-      if (inside(x)) h += '<div class="tp-tick w" style="left:' + x + 'px"></div>';
+      const mid = mode === 'hours' && (d.getDate() === 10 || d.getDate() === 20);
+      if (inside(x)) h += '<div class="tp-tick ' + (mid ? 'd' : 'w') + '" style="left:' + x + 'px"></div>';
     }
   }
+  const monthLabs = [];
   // Monate: Strich und Name. Ein Name steht nur, wo er bis zum nächsten
   // Platz hat. Die Jahreszahl steht nur am
   // Jahreswechsel — am Januar, wenn er auf dem Band liegt —, dort ist auch
@@ -10082,7 +10087,21 @@ function renderAnalyseTape() {
     let text = ANALYSE_MONTH_SHORT[m.getMonth()];
     if (turn && room >= (text.length + 5) * 6.2 + 4) text += ' ' + m.getFullYear();
     if (room < text.length * 6.2 + 4) continue;
+    monthLabs.push({ x, w: text.length * 6.2 + 4 });
     h += '<div class="tp-lab' + (m.getMonth() === 0 ? ' y' : '') + '" style="left:' + x + 'px" data-jump="' + (+m) + '">' + text + '</div>';
+  }
+  // „Stunden" zeigt nur gut drei Wochen — oft ohne Monatsanfang. Der Monat
+  // steht dann am Rand, der 10. und 20. sagen, wo im Monat man ist. Kommt
+  // eine Zahl einem Monatsnamen zu nah, hat der Monat Vorrang.
+  if (mode === 'hours') {
+    for (let m = new Date(lo.getFullYear(), lo.getMonth(), 1); m <= hi; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+      for (const dd of [10, 20]) {
+        const day = new Date(m.getFullYear(), m.getMonth(), dd), x = X(+day), w = 3 * 6.2 + 4;
+        if (!inside(x) || xe - x < w) continue;
+        if (monthLabs.some((l) => x < l.x + l.w + 2 && l.x < x + w + 2)) continue;
+        h += '<div class="tp-lab d" style="left:' + x + 'px" data-jump="' + (+day) + '">' + dd + '.</div>';
+      }
+    }
   }
   // Der Rahmen umfasst nur, was auf dem Band liegt: ein Fenster, das vor der
   // Geburt beginnt, zeigt dort ohnehin nichts.

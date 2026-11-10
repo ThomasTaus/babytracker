@@ -65,9 +65,11 @@
   .ht-ev .ht-l { white-space: nowrap; }
   .ht-ev .ht-t { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .ht-ev .ht-t .ht-sep, .ht-ev .ht-when { color: var(--text-muted); }
-  .ht-ev .ht-when { font-size: 11.5px; font-weight: 600; white-space: nowrap; text-align: right; }
-  /* Läuft etwas, ist die Zeile ein Knopf zum Timer (zum Stoppen): rechts das
-     Abzeichen aus dem Zeitverlauf, dahinter der Pfeil. */
+  /* 7px vom Pfeil abgerückt: „vor x“ schließt rechts mit der Abweichung („+0:40“) der Trendzeilen ab. */
+  .ht-ev .ht-when { font-size: 11.5px; font-weight: 600; white-space: nowrap; text-align: right; padding-right: 7px; }
+  /* Jede Zeile ist ein Knopf mit Pfeil: in die Historie, gefiltert auf ihre
+     (Unter-)Kategorie. Läuft etwas, führt sie stattdessen zum Timer (zum
+     Stoppen): rechts das Abzeichen aus dem Zeitverlauf, dahinter der Pfeil. */
   .ht-ev.ht-go { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 72px 1fr auto 10px; align-items: center; column-gap: 8px; min-height: 30px; margin-left: -8px; padding-left: 8px; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   @media (hover: hover) { .ht-ev.ht-go:hover { background: color-mix(in srgb, var(--card-soft) 55%, transparent); } }
   .ht-ev.ht-go:active { background: var(--card-soft); }
@@ -109,6 +111,14 @@
   /* Gemeinsame Historie */
   #screen-historie .h-chip { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 6px; border-radius: 11px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); white-space: nowrap; cursor: pointer; font-family: inherit; }
   #screen-historie .h-chip.on { font-weight: 700; background: var(--chip-soft); border-color: var(--chip-border); color: var(--chip-strong); }
+  /* Unterkategorien des gewählten Bereichs: eine umrandete Leiste, die gewählte
+     gefüllt wie der Chip darüber. Ohne Auswahl gilt der ganze Bereich — es gibt
+     kein zweites „Alle“, nochmal tippen hebt die Auswahl auf. */
+  #screen-historie .h-sub { display: flex; gap: 3px; padding: 3px; border-radius: 14px; background: var(--surface); border: 1.5px solid var(--border); }
+  #screen-historie .h-sub[hidden] { display: none; }
+  #screen-historie .h-subchip { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 5px 6px; border-radius: 9px; font-size: 12.5px; font-weight: 600; border: 1.5px solid transparent; background: transparent; color: var(--text-muted); white-space: nowrap; cursor: pointer; font-family: inherit; }
+  #screen-historie .h-subchip.on { font-weight: 700; background: var(--chip-soft); border-color: var(--chip-border); color: var(--chip-strong); }
+  #screen-historie .h-subchip:focus-visible { outline: 2px solid var(--neutral-strong); outline-offset: 1px; }
   /* Eine Zeile ist ein Knopf in die Maske des Eintrags (openEintrag). */
   #screen-historie .h-row { display: flex; align-items: center; gap: 9px; padding: 10px 12px 10px 14px; border: none; border-bottom: 1px solid var(--border); background: none; width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer; }
   #screen-historie .h-row:active { background: var(--row-soft); }
@@ -1384,11 +1394,14 @@
           <div id="historie-subtitle" style="font-size: 13px; color: var(--text-muted);">Alle Einträge</div>
         </div>
       </div>
-      <div id="historie-chips" style="display: flex; gap: 5px; margin-top: -10px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-top: -10px;">
+      <div id="historie-chips" style="display: flex; gap: 5px;">
         <button class="h-chip on" data-filter="all" style="--chip-soft: var(--neutral-soft); --chip-border: var(--neutral-strong); --chip-strong: var(--neutral-strong);">Alle</button>
         <button class="h-chip" data-filter="fuettern" style="--chip-soft: var(--fuettern-soft); --chip-border: var(--fuettern); --chip-strong: var(--fuettern-strong);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--fuettern-strong)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.2c1.2.5 2 1.7 2 3.1v9.2c0 1.4-1.1 2.5-2.5 2.5h-5c-1.4 0-2.5-1.1-2.5-2.5V9.3c0-1.4.8-2.6 2-3.1V3z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>Füttern</button>
         <button class="h-chip" data-filter="windeln" style="--chip-soft: var(--windeln-soft); --chip-border: var(--windeln); --chip-strong: var(--windeln);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--windeln)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v3c0 5-3 8-8 9-5-1-8-4-8-9V8z"/></svg>Windeln</button>
         <button class="h-chip" data-filter="schlafen" style="--chip-soft: var(--schlafen-soft); --chip-border: var(--schlafen); --chip-strong: var(--schlafen-strong);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--schlafen-strong)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>Schlafen</button>
+      </div>
+      <div id="historie-sub" class="h-sub" hidden></div>
       </div>
       <div style="flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; margin-top: -8px;">
         <div id="historie-list" style="display: flex; flex-direction: column;"></div>
@@ -1698,7 +1711,7 @@ async function guardWrite(promise) {
 // keine Maske mehr offen ist. Offline oder ohne Datei bleibt alles, wie es ist.
 // Bei jedem Push APP_RELEASE und version.json gemeinsam hochzählen.
 // (APP_VERSION oben bleibt die Fassung, die die Firestore-Regeln prüfen.)
-const APP_RELEASE = 18;
+const APP_RELEASE = 19;
 const RELEASE_RELOAD_KEY = 'bt-release-reload';
 let releaseReloadPending = 0;
 let releaseCheckRunning = false;
@@ -2321,6 +2334,7 @@ const screens = {
 // Kachel ein neuer Eintrag, über die Historie das Bearbeiten eines bestehenden
 // (opts.edit — dann setzt enterXEdit die Maske, hier wird nichts zurückgesetzt).
 function showScreen(target, opts = {}) {
+  const from = currentScreen;
   currentScreen = target;
   // Aus der Analyse heraus gilt der Sprung von Heute nicht mehr.
   if (target !== 'analyse') analyseOrigin = null;
@@ -2329,6 +2343,8 @@ function showScreen(target, opts = {}) {
   if (target !== 'fuettern' && target !== 'schlafen') eintragRunning = false;
   Object.keys(screens).forEach((key) => { screens[key].style.display = key === target ? 'flex' : 'none'; });
   if (target === 'heute') loadOverview();
+  // Aus der Historie zurück: Heute steht wieder dort, wo es verlassen wurde.
+  if (target === 'heute' && from === 'historie') document.getElementById('heute-scroll').scrollTop = heuteHistorieTop;
   if (target === 'analyse') loadAnalyse();
   if (target === 'historie' && !opts.keep) loadHistorie(true);
   if (target === 'entwicklung') openEntwicklung();
@@ -2390,18 +2406,20 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
 });
 
 // Nur das „+" öffnet die Eintragen-Seite, eine Trendzeile den Bereich in der
-// Analyse, eine laufende „Zuletzt“-Zeile ihren Timer. Ein Tipp auf den Rest
-// der Kachel bewirkt nichts — sonst wäre unklar, was wohin führt.
+// Analyse, eine „Zuletzt“-Zeile die Historie ihrer (Unter-)Kategorie — läuft
+// dort gerade etwas, stattdessen den Timer. Ein Tipp auf den Rest der Kachel
+// bewirkt nichts — sonst wäre unklar, was wohin führt.
 document.querySelectorAll('.heute-card').forEach((card) => {
   card.addEventListener('click', (e) => {
     const row = e.target.closest('.ht-row');
     const last = e.target.closest('.ht-go');
     if (row) openAnalyseFromHeute(row.dataset.trend);
     else if (last && heuteLastEntries[Number(last.dataset.last)]) openEintrag(heuteLastEntries[Number(last.dataset.last)], 'heute');
+    else if (last && last.dataset.hcat) openHistorieFromHeute(last.dataset.hcat, last.dataset.hsub || null);
     else if (e.target.closest('.quick-btn')) showScreen(card.dataset.target);
   });
 });
-document.getElementById('heute-all-entries').addEventListener('click', () => showScreen('historie'));
+document.getElementById('heute-all-entries').addEventListener('click', () => openHistorieFromHeute('all', null));
 
 // „‹ Zurück" und „Abbrechen" auf den Eintragen-Seiten: ein neuer Eintrag
 // führt zurück auf Heute, eine Bearbeitung (nur „‹ Zurück") verwirft die
@@ -2448,6 +2466,8 @@ document.querySelectorAll('.back-btn, .entry-cancel').forEach((btn) => {
 // bzw. bei laufenden Einträgen die Eintragen-Seite mit dem Timer) liegt eine
 // Stufe unter seinem Ursprung.
 let currentScreen = 'heute';
+// Scrollstand von Heute beim Sprung in die Historie (openHistorieFromHeute).
+let heuteHistorieTop = 0;
 // 'heute', solange ein Analyse-Bereich über eine Heute-Trendzeile geöffnet
 // ist: „‹ Heute" und die Zurück-Taste führen dann dorthin statt zur Übersicht.
 let analyseOrigin = null;
@@ -5409,11 +5429,23 @@ const HISTORIE_SOURCES = [
   { name: 'nightWakeups', cat: 'schlafen', type: 'night' }
 ];
 const HISTORIE_CAT = {
-  fuettern: { soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', subtitle: 'Nur Füttern' },
-  windeln: { soft: 'var(--windeln-soft)', strong: 'var(--windeln)', subtitle: 'Nur Windeln' },
-  schlafen: { soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', subtitle: 'Nur Schlafen' }
+  fuettern: { soft: 'var(--fuettern-soft)', strong: 'var(--fuettern-strong)', border: 'var(--fuettern)', subtitle: 'Nur Füttern' },
+  windeln: { soft: 'var(--windeln-soft)', strong: 'var(--windeln)', border: 'var(--windeln)', subtitle: 'Nur Windeln' },
+  schlafen: { soft: 'var(--schlafen-soft)', strong: 'var(--schlafen-strong)', border: 'var(--schlafen)', subtitle: 'Nur Schlafen' }
 };
+// Unterkategorien je Bereich: [Schlüssel, Beschriftung, Symbol aus HISTORIE_ICONS].
+// Windeln wie „Zuletzt“ und der Analyse-Filter: „Klein“ = jede Windel mit
+// klein, „Groß“ = jede mit groß — ein Wechsel mit beidem steht in beiden.
+// Schlafen: Mond oder Sonne wie das Symbol der Zeile (Nachtfenster im Profil).
+const HISTORIE_SUBS = {
+  fuettern: [['bottle', 'Fläschchen', 'bottle'], ['breast', 'Brust', 'breast'], ['pump', 'Abpumpen', 'pump']],
+  windeln: [['small', 'Klein'], ['big', 'Groß']],
+  schlafen: [['day', 'Tagsüber', 'nap'], ['night', 'Nachts', 'night']]
+};
+const historieSubEl = document.getElementById('historie-sub');
 let historieFilter = 'all';
+// Gewählte Unterkategorie des Bereichs; null = der ganze Bereich.
+let historieSub = null;
 let historieBuffer = [];
 let historieState = {};
 let historieLastDayKey = null;
@@ -5426,6 +5458,22 @@ function historieActiveSources() {
 
 function historieTs(entry) {
   return entry._cat === 'schlafen' ? schlafenBusinessTimestamp(entry) : entryBusinessTimestamp(entry);
+}
+
+// Mond oder Sonne rechnet das Nachtfenster aus; ein laufender Timer zählt
+// nach seinem Beginn.
+function historieSleepIsNight(entry) {
+  const iv = sleepInterval(entry);
+  const startTs = schlafenBusinessTimestamp(entry);
+  return !!(iv || startTs) && sleepIsNight(iv || { start: startTs, end: startTs });
+}
+
+// Passt der Eintrag zur gewählten Unterkategorie? Ohne Auswahl jeder.
+function historieSubMatch(entry) {
+  if (!historieSub || historieFilter === 'all') return true;
+  if (entry._cat === 'fuettern') return (entry.type === 'bottle' || entry.type === 'pump' ? entry.type : 'breast') === historieSub;
+  if (entry._cat === 'windeln') return historieSub === 'small' ? !!entry.small : !!entry.big;
+  return historieSleepIsNight(entry) === (historieSub === 'night');
 }
 
 // Tag und Zeitpunkt getrennt — Nächte gehören zum Abend, an dem sie begannen
@@ -5473,7 +5521,9 @@ async function fetchHistorieChunk(src, token) {
   docs.forEach((d) => {
     const entry = { ...d, _cat: src.cat };
     if (src.type) entry._type = src.type;
-    historieBuffer.push(entry);
+    // Die Grenze („oldest“) zählt jeden gelesenen Eintrag, in die Liste kommt
+    // nur, was zur Unterkategorie passt.
+    if (historieSubMatch(entry)) historieBuffer.push(entry);
     if (!st.oldest || historieCompareDesc(entry, st.oldest) > 0) st.oldest = entry;
   });
 }
@@ -5545,11 +5595,8 @@ function historieDetail(entry) {
     const color = entry.big && entry.color && COLOR_BY_ID[entry.color];
     return { icon: 'diaper', main: sizes.join(' & ') || 'Windel', rest: color ? color.label : '', warn: !!(color && WARN_COLOR_IDS.includes(entry.color)) };
   }
-  // Schlaf, egal ob Timer, manuell oder alter Nacht-Eintrag. Mond oder Sonne
-  // rechnet das Nachtfenster aus; ein laufender Timer zählt nach seinem Beginn.
-  const iv = sleepInterval(entry);
-  const startTs = schlafenBusinessTimestamp(entry);
-  const icon = (iv || startTs) && sleepIsNight(iv || { start: startTs, end: startTs }) ? 'night' : 'nap';
+  // Schlaf, egal ob Timer, manuell oder alter Nacht-Eintrag.
+  const icon = historieSleepIsNight(entry) ? 'night' : 'nap';
   if (open) return { icon, main: 'Schlaf', rest: 'Läuft…' };
   return { icon, main: 'Schlaf', rest: 'bis ' + (schlafenEndTimeLabel(entry) || '--:--') + ' · ' + (schlafenDurationLabel(entry) || '–') };
 }
@@ -5650,20 +5697,58 @@ async function loadHistorie(reset) {
 }
 historieMoreBtn.addEventListener('click', () => loadHistorie(false));
 
+// Setzt Bereich und Unterkategorie und zeichnet Chips, Leiste und Untertitel
+// („Nur Füttern · Brust“). Geladen wird getrennt (loadHistorie / showScreen).
+function setHistorieFilter(filter, sub) {
+  historieFilter = filter;
+  const subs = HISTORIE_SUBS[filter];
+  const chosen = subs && subs.find((s) => s[0] === sub);
+  historieSub = chosen ? chosen[0] : null;
+  document.querySelectorAll('#historie-chips .h-chip').forEach((c) => {
+    const on = c.dataset.filter === filter;
+    c.classList.toggle('on', on);
+    c.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  historieSubEl.hidden = !subs;
+  if (subs) {
+    const cat = HISTORIE_CAT[filter];
+    historieSubEl.style.setProperty('--chip-soft', cat.soft);
+    historieSubEl.style.setProperty('--chip-border', cat.border);
+    historieSubEl.style.setProperty('--chip-strong', cat.strong);
+    historieSubEl.innerHTML = subs.map(([id, label, icon]) => {
+      const on = id === historieSub;
+      return '<button class="h-subchip' + (on ? ' on' : '') + '" data-sub="' + id + '" aria-pressed="' + on + '">' +
+        (icon ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + HISTORIE_ICONS[icon] + '</svg>' : '') +
+        label + '</button>';
+    }).join('');
+  }
+  historieSubtitleEl.textContent = filter === 'all' ? 'Alle Einträge' : HISTORIE_CAT[filter].subtitle + (chosen ? ' · ' + chosen[1] : '');
+}
+
 document.querySelectorAll('#historie-chips .h-chip').forEach((chip) => {
   chip.addEventListener('click', () => {
     const filter = chip.dataset.filter;
     if (filter === historieFilter) return;
-    historieFilter = filter;
-    document.querySelectorAll('#historie-chips .h-chip').forEach((c) => {
-      const on = c.dataset.filter === filter;
-      c.classList.toggle('on', on);
-      c.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
-    historieSubtitleEl.textContent = filter === 'all' ? 'Alle Einträge' : HISTORIE_CAT[filter].subtitle;
+    setHistorieFilter(filter, null);
     loadHistorie(true);
   });
 });
+// Unterkategorie: tippen wählt, nochmal tippen hebt die Auswahl auf.
+historieSubEl.addEventListener('click', (e) => {
+  const chip = e.target.closest('.h-subchip');
+  if (!chip) return;
+  setHistorieFilter(historieFilter, chip.dataset.sub === historieSub ? null : chip.dataset.sub);
+  loadHistorie(true);
+});
+
+// Von Heute in die Historie: aus einer „Zuletzt“-Zeile gefiltert auf ihre
+// (Unter-)Kategorie, über „Alle Einträge“ ungefiltert. „‹ Zurück“ stellt den
+// Scrollstand von Heute wieder her (showScreen).
+function openHistorieFromHeute(filter, sub) {
+  heuteHistorieTop = document.getElementById('heute-scroll').scrollTop;
+  setHistorieFilter(filter, sub);
+  showScreen('historie');
+}
 
 // --- Eintrag öffnen (aus Heute-Zeitverlauf oder Historie) ---
 // Ein abgeschlossener Eintrag öffnet direkt die Eintragen-Seite seines
@@ -5849,6 +5934,12 @@ function reinsertHistorieRow(entry) {
   removeHistoryRow(historieListEl, entry.id);
   const bufferIdx = historieBuffer.findIndex((e) => e.id === entry.id);
   if (bufferIdx >= 0) historieBuffer.splice(bufferIdx, 1);
+  // Nach der Änderung nicht mehr in der gewählten Unterkategorie (etwa Groß →
+  // Klein): die Zeile verschwindet aus dieser Liste.
+  if (!historieSubMatch(entry)) {
+    historieLastDayKey = historyLastDayKey(historieListEl);
+    return;
+  }
   const key = historieKey(entry);
   const row = historieRow(entry);
   const inserted = insertHistoryRow(historieListEl, row, key.dayKey, key.dayDate ? dayLabel(key.dayDate, new Date()) : 'Unbekanntes Datum', key.sort, historieAllLoaded());
@@ -6180,8 +6271,9 @@ function heuteLastRow(e) {
       '<span class="ht-t"><span class="ht-sep">seit ' + formatTime(e.since) + '</span></span>' +
       '<span>' + timelineRunningBadge(e.color, e.since) + '</span>' + HEUTE_TREND_CHEV + '</button>';
   }
-  return '<div class="ht-ev"><span class="ht-l">' + e.label + '</span><span class="ht-t">' + e.text + '</span>' +
-    '<span class="ht-when">' + timeAgo(e.t) + '</span><span></span></div>';
+  return '<button class="ht-ev ht-go" data-hcat="' + e.go[0] + '" data-hsub="' + (e.go[1] || '') + '" aria-label="' + e.label + ', ' + timeAgo(e.t) + '. Alle Einträge dazu öffnen">' +
+    '<span class="ht-l">' + e.label + '</span><span class="ht-t">' + e.text + '</span>' +
+    '<span class="ht-when">' + timeAgo(e.t) + '</span>' + HEUTE_TREND_CHEV + '</button>';
 }
 function heuteLastRunning(label, entry, cat, now) {
   return { label, since: new Date(entry.startTime), t: now, color: cat === 'fuettern' ? 'var(--fuettern)' : 'var(--schlafen)', entry: cat === 'schlafen' ? { ...entry, _cat: cat, _type: 'nap' } : { ...entry, _cat: cat } };
@@ -6220,11 +6312,11 @@ async function renderHeuteLast(now) {
   const breast = newest(done.filter((f) => f.type === 'breast'), endOf);
   const pump = newest(done.filter((f) => f.type === 'pump'), endOf);
   putHeuteLast('fuettern-last', [
-    bottle && { label: 'Fläschchen', t: bottle.t, text: milkLabel(bottle.x) + HT_SEP + (bottle.x.amount || 0) + ' ml' },
+    bottle && { label: 'Fläschchen', go: ['fuettern', 'bottle'], t: bottle.t, text: milkLabel(bottle.x) + HT_SEP + (bottle.x.amount || 0) + ' ml' },
     openFeeding ? heuteLastRunning('Brust', openFeeding, 'fuettern', now)
-      : breast && { label: 'Brust', t: breast.t, text: feedMinutes(breast.x) + ' Min' + heuteBreastSides(breast.x) },
+      : breast && { label: 'Brust', go: ['fuettern', 'breast'], t: breast.t, text: feedMinutes(breast.x) + ' Min' + heuteBreastSides(breast.x) },
     openPumping ? heuteLastRunning('Abpumpen', openPumping, 'fuettern', now)
-      : pump && { label: 'Abpumpen', t: pump.t, text: pump.x.pendingAmount ? 'Menge fehlt' : Number(pump.x.amount) > 0 ? pump.x.amount + ' ml' : feedMinutes(pump.x) + ' Min' }
+      : pump && { label: 'Abpumpen', go: ['fuettern', 'pump'], t: pump.t, text: pump.x.pendingAmount ? 'Menge fehlt' : Number(pump.x.amount) > 0 ? pump.x.amount + ' ml' : feedMinutes(pump.x) + ' Min' }
   ]);
 
   // Windeln: die letzte feuchte (mit klein) und die letzte große Windel (mit
@@ -6236,10 +6328,10 @@ async function renderHeuteLast(now) {
   const warnColor = (d) => (WARN_COLOR_IDS.includes(d.color) && COLOR_BY_ID[d.color]
     ? '<span class="ht-cdot" style="background:' + COLOR_BY_ID[d.color].hex + '"></span>' + COLOR_BY_ID[d.color].label + HT_WARN : '');
   putHeuteLast('windeln-last', small && big && small.x === big.x
-    ? [{ label: 'Klein & Groß', t: big.t, text: warnColor(big.x) }]
+    ? [{ label: 'Klein & Groß', go: ['windeln', null], t: big.t, text: warnColor(big.x) }]
     : [
-      small && { label: 'Klein', t: small.t, text: '' },
-      big && { label: 'Groß', t: big.t, text: warnColor(big.x) }
+      small && { label: 'Klein', go: ['windeln', 'small'], t: small.t, text: '' },
+      big && { label: 'Groß', go: ['windeln', 'big'], t: big.t, text: warnColor(big.x) }
     ]);
 
   // Schlafen: der zuletzt beendete Schlaf mit seiner Dauer, „vor x“ ab dem
@@ -6248,7 +6340,7 @@ async function renderHeuteLast(now) {
   const sleep = newest(spans.filter((iv) => iv.end <= now), (iv) => iv.end);
   putHeuteLast('schlafen-last', [
     openNap && openNap.startTime ? heuteLastRunning('Schlaf', openNap, 'schlafen', now)
-      : sleep && { label: 'Schlaf', t: sleep.t, text: heuteHm((sleep.x.end - sleep.x.start) / 60000) + ' h' }
+      : sleep && { label: 'Schlaf', go: ['schlafen', null], t: sleep.t, text: heuteHm((sleep.x.end - sleep.x.start) / 60000) + ' h' }
   ]);
 }
 
